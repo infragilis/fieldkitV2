@@ -105,5 +105,18 @@ Reference inventory and rationale are documented in [docs/platform-baseline.md](
 - [scripts/provision_pi.sh](/opt/fieldkit/scripts/provision_pi.sh:1) prepares hostname, user, and runtime directories.
 - [scripts/install_systemd.sh](/opt/fieldkit/scripts/install_systemd.sh:1) installs the web service unit.
 - [scripts/install_nginx.sh](/opt/fieldkit/scripts/install_nginx.sh:1) exposes Fieldkit on port `80` through `nginx`.
+- [scripts/install_https_self_signed.sh](/opt/fieldkit/scripts/install_https_self_signed.sh:1) generates a self-signed certificate and exposes Fieldkit on `443` while keeping `80` available.
 - [deploy/systemd/fieldkit-web.service](/opt/fieldkit/deploy/systemd/fieldkit-web.service:1) runs the FastAPI app under `uvicorn`.
 - [deploy/nginx/fieldkit.conf](/opt/fieldkit/deploy/nginx/fieldkit.conf:1) proxies port `80` to the local app on `127.0.0.1:8000`.
+- [deploy/nginx/fieldkit-ssl.conf](/opt/fieldkit/deploy/nginx/fieldkit-ssl.conf:1) adds self-signed TLS on `443` and keeps the HTTP front end on `80`.
+- [docs/https-self-signed.md](/opt/fieldkit/docs/https-self-signed.md:1) explains how to export and trust the self-signed Fieldkit certificate.
+
+## HTTPS Staging
+
+Self-signed HTTPS is staged but not enabled on the live kit yet. When ready, run:
+
+```bash
+sudo bash /opt/fieldkit/scripts/install_https_self_signed.sh
+```
+
+This adds HTTPS on port `443` using a self-signed certificate for the Fieldkit appliance and redirects HTTP on port `80` to HTTPS.
