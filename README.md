@@ -65,6 +65,18 @@ The app exposes serial console WebSocket endpoints at `/api/serial/ws/0` and `/a
 - `service/service` is the intended default appliance user
 - The device hostname target is `fieldkit`
 
+## Minimum supported platform
+
+The current documented baseline is:
+
+- Raspberry Pi 3 Model B or newer
+- Debian 13 (`trixie`) 64-bit
+- Python 3.13
+- NetworkManager / `nmcli`
+- OpenSSH server
+
+Reference inventory and rationale are documented in [docs/platform-baseline.md](/opt/fieldkit/docs/platform-baseline.md:1).
+
 ## Next implementation steps
 
 1. Wire network service actions to NetworkManager or systemd-networkd on the Pi.

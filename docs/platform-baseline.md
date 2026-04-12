@@ -1,0 +1,65 @@
+# Platform Baseline
+
+This document records the reference Raspberry Pi appliance state that Fieldkit was first built against and defines the minimum supported hardware/software baseline for other field engineers.
+
+## Minimum supported hardware
+
+- Raspberry Pi 3 Model B or newer
+- 64-bit userspace is the reference target
+- Two USB serial adapters for `ttyUSB` or `ttyACM` access
+- Ethernet uplink for direct servicing workflows
+
+Pi models older than Raspberry Pi 3 are below the intended baseline because onboard Wi-Fi is required for field connectivity workflows. Older boards may still work for limited ethernet-only cases, but they should be treated as unsupported unless an external Wi-Fi adapter strategy is added and tested.
+
+## Reference device inventory
+
+Collected from the current appliance at `192.168.200.120` on April 12, 2026 via SSH.
+
+- Hostname: `servicetools`
+- Model: `Raspberry Pi 3 Model B Rev 1.2`
+- OS: `Debian GNU/Linux 13 (trixie)` / `13.2`
+- Kernel: `6.12.47+rpt-rpi-v8`
+- Architecture: `aarch64`
+- Python: `3.13.5`
+- `pip`: `25.1.1`
+- `NetworkManager`: `1.52.1-1+rpt4`
+- `nmcli`: `1.52.1`
+- `openssh-server`: `1:10.0p1-7`
+
+## Services present on the reference device
+
+- `NetworkManager`: enabled
+- `systemd-networkd`: disabled
+- `hostapd`: not installed
+- `dnsmasq`: not installed
+- `tftpd-hpa`: not installed
+
+## Fieldkit baseline requirement
+
+Fieldkit should assume this minimum software platform:
+
+- Debian 13 (`trixie`) or a newer compatible Debian-based release
+- Python 3.13 available from the system package manager
+- NetworkManager and `nmcli` available and used as the primary network control plane
+- OpenSSH server available for remote maintenance
+
+These packages should be considered required for the first supported Fieldkit appliance build:
+
+- `python3`
+- `python3-venv`
+- `python3-pip`
+- `network-manager`
+- `openssh-server`
+
+These packages are not present on the reference device yet, but should be treated as planned Fieldkit dependencies for the full appliance feature set:
+
+- `hostapd`
+- `dnsmasq`
+- `tftpd-hpa`
+
+## Notes for compatibility
+
+- Pi 3 and newer should expose Wi-Fi client and AP flows in Fieldkit.
+- Older models should keep Wi-Fi features disabled unless explicit adapter support is implemented.
+- Fieldkit code should continue to discover both `ttyUSB*` and `ttyACM*` serial adapters.
+- The appliance hostname target remains `fieldkit`, even though the current reference unit still reports `servicetools`.
