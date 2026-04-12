@@ -25,6 +25,18 @@ def test_readme_route():
     assert "Fieldkit" in response.text
 
 
+def test_kit_docs_index_route():
+    response = client.get("/kit-docs")
+    assert response.status_code == 200
+    assert "Fieldkit Reference Notes" in response.text
+
+
+def test_kit_docs_topic_route():
+    response = client.get("/kit-docs/netapp")
+    assert response.status_code == 200
+    assert "cluster show" in response.text
+
+
 def test_update_settings():
     payload = {
         "hostname": "fieldkit",
@@ -76,9 +88,11 @@ def test_connectivity_apply_returns_commands():
 def test_connectivity_status_includes_platform_capabilities():
     response = client.get("/api/connectivity/status")
     assert response.status_code == 200
-    platform = response.json()["platform"]
+    payload = response.json()
+    platform = payload["platform"]
     assert "wifi_supported" in platform
     assert "notes" in platform
+    assert "active_connections" in payload
 
 
 def test_serial_sessions_include_indexes():

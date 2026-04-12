@@ -44,6 +44,12 @@ body {
   font-weight: 600;
 }
 
+.panel a {
+  color: var(--accent-dark);
+  text-decoration: none;
+  font-weight: 600;
+}
+
 .hero {
   display: grid;
   grid-template-columns: 1.4fr 1fr;

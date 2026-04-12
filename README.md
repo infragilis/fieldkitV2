@@ -16,6 +16,7 @@ This initial scaffold provides:
 - Directory browsing for `data`, `personal`, and `usb`
 - Upload support into `personal`
 - Persisted settings for ethernet, Wi-Fi mode, and serial console profiles
+- Local vendor reference notes linked from the main page
 - Placeholder endpoints for password changes, connectivity, and serial device status
 - Dry-run system apply planning for hostname and ethernet changes
 - A systemd unit template and install script for the web service
@@ -56,6 +57,20 @@ Open `http://127.0.0.1:8000`.
 
 The app exposes serial console WebSocket endpoints at `/api/serial/ws/0` and `/api/serial/ws/1`.
 
+## Kit Documentation
+
+Fieldkit includes local vendor quick-reference notes that are served by the app and intended to be available directly on the appliance in the field.
+
+Topics currently included:
+
+- `NetApp`
+- `Cisco`
+- `NVIDIA`
+- `Brocade Fabric OS`
+- `Broadcom Ethernet Switching`
+
+These notes live in [docs/kits](/opt/fieldkit/docs/kits) and are exposed through the web UI from the main page as well as the local docs index at `/kit-docs`.
+
 ## Raspberry Pi target behavior
 
 - Ethernet can be pinned to a local service IP for direct device imaging
@@ -89,4 +104,6 @@ Reference inventory and rationale are documented in [docs/platform-baseline.md](
 
 - [scripts/provision_pi.sh](/opt/fieldkit/scripts/provision_pi.sh:1) prepares hostname, user, and runtime directories.
 - [scripts/install_systemd.sh](/opt/fieldkit/scripts/install_systemd.sh:1) installs the web service unit.
+- [scripts/install_nginx.sh](/opt/fieldkit/scripts/install_nginx.sh:1) exposes Fieldkit on port `80` through `nginx`.
 - [deploy/systemd/fieldkit-web.service](/opt/fieldkit/deploy/systemd/fieldkit-web.service:1) runs the FastAPI app under `uvicorn`.
+- [deploy/nginx/fieldkit.conf](/opt/fieldkit/deploy/nginx/fieldkit.conf:1) proxies port `80` to the local app on `127.0.0.1:8000`.

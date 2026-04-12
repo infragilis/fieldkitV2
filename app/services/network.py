@@ -18,11 +18,13 @@ class NetworkService:
         settings = self._store.load()
         interfaces = self._detect_interfaces()
         platform = self._platform.detect()
+        active_connections = self._active_connections()
         return {
             "hostname": settings.hostname,
             "ethernet": settings.ethernet.model_dump(),
             "wifi": settings.wifi.model_dump(),
             "interfaces": interfaces,
+            "active_connections": active_connections,
             "platform": platform,
             "applied": False,
             "dry_run": self._settings.dry_run_system_changes,
@@ -156,3 +158,24 @@ class NetworkService:
                     for item in payload
                 ]
         return []
+
+    def _active_connections(self) -> list[dict]:
+        if not self._runner.available("nmcli"):
+            return []
+        result = self._runner.run(["nmcli", "-t", "-f", "NAME,DEVICE,TYPE,STATE", "connection", "show", "--active"])
+        if not result.ok:
+            return []
+        connections = []
+        for line in result.stdout.splitlines():
+            parts = line.split(":")
+            if len(parts) < 4:
+                continue
+            connections.append(
+                {
+                    "name": parts[0],
+                    "device": parts[1],
+                    "type": parts[2],
+                    "state": ":".join(parts[3:]),
+                }
+            )
+        return connections

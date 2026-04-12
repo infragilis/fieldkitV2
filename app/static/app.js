@@ -40,6 +40,12 @@ async function loadStatus() {
   renderKeyValue(document.getElementById("connectivity-status"), connectivity);
   document.getElementById("platform-notes").textContent = (connectivity.platform?.notes || []).join(" ");
   renderList(
+    document.getElementById("active-connections"),
+    connectivity.active_connections || [],
+    (connection) =>
+      `<li><strong>${connection.device}</strong> ${connection.name} <span class="muted">${connection.type}, ${connection.state}</span></li>`
+  );
+  renderList(
     document.getElementById("wifi-networks"),
     wifi.networks,
     (network) => `<li>${network.ssid} <span class="muted">(${network.signal}%${network.secure ? ", secure" : ""})</span></li>`
