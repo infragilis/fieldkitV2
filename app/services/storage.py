@@ -20,10 +20,11 @@ class StorageService:
         ensure_runtime_layout(settings)
 
     def library_paths(self) -> dict[str, Path]:
+        usb_path = self._detect_usb_mount() or (self.settings.content_root / self.settings.usb_dir_name)
         return {
             "data": self.settings.content_root / self.settings.data_dir_name,
             "personal": self.settings.content_root / self.settings.personal_dir_name,
-            "usb": self.settings.content_root / self.settings.usb_dir_name,
+            "usb": usb_path,
         }
 
     def list_library(self, library: str, relative_path: str = "") -> dict:
@@ -66,3 +67,22 @@ class StorageService:
         if library not in paths:
             raise ValueError(f"Unknown library: {library}")
         return paths[library]
+
+    def _detect_usb_mount(self) -> Path | None:
+        candidates = (
+            Path("/media/service"),
+            Path("/media"),
+            Path("/mnt"),
+        )
+        for base in candidates:
+            if not base.exists():
+                continue
+            for path in sorted(base.glob("*")):
+                if path.is_dir() and not path.name.startswith("."):
+                    if base.name == "media" and path.name == "service":
+                        for nested in sorted(path.glob("*")):
+                            if nested.is_dir() and not nested.name.startswith("."):
+                                return nested
+                        continue
+                    return path
+        return None

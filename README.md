@@ -13,7 +13,7 @@ This initial scaffold provides:
 
 - A FastAPI backend with modular routers and services
 - A static web UI shell
-- Directory browsing for `data`, `personal`, and `usb`
+- A dedicated `Files` page for browsing `data`, `personal`, and `usb`
 - Upload support into `personal`
 - Persisted settings for ethernet, Wi-Fi mode, and serial console profiles
 - Local vendor reference notes linked from the main page
@@ -24,6 +24,20 @@ This initial scaffold provides:
 - WebSocket serial console plumbing for the two configured USB serial profiles
 
 Pi-specific integrations such as `hostapd`, `dnsmasq`, `nmcli`, `tftpd`, `scp`, and serial streaming are intentionally isolated behind service modules so they can be implemented and tested separately.
+
+## File Libraries
+
+Fieldkit exposes three file libraries through the `Files` page:
+
+- `data`
+- `personal`
+- `usb`
+
+Current USB behavior:
+
+- If removable storage is auto-mounted under `/media/service`, `/media`, or `/mnt`, Fieldkit will use that mount as the `usb` library automatically.
+- The current implementation is intended for the common single-mounted-USB-stick case.
+- Multi-drive handling, labels, and hot-plug refresh are tracked in [TODO.md](/opt/fieldkit/TODO.md:1).
 
 ## Layout
 

@@ -56,6 +56,69 @@ async def readme() -> HTMLResponse:
     return HTMLResponse(html)
 
 
+@app.get("/files", include_in_schema=False)
+async def files_page() -> HTMLResponse:
+    html = """<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Files</title>
+    <style>
+      :root {
+        --line: #c2b6a2;
+        --text: #1f2a2d;
+        --muted: #5e6a6f;
+        --accent: #b24a2b;
+        --accent-dark: #7f311c;
+      }
+      body { font-family: 'IBM Plex Sans', sans-serif; background: #f6f0e5; color: var(--text); margin: 0; }
+      main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 32px 0 48px; }
+      article { background: rgba(255, 252, 246, 0.92); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+      .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+      button { padding: 10px 14px; border: 0; border-radius: 999px; background: var(--accent); color: white; cursor: pointer; }
+      ul { list-style: none; padding: 0; margin: 0; }
+      li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+      li:last-child { border-bottom: 0; }
+      a { color: var(--accent-dark); }
+      .muted { color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article>
+        <p><a href="/">Back to Fieldkit</a></p>
+        <h1>Files</h1>
+        <p class="muted">Browse the local file libraries available on the kit.</p>
+        <div class="tabs">
+          <button data-library="data">data</button>
+          <button data-library="personal">personal</button>
+          <button data-library="usb">usb</button>
+        </div>
+        <p class="muted" id="library-path"></p>
+        <ul id="library-items"></ul>
+      </article>
+    </main>
+    <script>
+      async function loadLibrary(name) {
+        const response = await fetch(`/api/files?library=${encodeURIComponent(name)}`);
+        const payload = await response.json();
+        document.getElementById("library-path").textContent = `/${payload.library}/${payload.path || ""}`;
+        document.getElementById("library-items").innerHTML =
+          payload.items.map((item) =>
+            `<li>${item.name} <span class="muted">${item.is_dir ? `directory: ${item.path}` : `${item.size} bytes`}</span></li>`
+          ).join("") || "<li>No entries</li>";
+      }
+      document.querySelectorAll("[data-library]").forEach((button) => {
+        button.addEventListener("click", () => loadLibrary(button.dataset.library));
+      });
+      loadLibrary("data");
+    </script>
+  </body>
+</html>"""
+    return HTMLResponse(html)
+
+
 @app.get("/kit-docs", include_in_schema=False)
 async def kit_docs_index() -> HTMLResponse:
     links = "\n".join(

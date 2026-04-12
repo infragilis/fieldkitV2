@@ -71,17 +71,6 @@ async function loadStatus() {
   serialForm.console2_baud.value = settings.serial_ports[1]?.baud_rate || 9600;
 }
 
-async function loadLibrary(name) {
-  const payload = await getJson(`/api/files?library=${encodeURIComponent(name)}`);
-  document.getElementById("library-path").textContent = `/${payload.library}/${payload.path || ""}`;
-  renderList(
-    document.getElementById("library-items"),
-    payload.items,
-    (item) =>
-      `<li>${item.name} <span class="muted">${item.is_dir ? `directory: ${item.path}` : `${item.size} bytes`}</span></li>`
-  );
-}
-
 function buildSettingsPayload() {
   const networkForm = document.getElementById("settings-form");
   const serialForm = document.getElementById("serial-settings-form");
@@ -199,10 +188,5 @@ document.getElementById("console-input-form").addEventListener("submit", sendCon
 document.getElementById("apply-network-button").addEventListener("click", applyNetworkPlan);
 document.getElementById("open-console-0").addEventListener("click", () => connectConsole(0));
 document.getElementById("open-console-1").addEventListener("click", () => connectConsole(1));
-document.querySelectorAll("[data-library]").forEach((button) => {
-  button.addEventListener("click", () => loadLibrary(button.dataset.library));
-});
-
 loadStatus();
-loadLibrary("data");
 loadMeta();
