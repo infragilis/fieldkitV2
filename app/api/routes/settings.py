@@ -1,0 +1,18 @@
+from fastapi import APIRouter
+
+from app.core.models import AppSettingsPayload
+from app.services.settings_store import SettingsStore
+
+router = APIRouter()
+store = SettingsStore()
+
+
+@router.get("")
+async def get_settings():
+    return store.load().model_dump()
+
+
+@router.put("")
+async def update_settings(payload: AppSettingsPayload):
+    saved = store.save(payload)
+    return saved.model_dump()

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Raspberry Pi Field Service</p>
+          <h1>Fieldkit</h1>
+          <p class="subhead">
+            Download firmware, upload personal assets, inspect connectivity, and manage two serial console profiles.
+          </p>
+        </div>
+        <div class="status-card" id="system-status"></div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Connectivity</h2>
+          <div id="connectivity-status"></div>
+          <p id="platform-notes" class="muted"></p>
+          <h3>Nearby Wi-Fi</h3>
+          <ul id="wifi-networks" class="list"></ul>
+        </article>
+
+        <article class="panel">
+          <h2>Serial Consoles</h2>
+          <ul id="serial-sessions" class="list"></ul>
+          <div class="console-controls">
+            <button id="open-console-0" type="button">Open Console 1</button>
+            <button id="open-console-1" type="button">Open Console 2</button>
+          </div>
+          <pre id="console-output" class="console-output"></pre>
+          <form id="console-input-form">
+            <input type="text" name="console_input" placeholder="Send to active console" />
+            <button type="submit">Send</button>
+          </form>
+        </article>
+
+        <article class="panel">
+          <h2>Libraries</h2>
+          <div class="tabs">
+            <button data-library="data">data</button>
+            <button data-library="personal">personal</button>
+            <button data-library="usb">usb</button>
+          </div>
+          <p class="muted" id="library-path"></p>
+          <ul id="library-items" class="list"></ul>
+        </article>
+
+        <article class="panel">
+          <h2>Upload</h2>
+          <form id="upload-form">
+            <input type="file" name="file" required />
+            <button type="submit">Upload to personal</button>
+          </form>
+          <p id="upload-result" class="muted"></p>
+        </article>
+
+        <article class="panel">
+          <h2>Settings</h2>
+          <form id="settings-form">
+            <label>
+              Hostname
+              <input type="text" name="hostname" />
+            </label>
+            <label>
+              Ethernet Mode
+              <select name="ethernet_mode">
+                <option value="static">Static</option>
+                <option value="dhcp">DHCP</option>
+              </select>
+            </label>
+            <label>
+              Ethernet Address
+              <input type="text" name="ethernet_address" />
+            </label>
+            <label>
+              Wi-Fi Mode
+              <select name="wifi_mode">
+                <option value="disabled">Disabled</option>
+                <option value="ap">AP</option>
+                <option value="client">Client</option>
+              </select>
+            </label>
+            <label>
+              Wi-Fi SSID
+              <input type="text" name="wifi_ssid" />
+            </label>
+            <label>
+              Console 1 Baud
+              <input type="number" name="console1_baud" value="9600" />
+            </label>
+            <label>
+              Console 2 Baud
+              <input type="number" name="console2_baud" value="9600" />
+            </label>
+            <button type="submit">Save Settings</button>
+          </form>
+          <button id="apply-network-button" type="button">Prepare Network Apply</button>
+          <p id="apply-network-result" class="muted"></p>
+        </article>
+
+        <article class="panel">
+          <h2>Change Password</h2>
+          <form id="password-form">
+            <label>
+              Current Password
+              <input type="password" name="current_password" />
+            </label>
+            <label>
+              New Password
+              <input type="password" name="new_password" />
+            </label>
+            <button type="submit">Change Password</button>
+          </form>
+          <p id="password-result" class="muted"></p>
+        </article>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
