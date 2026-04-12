@@ -8,6 +8,7 @@ class RuntimeSettings(BaseModel):
     app_name: str = "fieldkit"
     content_root: Path = Path("runtime/content")
     state_root: Path = Path("runtime/state")
+    serial_log_dir_name: str = "serial-logs"
     data_dir_name: str = "data"
     personal_dir_name: str = "personal"
     usb_dir_name: str = "usb"

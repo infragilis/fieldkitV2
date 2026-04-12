@@ -33,8 +33,8 @@ class AppSettingsPayload(BaseModel):
     wifi: WifiConfig = Field(default_factory=WifiConfig)
     serial_ports: list[SerialPortConfig] = Field(
         default_factory=lambda: [
-            SerialPortConfig(label="Console 1", device_hint="/dev/ttyUSB0"),
-            SerialPortConfig(label="Console 2", device_hint="/dev/ttyUSB1"),
+            SerialPortConfig(label="Console 1", device_hint=""),
+            SerialPortConfig(label="Console 2", device_hint=""),
         ]
     )
 

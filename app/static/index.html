@@ -9,48 +9,34 @@
   <body>
     <main class="app-shell">
       <nav class="topbar">
-        <div class="brand-mark">Fieldkit</div>
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span id="app-version" class="brand-version">v0.1.0</span>
+        </div>
         <div class="topbar-links">
-          <a href="#connectivity">Connectivity</a>
-          <a href="#serial">Serial</a>
+          <a href="#serial">Console</a>
           <a href="/files">Files</a>
           <a href="#docs">Docs</a>
-          <a href="#settings">Settings</a>
+          <a href="/settings">Settings</a>
           <a href="/readme">README</a>
         </div>
       </nav>
 
       <section class="hero">
-        <div>
-          <h1>Fieldkit</h1>
-          <p class="subhead">
-            Download firmware, upload personal assets, inspect connectivity, and manage two serial console profiles.
-          </p>
-        </div>
+        <div></div>
       </section>
 
       <section class="grid">
-        <article class="panel" id="connectivity">
-          <h2>Connectivity</h2>
-          <p id="platform-notes" class="muted"></p>
-          <h3>Active Links</h3>
-          <ul id="active-connections" class="list"></ul>
-          <h3>Nearby Wi-Fi</h3>
-          <ul id="wifi-networks" class="list"></ul>
-        </article>
-
         <article class="panel" id="serial">
           <h2>Serial Consoles</h2>
           <ul id="serial-sessions" class="list"></ul>
+          <p id="serial-quick-result" class="muted"></p>
+          <p id="serial-reset-result" class="muted"></p>
           <div class="console-controls">
             <button id="open-console-0" type="button">Open Console 1</button>
             <button id="open-console-1" type="button">Open Console 2</button>
           </div>
-          <pre id="console-output" class="console-output"></pre>
-          <form id="console-input-form">
-            <input type="text" name="console_input" placeholder="Send to active console" />
-            <button type="submit">Send</button>
-          </form>
+          <p class="muted">Each console opens in its own movable popup window for field use.</p>
         </article>
 
         <article class="panel" id="docs">
@@ -63,87 +49,27 @@
             <li><a href="/kit-docs/brocade-fabric-os" target="_blank" rel="noopener noreferrer">Brocade Fabric OS</a></li>
             <li><a href="/kit-docs/broadcom-ethernet-switching" target="_blank" rel="noopener noreferrer">Broadcom Ethernet Switching</a></li>
           </ul>
-          <p><a href="/kit-docs" target="_blank" rel="noopener noreferrer">Open docs index</a></p>
+          <p class="docs-index-link"><a href="/kit-docs" target="_blank" rel="noopener noreferrer">Open docs index</a></p>
         </article>
 
         <article class="panel">
           <h2>Upload</h2>
           <form id="upload-form">
+            <label>
+              Destination
+              <select name="upload_library">
+                <option value="personal">personal</option>
+                <option value="usb">usb</option>
+              </select>
+            </label>
             <input type="file" name="file" required />
-            <button type="submit">Upload to personal</button>
+            <button type="submit">Upload File</button>
           </form>
           <p id="upload-result" class="muted"></p>
         </article>
-
-        <article class="panel" id="settings">
-          <h2>Networking</h2>
-          <form id="settings-form">
-            <label>
-              Hostname
-              <input type="text" name="hostname" />
-            </label>
-            <label>
-              Ethernet Mode
-              <select name="ethernet_mode">
-                <option value="static">Static</option>
-                <option value="dhcp">DHCP</option>
-              </select>
-            </label>
-            <label>
-              Ethernet Address
-              <input type="text" name="ethernet_address" />
-            </label>
-            <label>
-              Wi-Fi Mode
-              <select name="wifi_mode">
-                <option value="disabled">Disabled</option>
-                <option value="ap">AP</option>
-                <option value="client">Client</option>
-              </select>
-            </label>
-            <label>
-              Wi-Fi SSID
-              <input type="text" name="wifi_ssid" />
-            </label>
-            <button type="submit">Save Network Settings</button>
-          </form>
-          <button id="apply-network-button" type="button">Prepare Network Apply</button>
-          <p id="apply-network-result" class="muted"></p>
-        </article>
-
-        <article class="panel">
-          <h2>Serial Settings</h2>
-          <form id="serial-settings-form">
-            <label>
-              Console 1 Baud
-              <input type="number" name="console1_baud" value="9600" />
-            </label>
-            <label>
-              Console 2 Baud
-              <input type="number" name="console2_baud" value="9600" />
-            </label>
-            <button type="submit">Save Serial Settings</button>
-          </form>
-        </article>
-
-        <article class="panel">
-          <h2>Change Password</h2>
-          <form id="password-form">
-            <label>
-              Current Password
-              <input type="password" name="current_password" />
-            </label>
-            <label>
-              New Password
-              <input type="password" name="new_password" />
-            </label>
-            <button type="submit">Change Password</button>
-          </form>
-          <p id="password-result" class="muted"></p>
-        </article>
       </section>
       <footer class="app-footer">
-        <span id="app-version">Fieldkit v0.1</span>
+        <span>Fieldkit by <a href="https://www.infragilis.org" target="_blank" rel="noopener noreferrer">Infragilis</a>, 2026, git repo is <a href="https://github.com/infragilis/fieldkitV2" target="_blank" rel="noopener noreferrer">here</a>.</span>
       </footer>
     </main>
 

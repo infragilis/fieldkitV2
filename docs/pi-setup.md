@@ -9,6 +9,12 @@ This document describes how to prepare a Raspberry Pi to the minimum supported F
 - NetworkManager enabled
 - `service` user available for Fieldkit operations
 
+## Default SSH Access
+
+The default appliance SSH login is `service` / `service`.
+
+This should be treated as a temporary bootstrap credential and changed as soon as the kit is provisioned.
+
 Reference baseline details are in [platform-baseline.md](/opt/fieldkit/docs/platform-baseline.md:1).
 
 ## Base OS preparation
@@ -47,6 +53,12 @@ If the `service` user does not exist yet:
 sudo useradd -m -s /bin/bash service
 echo 'service:service' | sudo chpasswd
 sudo usermod -aG sudo,dialout,netdev,plugdev service
+```
+
+Change that default password immediately after initial access:
+
+```bash
+passwd service
 ```
 
 ## Set the hostname

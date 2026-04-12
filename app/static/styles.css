@@ -43,9 +43,19 @@ body {
 }
 
 .brand-mark {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
+}
+
+.brand-version {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .topbar-links {
@@ -62,7 +72,7 @@ body {
 
 .app-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 12px;
   margin-top: 24px;
@@ -135,6 +145,57 @@ h1 {
   border-bottom: 0;
 }
 
+.serial-session-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.serial-session-meta {
+  min-width: 0;
+}
+
+.serial-session-meta strong,
+.serial-session-meta span {
+  display: block;
+}
+
+.serial-session-actions {
+  width: 170px;
+  flex: 0 0 170px;
+}
+
+.serial-session-action-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  align-items: center;
+}
+
+.serial-session-actions select {
+  width: 98px;
+  min-width: 98px;
+  margin-top: 0;
+  padding: 8px 10px;
+}
+
+.serial-reset-button {
+  padding: 8px 10px;
+  background: #7f311c;
+  min-width: 64px;
+  white-space: nowrap;
+}
+
+.serial-settings-note {
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.docs-index-link {
+  margin-top: 14px;
+}
+
 .console-controls {
   display: flex;
   gap: 8px;
@@ -198,5 +259,15 @@ select {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .serial-session-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .serial-session-actions {
+    width: 100%;
+    flex-basis: auto;
   }
 }

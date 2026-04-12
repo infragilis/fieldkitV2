@@ -2,6 +2,13 @@
 
 This document describes how to update a deployed Fieldkit appliance from git and reload the running services.
 
+The currently deployed web UI includes:
+
+- a main dashboard at `/`
+- a dedicated settings page at `/settings`
+- popup console windows at `/serial-console/0` and `/serial-console/1`
+- a files page at `/files`
+
 ## Pull the latest repo state
 
 On the Raspberry Pi:
@@ -66,6 +73,8 @@ Verify locally on the Pi:
 
 ```bash
 curl -k https://127.0.0.1/
+curl -k https://127.0.0.1/settings
+curl -k https://127.0.0.1/files
 curl -k https://127.0.0.1/readme
 systemctl is-active fieldkit-web.service
 systemctl is-active nginx
@@ -74,5 +83,6 @@ systemctl is-active nginx
 ## Notes
 
 - Short `502` responses from nginx can happen during app restarts if the proxy comes up before uvicorn is ready.
+- Browser hard refreshes may be needed after frontend changes because `app.js` and `styles.css` are cached by the browser.
 - If `git pull --ff-only` fails, inspect local changes before forcing anything.
 - Keep the repo and deployed app rooted at `/opt/fieldkit` for consistency with the current systemd and nginx assets.

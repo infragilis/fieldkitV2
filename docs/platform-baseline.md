@@ -6,7 +6,7 @@ This document records the reference Raspberry Pi appliance state that Fieldkit w
 
 - Raspberry Pi 3 Model B or newer
 - 64-bit userspace is the reference target
-- Two USB serial adapters for `ttyUSB` or `ttyACM` access
+- Two USB-to-serial console cables or USB serial adapters for `ttyUSB` or `ttyACM` access
 - Ethernet uplink for direct servicing workflows
 
 Pi models older than Raspberry Pi 3 are below the intended baseline because onboard Wi-Fi is required for field connectivity workflows. Older boards may still work for limited ethernet-only cases, but they should be treated as unsupported unless an external Wi-Fi adapter strategy is added and tested.
@@ -75,4 +75,5 @@ These packages are part of the planned Fieldkit feature set and are now installe
 - Pi 3 and newer should expose Wi-Fi client and AP flows in Fieldkit.
 - Older models should keep Wi-Fi features disabled unless explicit adapter support is implemented.
 - Fieldkit code should continue to discover both `ttyUSB*` and `ttyACM*` serial adapters.
+- Field console workflows require compatible USB-to-serial console cables or USB serial adapters.
 - The appliance hostname target is `fieldkit`.

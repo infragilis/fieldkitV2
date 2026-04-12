@@ -2,26 +2,58 @@
 
 Fieldkit is a Raspberry Pi appliance for field servicing network devices. It exposes:
 
-- A web UI for downloads, uploads, connectivity, and console management
-- Two USB serial console endpoints with independent settings
-- A local content library split into `data`, `personal`, and optional `usb`
+- A web UI for console access, file transfer, connectivity review, and appliance settings
+- Two USB serial console endpoints with independent settings and popup console windows
+- A local content library split into `data`, `personal`, `usb`, and `serial-logs`
 - A modular backend so Pi integration code stays isolated from the web layer
 
-## Current scope
+## Hardware Note
 
-This initial scaffold provides:
+Console access requires USB-to-serial console cables or USB serial adapters that present as `ttyUSB*` or `ttyACM*` devices on the appliance.
+
+## Default Access
+
+The default appliance SSH login is `service` / `service`.
+
+This is a factory-default credential only and should be changed immediately on any real kit.
+
+## Open Source
+
+Fieldkit is fully open source and available for anyone to use, modify, and distribute under the MIT license in [LICENSE](/opt/fieldkit/LICENSE:1).
+
+This project is provided `AS IS`, without warranty of any kind, express or implied.
+
+## Issues And Features
+
+Post bugs, issues, and feature requests at:
+
+- <https://github.com/infragilis/fieldkitV2/issues>
+
+## Current Functionality
+
+The current repo and live kit provide:
 
 - A FastAPI backend with modular routers and services
-- A static web UI shell
-- A dedicated `Files` page for browsing `data`, `personal`, and `usb`
-- Upload support into `personal`
+- A main dashboard focused on console access, docs, and uploads
+- A dedicated `/settings` page for connectivity, networking, password changes, and serial presets
+- A dedicated `/files` page for browsing `data`, `personal`, `usb`, and `serial-logs`
+- Desktop-to-kit uploads into `personal` or mounted `usb`
+- Duplicate upload protection so existing files are not overwritten silently
+- Delete actions for `personal` files and captured `serial-logs`
+- USB auto-detection for common mounted media roots under `/media/service`, `/media`, and `/mnt`
+- Hidden/macOS metadata filtering in the file browser so `._*`, `.Spotlight-V100`, and similar entries do not clutter USB views
+- Local vendor reference notes linked from the web UI
 - Persisted settings for ethernet, Wi-Fi mode, and serial console profiles
-- Local vendor reference notes linked from the main page
-- Placeholder endpoints for password changes, connectivity, and serial device status
-- Dry-run system apply planning for hostname and ethernet changes
+- Quick serial preset switching between `9600 8N1` and `115200 8N1`
+- Automatic serial adapter detection so console sessions can work without manually setting `/dev/ttyUSB*` paths
+- A dedicated `/serial-settings` page for full per-console settings such as optional device preference, baud, parity, data bits, and stop bits
+- Popup serial console windows at `/serial-console/0` and `/serial-console/1`
+- Direct keyboard capture in popup console sessions instead of line-by-line send forms
+- Timestamped serial session log capture under `runtime/state/serial-logs`
+- Reset actions for active console sessions
+- Dry-run network apply planning for hostname and ethernet changes
 - A systemd unit template and install script for the web service
 - Pi capability detection so Wi-Fi behavior can differ cleanly across Pi 3 and newer vs older models
-- WebSocket serial console plumbing for the two configured USB serial profiles
 
 Pi-specific integrations such as `hostapd`, `dnsmasq`, `nmcli`, `tftpd`, `scp`, and serial streaming are intentionally isolated behind service modules so they can be implemented and tested separately.
 
@@ -30,19 +62,39 @@ Pi-specific integrations such as `hostapd`, `dnsmasq`, `nmcli`, `tftpd`, `scp`, 
 - Fieldkit should be able to run Ansible workflows against field devices from the kit itself.
 - Serial console sessions should be logged on the kit with date/time-stamped session files for later review.
 
+## Web UI
+
+Primary routes:
+
+- `/` for the main dashboard
+- `/settings` for connectivity, networking, password, and serial preset management
+- `/serial-settings` for detailed per-console serial profile editing
+- `/files` for file browsing, upload, and delete actions
+- `/readme` for the repo README rendered locally on the kit
+- `/kit-docs` for the local documentation index
+
 ## File Libraries
 
-Fieldkit exposes three file libraries through the `Files` page:
+Fieldkit exposes four file libraries through the `Files` page:
 
 - `data`
 - `personal`
 - `usb`
+- `serial-logs`
 
 Current USB behavior:
 
 - If removable storage is auto-mounted under `/media/service`, `/media`, or `/mnt`, Fieldkit will use that mount as the `usb` library automatically.
 - The current implementation is intended for the common single-mounted-USB-stick case.
 - Multi-drive handling, labels, and hot-plug refresh are tracked in [TODO.md](/opt/fieldkit/TODO.md:1).
+
+Current file behavior:
+
+- Uploads are allowed to `personal` and `usb`
+- Uploads to `data` and `serial-logs` are blocked
+- Duplicate filenames return a warning instead of overwriting the existing file
+- Deletes are allowed for `personal` and `serial-logs`
+- USB files are currently treated as read-only from a delete perspective
 
 ## Layout
 
@@ -75,6 +127,11 @@ uvicorn app.main:app --reload
 Open `http://127.0.0.1:8000`.
 
 The app exposes serial console WebSocket endpoints at `/api/serial/ws/0` and `/api/serial/ws/1`.
+Each session creates a UTC-stamped log file in `runtime/state/serial-logs` and records open/close events plus `RX` and `TX` traffic.
+If no device preference is saved for a console, Fieldkit auto-assigns the next detected `ttyUSB*` or `ttyACM*` adapter.
+
+Popup console windows are exposed at `/serial-console/0` and `/serial-console/1`.
+These windows are intended to be moved around independently by field engineers and capture keyboard input directly.
 
 ## Kit Documentation
 
@@ -96,7 +153,7 @@ These notes live in [docs/kits](/opt/fieldkit/docs/kits) and are exposed through
 - Wi-Fi can operate as AP or client mode
 - Pi 3 and newer should expose onboard Wi-Fi flows; older models should keep Wi-Fi disabled unless an adapter is explicitly added later
 - The fourth port service workflow should be implemented via the network service module
-- `service/service` is the intended default appliance user
+- `service/service` is the intended default appliance SSH username and password
 - The device hostname target is `fieldkit`
 
 ## Minimum supported platform
@@ -117,13 +174,22 @@ Reference inventory and rationale are documented in [docs/platform-baseline.md](
 - [docs/update-and-reload.md](/opt/fieldkit/docs/update-and-reload.md:1) explains how to pull the repo, refresh the Python environment, and reload the deployed kit.
 - [docs/golden-image-checklist.md](/opt/fieldkit/docs/golden-image-checklist.md:1) provides a concise repeatable checklist for preparing a handoff-ready Fieldkit image.
 
-## Next implementation steps
+## Current Limitations
 
-1. Wire network service actions to NetworkManager or systemd-networkd on the Pi.
-2. Add richer serial session controls such as break, reconnect, and capture-to-file.
-3. Add HTTP/TFTP/SCP serving workflows for firmware and images.
-4. Add optional removable USB content mounting and browsing.
-5. Add appliance provisioning scripts for hostname, user setup, and service installation.
+- USB browsing still assumes the common single-mounted-drive case
+- Multi-drive labels and hot-plug refresh are not implemented yet
+- Serial adapters are auto-assigned in detected order, but stable identity by USB serial number or port topology is not implemented yet
+- Password changes are still handled by a backend placeholder path
+- Network apply remains a dry-run planning workflow rather than a full live reconfiguration path
+- Ansible device-side workflows are not implemented yet
+
+## Next Implementation Steps
+
+1. Improve USB storage handling to support multiple mounted drives, labels, and live refresh.
+2. Add richer serial session controls such as break handling and more detailed reconnect state.
+3. Wire network service actions to real NetworkManager or systemd-networkd changes on the Pi.
+4. Add HTTP/TFTP/SCP serving workflows for firmware and images.
+5. Add Ansible execution workflows for field devices and NetApp runbooks.
 
 ## Deployment assets
 

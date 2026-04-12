@@ -10,6 +10,7 @@ def ensure_runtime_layout(settings: RuntimeSettings) -> None:
         settings.content_root / settings.personal_dir_name,
         settings.content_root / settings.usb_dir_name,
         settings.state_root,
+        settings.state_root / settings.serial_log_dir_name,
     ):
         path.mkdir(parents=True, exist_ok=True)
 
@@ -25,6 +26,7 @@ class StorageService:
             "data": self.settings.content_root / self.settings.data_dir_name,
             "personal": self.settings.content_root / self.settings.personal_dir_name,
             "usb": usb_path,
+            "serial-logs": self.settings.state_root / self.settings.serial_log_dir_name,
         }
 
     def list_library(self, library: str, relative_path: str = "") -> dict:
@@ -34,19 +36,36 @@ class StorageService:
         if not base.is_dir():
             raise NotADirectoryError(relative_path)
         items = []
+        seen_paths: set[str] = set()
         for entry in sorted(base.iterdir(), key=lambda path: (not path.is_dir(), path.name.lower())):
+            if entry.name.startswith("."):
+                continue
+            relative_entry_path = str(entry.relative_to(self._library_root(library)))
+            dedupe_key = str(entry.resolve(strict=False))
+            if dedupe_key in seen_paths or relative_entry_path in seen_paths:
+                continue
+            seen_paths.add(dedupe_key)
+            seen_paths.add(relative_entry_path)
             items.append(
                 {
                     "name": entry.name,
                     "is_dir": entry.is_dir(),
                     "size": entry.stat().st_size,
-                    "path": str(entry.relative_to(self._library_root(library))),
+                    "path": relative_entry_path,
+                    "deletable": self._is_deletable_library(library) and entry.is_file(),
                 }
             )
         return {"library": library, "path": str(base.relative_to(self._library_root(library))), "items": items}
 
     def save_personal_upload(self, filename: str, stream: BinaryIO) -> Path:
-        target = self._library_root("personal") / Path(filename).name
+        return self.save_upload("personal", filename, stream)
+
+    def save_upload(self, library: str, filename: str, stream: BinaryIO) -> Path:
+        if not self._is_uploadable_library(library):
+            raise ValueError(f"Uploads are not allowed for library: {library}")
+        target = self._library_root(library) / Path(filename).name
+        if target.exists():
+            raise FileExistsError(Path(filename).name)
         with target.open("wb") as output:
             while True:
                 chunk = stream.read(1024 * 1024)
@@ -62,11 +81,27 @@ class StorageService:
             raise ValueError("Invalid path")
         return target
 
+    def delete_file(self, library: str, relative_path: str) -> None:
+        if not self._is_deletable_library(library):
+            raise ValueError(f"Deletes are not allowed for library: {library}")
+        target = self.resolve_download(library, relative_path)
+        if not target.exists():
+            raise FileNotFoundError(relative_path)
+        if not target.is_file():
+            raise ValueError("Only files can be deleted")
+        target.unlink()
+
     def _library_root(self, library: str) -> Path:
         paths = self.library_paths()
         if library not in paths:
             raise ValueError(f"Unknown library: {library}")
         return paths[library]
+
+    def _is_deletable_library(self, library: str) -> bool:
+        return library in {"personal", "serial-logs"}
+
+    def _is_uploadable_library(self, library: str) -> bool:
+        return library in {"personal", "usb"}
 
     def _detect_usb_mount(self) -> Path | None:
         candidates = (

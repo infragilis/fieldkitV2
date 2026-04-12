@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.services.serial import SerialService
 
@@ -14,6 +14,15 @@ async def serial_ports():
 @router.get("/sessions")
 async def serial_sessions():
     return {"sessions": serial_service.session_status()}
+
+
+@router.post("/reset/{profile_index}")
+async def reset_serial_console(profile_index: int):
+    try:
+        reset = await serial_service.reset_console(profile_index)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"reset": reset, "index": profile_index}
 
 
 @router.websocket("/ws/{profile_index}")

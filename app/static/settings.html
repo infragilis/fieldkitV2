@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Settings</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <nav class="topbar">
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span id="app-version" class="brand-version">v0.1.0</span>
+        </div>
+        <div class="topbar-links">
+          <a href="/">Console</a>
+          <a href="/files">Files</a>
+          <a href="/#docs">Docs</a>
+          <a href="/settings">Settings</a>
+          <a href="/readme">README</a>
+        </div>
+      </nav>
+
+      <section class="hero">
+        <div>
+          <h1>Settings</h1>
+          <p class="subhead">
+            Connectivity status, network configuration, password changes, and serial console settings.
+          </p>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel" id="connectivity">
+          <h2>Connectivity</h2>
+          <p id="platform-notes" class="muted"></p>
+          <h3>Active Links</h3>
+          <ul id="active-connections" class="list"></ul>
+          <h3>Nearby Wi-Fi</h3>
+          <ul id="wifi-networks" class="list"></ul>
+        </article>
+
+        <article class="panel" id="settings">
+          <h2>Networking</h2>
+          <form id="settings-form">
+            <label>
+              Hostname
+              <input type="text" name="hostname" />
+            </label>
+            <label>
+              Ethernet Mode
+              <select name="ethernet_mode">
+                <option value="static">Static</option>
+                <option value="dhcp">DHCP</option>
+              </select>
+            </label>
+            <label>
+              Ethernet Address
+              <input type="text" name="ethernet_address" />
+            </label>
+            <label>
+              Wi-Fi Mode
+              <select name="wifi_mode">
+                <option value="disabled">Disabled</option>
+                <option value="ap">AP</option>
+                <option value="client">Client</option>
+              </select>
+            </label>
+            <label>
+              Wi-Fi SSID
+              <input type="text" name="wifi_ssid" />
+            </label>
+            <button type="submit">Save Network Settings</button>
+          </form>
+          <button id="apply-network-button" type="button">Prepare Network Apply</button>
+          <p id="apply-network-result" class="muted"></p>
+        </article>
+
+        <article class="panel">
+          <h2>Serial Settings</h2>
+          <form id="serial-settings-form">
+            <label>
+              Console 1 Preset
+              <select name="console1_preset">
+                <option value="9600-8n1">9600 8N1</option>
+                <option value="115200-8n1">115200 8N1</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <label>
+              Console 2 Preset
+              <select name="console2_preset">
+                <option value="9600-8n1">9600 8N1</option>
+                <option value="115200-8n1">115200 8N1</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <button type="submit">Save Serial Settings</button>
+          </form>
+          <p class="muted serial-settings-note">For nonstandard baud, parity, stop bits, or device paths, use <a href="/serial-settings">Serial Profiles</a>.</p>
+        </article>
+
+        <article class="panel">
+          <h2>Change Password</h2>
+          <form id="password-form">
+            <label>
+              Current Password
+              <input type="password" name="current_password" />
+            </label>
+            <label>
+              New Password
+              <input type="password" name="new_password" />
+            </label>
+            <button type="submit">Change Password</button>
+          </form>
+          <p id="password-result" class="muted"></p>
+        </article>
+      </section>
+
+      <footer class="app-footer">
+        <span>Fieldkit by <a href="https://www.infragilis.org" target="_blank" rel="noopener noreferrer">Infragilis</a>, 2026, git repo is <a href="https://github.com/infragilis/fieldkitV2" target="_blank" rel="noopener noreferrer">here</a>.</span>
+      </footer>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

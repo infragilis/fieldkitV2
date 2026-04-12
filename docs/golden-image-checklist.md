@@ -22,7 +22,7 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 - [ ] Hostname set to `fieldkit`
 - [ ] `/etc/hosts` contains `127.0.1.1 fieldkit`
 - [ ] `service` user exists
-- [ ] `service` password set
+- [ ] `service` password changed from the default `service`
 - [ ] `service` user is in `sudo`, `dialout`, `netdev`, and `plugdev`
 
 ## Repo and runtime
