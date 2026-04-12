@@ -92,6 +92,11 @@ The current documented baseline is:
 
 Reference inventory and rationale are documented in [docs/platform-baseline.md](/opt/fieldkit/docs/platform-baseline.md:1).
 
+## Deployment Guides
+
+- [docs/pi-setup.md](/opt/fieldkit/docs/pi-setup.md:1) explains how to prepare a Raspberry Pi to the minimum supported Fieldkit baseline.
+- [docs/update-and-reload.md](/opt/fieldkit/docs/update-and-reload.md:1) explains how to pull the repo, refresh the Python environment, and reload the deployed kit.
+
 ## Next implementation steps
 
 1. Wire network service actions to NetworkManager or systemd-networkd on the Pi.
