@@ -9,6 +9,8 @@ This document records the reference Raspberry Pi appliance state that Fieldkit w
 - Two USB-to-serial console cables or USB serial adapters for `ttyUSB` or `ttyACM` access
 - Ethernet uplink for direct servicing workflows
 
+If USB gadget export is a requirement, do not treat the Raspberry Pi 3 Model B as the preferred platform. Use a Raspberry Pi with an OTG-capable USB device port so the appliance can potentially present Fieldkit exports like a connected USB key.
+
 Pi models older than Raspberry Pi 3 are below the intended baseline because onboard Wi-Fi is required for field connectivity workflows. Older boards may still work for limited ethernet-only cases, but they should be treated as unsupported unless an external Wi-Fi adapter strategy is added and tested.
 
 ## Reference device inventory
@@ -76,4 +78,6 @@ These packages are part of the planned Fieldkit feature set and are now installe
 - Older models should keep Wi-Fi features disabled unless explicit adapter support is implemented.
 - Fieldkit code should continue to discover both `ttyUSB*` and `ttyACM*` serial adapters.
 - Field console workflows require compatible USB-to-serial console cables or USB serial adapters.
+- The current Raspberry Pi 3 Model B reference appliance does not expose a usable USB gadget controller, so it cannot emulate a USB storage device over cable.
+- USB gadget export should be considered a hardware-driven enhancement path that requires a different Raspberry Pi choice.
 - The appliance hostname target is `fieldkit`.

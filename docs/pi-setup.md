@@ -41,6 +41,7 @@ sudo apt-get install -y \
   hostapd \
   dnsmasq \
   tftpd-hpa \
+  vsftpd \
   nginx \
   openssl
 ```
@@ -102,4 +103,13 @@ sudo FIELDKIT_ROOT=/opt/fieldkit \
   FIELDKIT_PASS=service \
   FIELDKIT_HOSTNAME=fieldkit \
   bash scripts/provision_pi.sh
+```
+
+## Install transfer service support
+
+This configures the shared export tree used by HTTP, TFTP, FTP, and SCP for `data`, `personal`, and `usb`, and installs the sudoers policy needed for the Settings page toggles. Plain HTTP export for `/fieldkit/...` is enabled by default. TFTP and FTP support are installed disabled by default and can be turned on later from the Settings page.
+
+```bash
+cd /opt/fieldkit
+sudo bash scripts/install_transfer_services.sh
 ```

@@ -27,6 +27,12 @@ class SerialPortConfig(BaseModel):
     stop_bits: int = 1
 
 
+class TransferServicesConfig(BaseModel):
+    http_export_enabled: bool = True
+    tftp_enabled: bool = False
+    ftp_enabled: bool = False
+
+
 class AppSettingsPayload(BaseModel):
     hostname: str = "fieldkit"
     ethernet: EthernetConfig = Field(default_factory=EthernetConfig)
@@ -37,6 +43,7 @@ class AppSettingsPayload(BaseModel):
             SerialPortConfig(label="Console 2", device_hint=""),
         ]
     )
+    transfer_services: TransferServicesConfig = Field(default_factory=TransferServicesConfig)
 
 
 class ApplyResult(BaseModel):

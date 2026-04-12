@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -27,10 +28,10 @@ class CommandRunner:
     def available(self, binary: str) -> bool:
         return shutil.which(binary) is not None
 
-    def run(self, command: list[str]) -> CommandResult:
-        return self.run_with_input(command, None)
+    def run(self, command: list[str], env: dict[str, str] | None = None) -> CommandResult:
+        return self.run_with_input(command, None, env=env)
 
-    def run_with_input(self, command: list[str], stdin_text: str | None) -> CommandResult:
+    def run_with_input(self, command: list[str], stdin_text: str | None, env: dict[str, str] | None = None) -> CommandResult:
         try:
             completed = subprocess.run(
                 command,
@@ -39,6 +40,7 @@ class CommandRunner:
                 text=True,
                 timeout=self.settings.command_timeout_seconds,
                 check=False,
+                env=None if env is None else {**os.environ, **env},
             )
         except (OSError, subprocess.SubprocessError) as exc:
             return CommandResult(ok=False, command=command, stderr=str(exc), returncode=1)

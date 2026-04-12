@@ -14,6 +14,7 @@
           <span id="app-version" class="brand-version">v0.1.0</span>
         </div>
         <div class="topbar-links">
+          <a href="/">Home</a>
           <a href="#serial">Console</a>
           <a href="/files">Files</a>
           <a href="#docs">Docs</a>
@@ -23,11 +24,7 @@
       </nav>
 
       <section class="hero">
-        <div></div>
-      </section>
-
-      <section class="grid">
-        <article class="panel" id="serial">
+        <article class="panel hero-card hero-card-main" id="serial">
           <h2>Serial Consoles</h2>
           <ul id="serial-sessions" class="list"></ul>
           <p id="serial-quick-result" class="muted"></p>
@@ -38,7 +35,18 @@
           </div>
           <p class="muted">Each console opens in its own movable popup window for field use.</p>
         </article>
+        <div class="hero-card hero-card-side">
+          <p class="hero-kicker">Quick Access</p>
+          <div class="hero-shortcuts">
+            <a href="#serial">Jump to Console</a>
+            <a href="/files">Browse Files</a>
+            <a href="/fieldkit">Raw Exports</a>
+            <a href="/settings">Open Settings</a>
+          </div>
+        </div>
+      </section>
 
+      <section class="grid">
         <article class="panel" id="docs">
           <h2>Reference Docs</h2>
           <p class="muted">Vendor quick-reference topics stored locally on the kit.</p>

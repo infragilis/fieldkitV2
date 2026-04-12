@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from html import escape
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
@@ -8,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.services.docs_catalog import list_topics, topic_path
-from app.services.storage import ensure_runtime_layout
+from app.services.storage import StorageService, ensure_runtime_layout
 
 
 @asynccontextmanager
@@ -20,6 +21,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Fieldkit", version="0.1.0", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+storage_service = StorageService(get_settings())
 
 
 @app.get("/", include_in_schema=False)
@@ -32,6 +34,85 @@ async def settings_page() -> FileResponse:
     return FileResponse("app/static/settings.html")
 
 
+@app.get("/fieldkit", include_in_schema=False)
+@app.get("/fieldkit/{requested_path:path}", include_in_schema=False)
+async def fieldkit_exports(requested_path: str = ""):
+    try:
+        resolved = storage_service.resolve_export_path(requested_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if resolved.is_file():
+        return FileResponse(resolved)
+    if not resolved.exists():
+        raise HTTPException(status_code=404, detail="File or directory not found")
+    if not resolved.is_dir():
+        raise HTTPException(status_code=404, detail="Path is not accessible")
+
+    listing = storage_service.list_export_path(requested_path)
+    current_path = listing["path"]
+    parent_path = "/fieldkit"
+    if current_path:
+        parent_parts = current_path.split("/")[:-1]
+        parent_path = "/fieldkit" if not parent_parts else f"/fieldkit/{quote('/'.join(parent_parts))}"
+    rows = "".join(
+        f"""
+        <li>
+          <div class="item-meta">
+            <strong><a href="/fieldkit/{quote(item['path'])}{'/' if item['is_dir'] else ''}">{escape(item['name'])}</a></strong>
+            <span class="muted">{'Directory' if item['is_dir'] else f"{item['size']} bytes"}</span>
+          </div>
+          {"<a href='/fieldkit/" + quote(item["path"]) + "' download>Download</a>" if not item["is_dir"] else ""}
+        </li>
+        """
+        for item in listing["items"]
+    ) or "<li><span class='muted'>No files</span></li>"
+    header_path = f"/{current_path}" if current_path else "/"
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Export {escape(header_path)}</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      main {{ width: min(980px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }}
+      article {{ padding: 24px; }}
+      ul {{ list-style: none; padding: 0; margin: 18px 0 0; }}
+      li {{ display: flex; justify-content: space-between; gap: 16px; align-items: center; border-bottom: 1px solid var(--line); padding: 10px 0; }}
+      li:last-child {{ border-bottom: 0; }}
+      .item-meta strong, .item-meta span {{ display: block; }}
+      .path-note {{ font-family: 'IBM Plex Mono', monospace; }}
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <nav class="topbar">
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span class="brand-version">v0.1.0</span>
+        </div>
+        <div class="topbar-links">
+          <a href="/">Home</a>
+          <a href="/files">Files</a>
+          <a href="/fieldkit">Exports</a>
+          <a href="/settings">Settings</a>
+          <a href="/readme">README</a>
+        </div>
+      </nav>
+      <article class="panel">
+        <h1>Fieldkit Exports</h1>
+        <p class="path-note">HTTP: /fieldkit{escape(header_path)}</p>
+        <p class="muted">TFTP, FTP, and SCP use the same library structure rooted at {escape(str(storage_service.export_root()))}.</p>
+        <p><a href="{parent_path}">Up one level</a></p>
+        <ul>{rows}</ul>
+      </article>
+    </main>
+  </body>
+</html>"""
+    return HTMLResponse(html)
+
+
 @app.get("/readme", include_in_schema=False)
 async def readme() -> HTMLResponse:
     body = escape(open("README.md", encoding="utf-8").read())
@@ -41,18 +122,29 @@ async def readme() -> HTMLResponse:
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit README</title>
+    <link rel="stylesheet" href="/static/styles.css" />
     <style>
-      body {{ font-family: 'IBM Plex Sans', sans-serif; background: #f6f0e5; color: #1f2a2d; margin: 0; }}
-      main {{ width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 32px 0 48px; }}
-      a {{ color: #7f311c; }}
-      article {{ background: rgba(255, 252, 246, 0.92); border: 1px solid #c2b6a2; border-radius: 18px; padding: 24px; }}
+      main {{ width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }}
+      article {{ padding: 24px; }}
       pre {{ white-space: pre-wrap; font-family: 'IBM Plex Mono', monospace; line-height: 1.5; }}
     </style>
   </head>
   <body>
-    <main>
-      <article>
-        <p><a href="/">Back to Fieldkit</a></p>
+    <main class="app-shell">
+      <nav class="topbar">
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span class="brand-version">v0.1.0</span>
+        </div>
+        <div class="topbar-links">
+          <a href="/">Home</a>
+          <a href="/files">Files</a>
+          <a href="/#docs">Docs</a>
+          <a href="/settings">Settings</a>
+          <a href="/readme">README</a>
+        </div>
+      </nav>
+      <article class="panel">
         <pre>{body}</pre>
       </article>
     </main>
@@ -69,27 +161,18 @@ async def files_page() -> HTMLResponse:
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Files</title>
+    <link rel="stylesheet" href="/static/styles.css" />
     <style>
-      :root {
-        --line: #c2b6a2;
-        --text: #1f2a2d;
-        --muted: #5e6a6f;
-        --accent: #b24a2b;
-        --accent-dark: #7f311c;
-      }
-      body { font-family: 'IBM Plex Sans', sans-serif; background: #f6f0e5; color: var(--text); margin: 0; }
-      main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 32px 0 48px; }
-      article { background: rgba(255, 252, 246, 0.92); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+      main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
       .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-      .upload-row { display: flex; gap: 10px; align-items: end; margin-bottom: 12px; flex-wrap: wrap; }
-      .upload-row label { display: flex; flex-direction: column; gap: 6px; min-width: 160px; }
-      .upload-row input { max-width: 100%; }
-      button { padding: 10px 14px; border: 0; border-radius: 999px; background: var(--accent); color: white; cursor: pointer; }
+      .upload-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap; }
+      .upload-row label { display: flex; flex-direction: column; gap: 6px; min-width: 240px; margin-bottom: 0; }
+      .upload-row input { max-width: 100%; margin-top: 0; }
+      .upload-row button { align-self: flex-end; margin-bottom: 1px; }
       ul { list-style: none; padding: 0; margin: 0; }
       li { padding: 10px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; align-items: center; }
       li:last-child { border-bottom: 0; }
-      a { color: var(--accent-dark); }
-      .muted { color: var(--muted); }
       .item-meta { display: flex; flex-direction: column; gap: 4px; }
       .item-actions { display: flex; gap: 8px; align-items: center; }
       .delete-button { background: #8d2f1f; }
@@ -97,9 +180,21 @@ async def files_page() -> HTMLResponse:
     </style>
   </head>
   <body>
-    <main>
-      <article>
-        <p><a href="/">Back to Fieldkit</a></p>
+    <main class="app-shell">
+      <nav class="topbar">
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span class="brand-version">v0.1.0</span>
+        </div>
+        <div class="topbar-links">
+          <a href="/">Home</a>
+          <a href="/files">Files</a>
+          <a href="/fieldkit">Exports</a>
+          <a href="/settings">Settings</a>
+          <a href="/readme">README</a>
+        </div>
+      </nav>
+      <article class="panel">
         <h1>Files</h1>
         <p class="muted">Browse the local file libraries available on the kit.</p>
         <div class="tabs">
@@ -186,10 +281,14 @@ async def files_page() -> HTMLResponse:
           payload.items.map((item) =>
             `<li>
               <div class="item-meta">
-                <span>${escapeHtml(item.name)}</span>
+                ${item.is_dir
+                  ? `<span>${escapeHtml(item.name)}</span>`
+                  : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${escapeHtml(item.name)}</a>`
+                }
                 <span class="muted">${item.is_dir ? `directory: ${escapeHtml(item.path)}` : `${item.size} bytes`}</span>
               </div>
               <div class="item-actions">
+                ${item.is_dir ? "" : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>Download</a>`}
                 ${item.deletable ? `<button class="delete-button" type="button" data-delete-path="${escapeHtml(item.path)}">Delete</button>` : ""}
               </div>
             </li>`
@@ -217,35 +316,35 @@ async def serial_settings_page() -> HTMLResponse:
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Serial Profiles</title>
+    <link rel="stylesheet" href="/static/styles.css" />
     <style>
-      :root {
-        --line: #c2b6a2;
-        --text: #1f2a2d;
-        --muted: #5e6a6f;
-        --accent: #b24a2b;
-        --accent-dark: #7f311c;
-      }
       * { box-sizing: border-box; }
-      body { font-family: 'IBM Plex Sans', sans-serif; background: #f6f0e5; color: var(--text); margin: 0; }
-      main { width: min(1040px, calc(100vw - 32px)); margin: 0 auto; padding: 32px 0 48px; }
-      article { background: rgba(255, 252, 246, 0.92); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+      main { width: min(1040px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
       .profiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
       .profile { min-width: 0; border: 1px solid var(--line); border-radius: 16px; padding: 18px; background: rgba(255, 255, 255, 0.55); }
-      label { display: block; margin-bottom: 12px; }
       input, select, button { font: inherit; }
-      input, select { width: 100%; margin-top: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: white; }
-      button { padding: 10px 14px; border: 0; border-radius: 999px; background: var(--accent); color: white; cursor: pointer; }
-      a { color: var(--accent-dark); }
-      .muted { color: var(--muted); }
       @media (max-width: 820px) {
         .profiles { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
-    <main>
-      <article>
-        <p><a href="/">Back to Fieldkit</a></p>
+    <main class="app-shell">
+      <nav class="topbar">
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span class="brand-version">v0.1.0</span>
+        </div>
+        <div class="topbar-links">
+          <a href="/">Home</a>
+          <a href="/files">Files</a>
+          <a href="/#docs">Docs</a>
+          <a href="/settings">Settings</a>
+          <a href="/readme">README</a>
+        </div>
+      </nav>
+      <article class="panel">
         <h1>Serial Profiles</h1>
         <p class="muted">Serial adapters are auto-detected by default. Only set a device preference when you need to pin a console to a specific adapter.</p>
         <form id="serial-profiles-form">
@@ -613,16 +712,28 @@ async def kit_docs_index() -> HTMLResponse:
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Docs</title>
+    <link rel="stylesheet" href="/static/styles.css" />
     <style>
-      body {{ font-family: 'IBM Plex Sans', sans-serif; background: #f6f0e5; color: #1f2a2d; margin: 0; }}
-      main {{ width: min(860px, calc(100vw - 32px)); margin: 0 auto; padding: 32px 0 48px; }}
-      a {{ color: #7f311c; }}
-      article {{ background: rgba(255, 252, 246, 0.92); border: 1px solid #c2b6a2; border-radius: 18px; padding: 24px; }}
+      main {{ width: min(860px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }}
+      article {{ padding: 24px; }}
     </style>
   </head>
   <body>
-    <main>
-      <article>
+    <main class="app-shell">
+      <nav class="topbar">
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span class="brand-version">v0.1.0</span>
+        </div>
+        <div class="topbar-links">
+          <a href="/">Home</a>
+          <a href="/files">Files</a>
+          <a href="/kit-docs">Docs</a>
+          <a href="/settings">Settings</a>
+          <a href="/readme">README</a>
+        </div>
+      </nav>
+      <article class="panel">
         <h1>Fieldkit Reference Notes</h1>
         <p>Starter command references for common vendor platforms.</p>
         <ul>{links}</ul>
@@ -646,17 +757,29 @@ async def kit_doc(slug: str) -> HTMLResponse:
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{escape(title)} - Fieldkit Docs</title>
+    <link rel="stylesheet" href="/static/styles.css" />
     <style>
-      body {{ font-family: 'IBM Plex Sans', sans-serif; background: #f6f0e5; color: #1f2a2d; margin: 0; }}
-      main {{ width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 32px 0 48px; }}
-      a {{ color: #7f311c; }}
-      article {{ background: rgba(255, 252, 246, 0.92); border: 1px solid #c2b6a2; border-radius: 18px; padding: 24px; }}
+      main {{ width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }}
+      article {{ padding: 24px; }}
       pre {{ white-space: pre-wrap; font-family: 'IBM Plex Mono', monospace; line-height: 1.5; }}
     </style>
   </head>
   <body>
-    <main>
-      <article>
+    <main class="app-shell">
+      <nav class="topbar">
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span class="brand-version">v0.1.0</span>
+        </div>
+        <div class="topbar-links">
+          <a href="/">Home</a>
+          <a href="/files">Files</a>
+          <a href="/kit-docs">Docs</a>
+          <a href="/settings">Settings</a>
+          <a href="/readme">README</a>
+        </div>
+      </nav>
+      <article class="panel">
         <p><a href="/kit-docs">Back to docs index</a></p>
         <pre>{body}</pre>
       </article>

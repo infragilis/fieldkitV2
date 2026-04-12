@@ -11,6 +11,10 @@ Fieldkit is a Raspberry Pi appliance for field servicing network devices. It exp
 
 Console access requires USB-to-serial console cables or USB serial adapters that present as `ttyUSB*` or `ttyACM*` devices on the appliance.
 
+USB gadget export, where Fieldkit would appear to another device like a directly attached USB key, requires a Raspberry Pi with an OTG-capable USB device port. The current reference appliance is a Raspberry Pi 3 Model B Rev 1.2 and does not support that mode.
+
+If USB gadget export is an important workflow, prefer a Raspberry Pi model with working USB device mode support and expose that through a dedicated OTG-capable port.
+
 ## Default Access
 
 The default appliance SSH login is `service` / `service`.
@@ -47,6 +51,8 @@ The current repo and live kit provide:
 - Quick serial preset switching between `9600 8N1` and `115200 8N1`
 - Automatic serial adapter detection so console sessions can work without manually setting `/dev/ttyUSB*` paths
 - A dedicated `/serial-settings` page for full per-console settings such as optional device preference, baud, parity, data bits, and stop bits
+- A shared `/fieldkit` export tree for direct downloads over HTTP with the same `data`, `personal`, and `usb` structure used by TFTP, FTP, and SCP
+- Settings toggles for enabling or disabling plain HTTP export on `/fieldkit`, plus TFTP and FTP access, with SCP remaining available through the built-in SSH service without a separate toggle
 - Popup serial console windows at `/serial-console/0` and `/serial-console/1`
 - Direct keyboard capture in popup console sessions instead of line-by-line send forms
 - Timestamped serial session log capture under `runtime/state/serial-logs`
@@ -55,7 +61,7 @@ The current repo and live kit provide:
 - A systemd unit template and install script for the web service
 - Pi capability detection so Wi-Fi behavior can differ cleanly across Pi 3 and newer vs older models
 
-Pi-specific integrations such as `hostapd`, `dnsmasq`, `nmcli`, `tftpd`, `scp`, and serial streaming are intentionally isolated behind service modules so they can be implemented and tested separately.
+Pi-specific integrations such as `hostapd`, `dnsmasq`, `nmcli`, `tftpd`, `vsftpd`, `ssh/scp`, and serial streaming are intentionally isolated behind service modules so they can be implemented and tested separately.
 
 ## Operational Requirements
 
@@ -70,6 +76,7 @@ Primary routes:
 - `/settings` for connectivity, networking, password, and serial preset management
 - `/serial-settings` for detailed per-console serial profile editing
 - `/files` for file browsing, upload, and delete actions
+- `/fieldkit` for raw export browsing and direct file downloads
 - `/readme` for the repo README rendered locally on the kit
 - `/kit-docs` for the local documentation index
 
@@ -81,6 +88,21 @@ Fieldkit exposes four file libraries through the `Files` page:
 - `personal`
 - `usb`
 - `serial-logs`
+
+These same libraries are also exposed through:
+
+- HTTP at `/fieldkit/data`, `/fieldkit/personal`, and `/fieldkit/usb`
+- FTP from the same export root when `vsftpd` is enabled
+- SCP under `/opt/fieldkit/runtime/content/fieldkit/<library>/...` through the built-in SSH service
+- TFTP with the same root structure when `scripts/install_transfer_services.sh` has been applied on the Pi
+
+`serial-logs` are intentionally not part of the shared export tree. They remain available through the Fieldkit web GUI and file download endpoint only.
+
+Plain HTTP export for `/fieldkit/...` is enabled by default so maintenance-mode devices that cannot fetch over HTTPS can still download images and firmware.
+
+The web GUI can stay on HTTPS while the raw `/fieldkit/...` export path is made available on plain HTTP port `80` for older maintenance clients.
+
+USB gadget export is not available on the current Raspberry Pi 3 Model B reference hardware. For that workflow, use an OTG-capable Raspberry Pi instead.
 
 Current USB behavior:
 
@@ -166,6 +188,8 @@ The current documented baseline is:
 - NetworkManager / `nmcli`
 - OpenSSH server
 
+If you want Fieldkit to impersonate a USB storage device over a cable, a newer OTG-capable Raspberry Pi is the recommended target instead of the current Pi 3 Model B reference box.
+
 Reference inventory and rationale are documented in [docs/platform-baseline.md](/opt/fieldkit/docs/platform-baseline.md:1).
 
 ## Deployment Guides
@@ -188,13 +212,15 @@ Reference inventory and rationale are documented in [docs/platform-baseline.md](
 1. Improve USB storage handling to support multiple mounted drives, labels, and live refresh.
 2. Add richer serial session controls such as break handling and more detailed reconnect state.
 3. Wire network service actions to real NetworkManager or systemd-networkd changes on the Pi.
-4. Add HTTP/TFTP/SCP serving workflows for firmware and images.
+4. Add richer HTTP/TFTP/FTP serving workflows for firmware and images.
 5. Add Ansible execution workflows for field devices and NetApp runbooks.
 
 ## Deployment assets
 
 - [scripts/provision_pi.sh](/opt/fieldkit/scripts/provision_pi.sh:1) prepares hostname, user, and runtime directories.
 - [scripts/install_systemd.sh](/opt/fieldkit/scripts/install_systemd.sh:1) installs the web service unit.
+- [scripts/install_transfer_services.sh](/opt/fieldkit/scripts/install_transfer_services.sh:1) configures the shared export root, the TFTP and FTP roots, and the sudoers policy needed for UI-driven transfer service toggles while leaving built-in SSH/SCP available.
+- [scripts/smoke_test_appliance.sh](/opt/fieldkit/scripts/smoke_test_appliance.sh:1) uploads a small file and verifies HTTPS API, plain HTTP export, SCP, and optionally FTP/TFTP against a live appliance.
 - [scripts/install_nginx.sh](/opt/fieldkit/scripts/install_nginx.sh:1) exposes Fieldkit on port `80` through `nginx`.
 - [scripts/install_https_self_signed.sh](/opt/fieldkit/scripts/install_https_self_signed.sh:1) generates a self-signed certificate and exposes Fieldkit on `443` while keeping `80` available.
 - [deploy/systemd/fieldkit-web.service](/opt/fieldkit/deploy/systemd/fieldkit-web.service:1) runs the FastAPI app under `uvicorn`.

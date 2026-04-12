@@ -8,6 +8,9 @@ The currently deployed web UI includes:
 - a dedicated settings page at `/settings`
 - popup console windows at `/serial-console/0` and `/serial-console/1`
 - a files page at `/files`
+- a raw export browser at `/fieldkit`
+
+The raw export browser is intended for device-side downloads. By default, `/fieldkit/...` is available over plain HTTP on port `80`, while the main GUI can remain on HTTPS.
 
 ## Pull the latest repo state
 
@@ -44,6 +47,17 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+## Refresh transfer service support
+
+If the shared export root, FTP/TFTP config, or transfer-service policy changed:
+
+```bash
+cd /opt/fieldkit
+sudo bash scripts/install_transfer_services.sh
+```
+
+That install step leaves FTP and TFTP disabled by default. Enable them from the Settings page only when needed.
+
 ## Re-apply HTTPS
 
 If the TLS config or certificate workflow changed:
@@ -76,9 +90,25 @@ curl -k https://127.0.0.1/
 curl -k https://127.0.0.1/settings
 curl -k https://127.0.0.1/files
 curl -k https://127.0.0.1/readme
+curl -fsS http://127.0.0.1/fieldkit/
 systemctl is-active fieldkit-web.service
 systemctl is-active nginx
 ```
+
+## Smoke test the live appliance
+
+Run the reusable smoke harness from the repo root when you want an end-to-end transfer check:
+
+```bash
+./scripts/smoke_test_appliance.sh
+```
+
+This uploads a temporary file to `personal` and verifies:
+
+- HTTPS API upload and download
+- plain HTTP download from `/fieldkit/personal/...`
+- SCP download from `/opt/fieldkit/runtime/content/fieldkit/personal/...`
+- FTP and TFTP downloads when those services are currently active
 
 ## Notes
 
@@ -87,3 +117,6 @@ systemctl is-active nginx
 - If `git pull --ff-only` fails, inspect local changes before forcing anything.
 - Keep the repo and deployed app rooted at `/opt/fieldkit` for consistency with the current systemd and nginx assets.
 - Local operator notes such as `TODO.local.md` and `HANDOFF.md` should stay out of git and off the appliance.
+- The shared export tree is only for `data`, `personal`, and `usb`; `serial-logs` remain GUI-only.
+- TFTP and FTP are toggle-controlled from the UI; SCP remains available through the normal SSH service without a separate toggle.
+- Plain HTTP export for `/fieldkit/...` is the default so non-HTTPS-capable maintenance clients can still download from the appliance.

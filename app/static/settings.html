@@ -14,6 +14,7 @@
           <span id="app-version" class="brand-version">v0.1.0</span>
         </div>
         <div class="topbar-links">
+          <a href="/">Home</a>
           <a href="/">Console</a>
           <a href="/files">Files</a>
           <a href="/#docs">Docs</a>
@@ -23,11 +24,27 @@
       </nav>
 
       <section class="hero">
-        <div>
+        <div class="hero-card hero-card-main">
+          <p class="hero-kicker">Appliance Controls</p>
           <h1>Settings</h1>
           <p class="subhead">
             Connectivity status, network configuration, password changes, and serial console settings.
           </p>
+          <div class="hero-pills">
+            <a href="#settings">Networking</a>
+            <a href="#transfer-services">Transfer services</a>
+            <a href="#serial-settings">Serial presets</a>
+            <a href="#password-settings">Password</a>
+          </div>
+        </div>
+        <div class="hero-card hero-card-side">
+          <p class="hero-kicker">Operational Notes</p>
+          <div class="hero-shortcuts">
+            <a href="/fieldkit">Export Browser</a>
+            <a href="/serial-settings">Full Serial Profiles</a>
+            <a href="/readme">Open README</a>
+            <a href="/">Back to Console</a>
+          </div>
         </div>
       </section>
 
@@ -71,13 +88,38 @@
               Wi-Fi SSID
               <input type="text" name="wifi_ssid" />
             </label>
-            <button type="submit">Save Network Settings</button>
+            <div class="button-row">
+              <button type="submit">Save Network Settings</button>
+              <button id="apply-network-button" type="button">Prepare Network Apply</button>
+            </div>
           </form>
-          <button id="apply-network-button" type="button">Prepare Network Apply</button>
+          <p class="muted action-note">Prepare Network Apply shows the planned hostname and network commands before any real system-side execution.</p>
           <p id="apply-network-result" class="muted"></p>
         </article>
 
-        <article class="panel">
+        <article class="panel" id="transfer-services">
+          <h2>Transfer Services</h2>
+          <form id="transfer-services-form">
+            <label class="toggle-row">
+              <span>HTTP Export Access</span>
+              <input type="checkbox" name="http_export_enabled" checked />
+            </label>
+            <label class="toggle-row">
+              <span>TFTP Access</span>
+              <input type="checkbox" name="tftp_enabled" />
+            </label>
+            <label class="toggle-row">
+              <span>FTP Access</span>
+              <input type="checkbox" name="ftp_enabled" />
+            </label>
+            <button type="submit">Apply Transfer Services</button>
+          </form>
+          <p id="transfer-result" class="muted"></p>
+          <div id="transfer-status" class="muted"></div>
+          <p class="muted serial-settings-note">HTTP export access exposes only <a href="/fieldkit">/fieldkit</a> on plain port 80 for device downloads. FTP and TFTP stay off until enabled here. SCP remains available through the normal SSH service.</p>
+        </article>
+
+        <article class="panel" id="serial-settings">
           <h2>Serial Settings</h2>
           <form id="serial-settings-form">
             <label>
@@ -101,7 +143,7 @@
           <p class="muted serial-settings-note">For nonstandard baud, parity, stop bits, or device paths, use <a href="/serial-settings">Serial Profiles</a>.</p>
         </article>
 
-        <article class="panel">
+        <article class="panel" id="password-settings">
           <h2>Change Password</h2>
           <form id="password-form">
             <label>

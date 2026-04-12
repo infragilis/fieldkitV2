@@ -1,0 +1,9 @@
+service ALL=(root) NOPASSWD: /bin/systemctl is-active tftpd-hpa
+service ALL=(root) NOPASSWD: /bin/systemctl is-enabled tftpd-hpa
+service ALL=(root) NOPASSWD: /bin/systemctl enable --now tftpd-hpa
+service ALL=(root) NOPASSWD: /bin/systemctl disable --now tftpd-hpa
+service ALL=(root) NOPASSWD: /bin/systemctl is-active vsftpd
+service ALL=(root) NOPASSWD: /bin/systemctl is-enabled vsftpd
+service ALL=(root) NOPASSWD: /bin/systemctl enable --now vsftpd
+service ALL=(root) NOPASSWD: /bin/systemctl disable --now vsftpd
+service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/install_export_http_mode.sh

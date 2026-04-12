@@ -6,6 +6,7 @@ from app.main import app
 from app.core.config import RuntimeSettings
 from app.services.serial import SerialService
 from app.services.storage import StorageService
+from app.services.transfers import TransferService
 
 
 client = TestClient(app)
@@ -161,10 +162,15 @@ def test_update_settings():
                 "stop_bits": 1,
             },
         ],
+        "transfer_services": {
+            "tftp_enabled": True,
+            "ftp_enabled": False,
+        },
     }
     response = client.put("/api/settings", json=payload)
     assert response.status_code == 200
     assert response.json()["serial_ports"][1]["baud_rate"] == 115200
+    assert response.json()["transfer_services"]["tftp_enabled"] is True
 
 
 def test_connectivity_apply_returns_commands():
@@ -191,6 +197,25 @@ def test_serial_sessions_include_indexes():
     sessions = response.json()["sessions"]
     assert len(sessions) == 2
     assert sessions[0]["index"] == 0
+
+
+def test_transfer_status_route():
+    response = client.get("/api/transfers/status")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["http_base"] == "/fieldkit"
+    assert payload["libraries"] == ["/fieldkit/data", "/fieldkit/personal", "/fieldkit/usb"]
+    assert "tftp" in payload
+    assert "ftp" in payload
+    assert "scp" in payload
+    assert "usb_gadget" in payload
+
+
+def test_fieldkit_export_root_route():
+    response = client.get("/fieldkit")
+    assert response.status_code == 200
+    assert "Fieldkit Exports" in response.text
+    assert "/fieldkit/data" in response.text
 
 
 def test_serial_profiles_auto_resolve_detected_devices(monkeypatch):
@@ -290,3 +315,106 @@ def test_library_listing_hides_dotfiles_and_macos_metadata(tmp_path):
 
     names = [item["name"] for item in listing["items"]]
     assert names == ["firmware.bin"]
+
+
+def test_export_tree_contains_library_links(tmp_path):
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    service = StorageService(settings)
+
+    export_root = service.sync_export_tree()
+
+    assert (export_root / "data").is_dir()
+    assert (export_root / "personal").is_dir()
+    assert (export_root / "usb").is_dir()
+    assert not (export_root / "serial-logs").exists()
+
+
+def test_export_tree_contains_mirrored_files_inside_real_library_dirs(tmp_path):
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    service = StorageService(settings)
+    (service.library_paths()["personal"] / "firmware.bin").write_text("payload", encoding="utf-8")
+
+    export_root = service.sync_export_tree()
+
+    assert (export_root / "personal").is_dir()
+    assert (export_root / "personal" / "firmware.bin").is_file()
+    assert (export_root / "personal" / "firmware.bin").read_text(encoding="utf-8") == "payload"
+
+
+def test_resolve_export_path_uses_virtual_library_paths(tmp_path):
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    service = StorageService(settings)
+    target = service.library_paths()["personal"] / "image.bin"
+    target.write_text("payload", encoding="utf-8")
+
+    resolved = service.resolve_export_path("personal/image.bin")
+
+    assert resolved == target.resolve()
+
+
+def test_fieldkit_export_route_serves_file_from_virtual_library_path(tmp_path, monkeypatch):
+    from app import main as app_main
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    service = StorageService(settings)
+    target = service.library_paths()["personal"] / "image.bin"
+    target.write_text("payload", encoding="utf-8")
+    monkeypatch.setattr(app_main, "storage_service", service)
+
+    response = TestClient(app_main.app).get("/fieldkit/personal/image.bin")
+
+    assert response.status_code == 200
+    assert response.content == b"payload"
+
+
+def test_transfer_status_does_not_sync_export_tree(monkeypatch):
+    service = TransferService()
+    monkeypatch.setattr(service._storage, "sync_export_tree", lambda: (_ for _ in ()).throw(AssertionError("should not sync")))
+
+    status = service.get_status()
+
+    assert status["root"].endswith("fieldkit")
+
+
+def test_transfer_service_refuses_to_disable_ssh_with_active_sessions(monkeypatch):
+    service = TransferService()
+    settings = service._store.load()
+    settings.transfer_services.ftp_enabled = False
+    settings.transfer_services.tftp_enabled = False
+    monkeypatch.setattr(service._store, "load", lambda: settings)
+    monkeypatch.setattr(service._runtime, "dry_run_transfer_changes", False)
+    monkeypatch.setattr(service._storage, "sync_export_tree", lambda: Path("/tmp/fieldkit"))
+    monkeypatch.setattr(
+        service,
+        "_apply_unit",
+        lambda unit, enabled: type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})()
+        if unit == "tftpd-hpa"
+        else type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})(),
+    )
+
+    result = service.apply_settings()
+
+    assert result.applied is True
+    assert any("vsftpd disabled." in note for note in result.notes)
+
+
+def test_usb_gadget_status_reports_unsupported_when_no_udc(monkeypatch):
+    service = TransferService()
+    monkeypatch.setattr(service, "_read_text", lambda path: "Raspberry Pi 3 Model B Rev 1.2\x00")
+    monkeypatch.setattr(service, "_list_dir_names", lambda path: [])
+
+    status = service._usb_gadget_status()
+
+    assert status["supported"] is False
+    assert "Raspberry Pi 3 Model B" in status["model"]
+
+
+def test_usb_gadget_status_reports_supported_when_udc_present(monkeypatch):
+    service = TransferService()
+    monkeypatch.setattr(service, "_read_text", lambda path: "Raspberry Pi 4 Model B Rev 1.5\x00")
+    monkeypatch.setattr(service, "_list_dir_names", lambda path: ["20980000.usb"])
+
+    status = service._usb_gadget_status()
+
+    assert status["supported"] is True
+    assert status["controllers"] == ["20980000.usb"]
