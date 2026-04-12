@@ -25,6 +25,11 @@ This initial scaffold provides:
 
 Pi-specific integrations such as `hostapd`, `dnsmasq`, `nmcli`, `tftpd`, `scp`, and serial streaming are intentionally isolated behind service modules so they can be implemented and tested separately.
 
+## Operational Requirements
+
+- Fieldkit should be able to run Ansible workflows against field devices from the kit itself.
+- Serial console sessions should be logged on the kit with date/time-stamped session files for later review.
+
 ## File Libraries
 
 Fieldkit exposes three file libraries through the `Files` page:
