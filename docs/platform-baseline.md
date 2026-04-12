@@ -13,7 +13,7 @@ Pi models older than Raspberry Pi 3 are below the intended baseline because onbo
 
 ## Reference device inventory
 
-Collected from the current appliance at `192.168.200.120` on April 12, 2026 via SSH.
+Collected from the current appliance at `192.168.200.120` on April 12, 2026 via SSH before convergence.
 
 - Hostname: `servicetools`
 - Model: `Raspberry Pi 3 Model B Rev 1.2`
@@ -34,6 +34,19 @@ Collected from the current appliance at `192.168.200.120` on April 12, 2026 via 
 - `dnsmasq`: not installed
 - `tftpd-hpa`: not installed
 
+## Current appliance state after convergence
+
+The same appliance was updated on April 12, 2026 to align more closely with the intended Fieldkit baseline.
+
+- Hostname: `fieldkit`
+- `python3-venv`: installed
+- `python3-pip`: installed and updated to the Raspberry Pi package build
+- `hostapd`: installed, currently `masked`
+- `dnsmasq`: installed and `enabled`
+- `tftpd-hpa`: installed and `enabled`
+
+The `/etc/hosts` entry was also updated so `fieldkit` resolves locally without sudo hostname warnings.
+
 ## Fieldkit baseline requirement
 
 Fieldkit should assume this minimum software platform:
@@ -51,7 +64,7 @@ These packages should be considered required for the first supported Fieldkit ap
 - `network-manager`
 - `openssh-server`
 
-These packages are not present on the reference device yet, but should be treated as planned Fieldkit dependencies for the full appliance feature set:
+These packages are part of the planned Fieldkit feature set and are now installed on the current reference appliance:
 
 - `hostapd`
 - `dnsmasq`
@@ -62,4 +75,4 @@ These packages are not present on the reference device yet, but should be treate
 - Pi 3 and newer should expose Wi-Fi client and AP flows in Fieldkit.
 - Older models should keep Wi-Fi features disabled unless explicit adapter support is implemented.
 - Fieldkit code should continue to discover both `ttyUSB*` and `ttyACM*` serial adapters.
-- The appliance hostname target remains `fieldkit`, even though the current reference unit still reports `servicetools`.
+- The appliance hostname target is `fieldkit`.

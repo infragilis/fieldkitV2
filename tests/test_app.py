@@ -19,6 +19,12 @@ def test_file_libraries():
     assert {"data", "personal", "usb"} <= names
 
 
+def test_readme_route():
+    response = client.get("/readme")
+    assert response.status_code == 200
+    assert "Fieldkit" in response.text
+
+
 def test_update_settings():
     payload = {
         "hostname": "fieldkit",

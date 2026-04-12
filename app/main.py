@@ -23,3 +23,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 @app.get("/", include_in_schema=False)
 async def index() -> FileResponse:
     return FileResponse("app/static/index.html")
+
+
+@app.get("/readme", include_in_schema=False)
+async def readme() -> FileResponse:
+    return FileResponse("README.md", media_type="text/markdown", filename="README.md")

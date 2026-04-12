@@ -8,6 +8,15 @@ async function getJson(url, options) {
 
 let activeConsoleSocket = null;
 
+async function loadMeta() {
+  const response = await fetch("/openapi.json");
+  if (!response.ok) {
+    return;
+  }
+  const schema = await response.json();
+  document.getElementById("app-version").textContent = `Fieldkit v${schema.info.version}`;
+}
+
 function renderKeyValue(target, data) {
   target.innerHTML = Object.entries(data)
     .map(([key, value]) => `<p><strong>${key}</strong>: ${typeof value === "object" ? JSON.stringify(value) : value}</p>`)
@@ -180,3 +189,4 @@ document.querySelectorAll("[data-library]").forEach((button) => {
 
 loadStatus();
 loadLibrary("data");
+loadMeta();
