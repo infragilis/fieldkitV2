@@ -96,6 +96,7 @@ Reference inventory and rationale are documented in [docs/platform-baseline.md](
 
 - [docs/pi-setup.md](/opt/fieldkit/docs/pi-setup.md:1) explains how to prepare a Raspberry Pi to the minimum supported Fieldkit baseline.
 - [docs/update-and-reload.md](/opt/fieldkit/docs/update-and-reload.md:1) explains how to pull the repo, refresh the Python environment, and reload the deployed kit.
+- [docs/golden-image-checklist.md](/opt/fieldkit/docs/golden-image-checklist.md:1) provides a concise repeatable checklist for preparing a handoff-ready Fieldkit image.
 
 ## Next implementation steps
 
