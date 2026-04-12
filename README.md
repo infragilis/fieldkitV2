@@ -86,7 +86,7 @@ Current USB behavior:
 
 - If removable storage is auto-mounted under `/media/service`, `/media`, or `/mnt`, Fieldkit will use that mount as the `usb` library automatically.
 - The current implementation is intended for the common single-mounted-USB-stick case.
-- Multi-drive handling, labels, and hot-plug refresh are tracked in [TODO.md](/opt/fieldkit/TODO.md:1).
+- Multi-drive handling, labels, and hot-plug refresh are planned but tracked only in the local working notes, not in the deployed repo.
 
 Current file behavior:
 

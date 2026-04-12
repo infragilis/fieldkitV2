@@ -86,3 +86,4 @@ systemctl is-active nginx
 - Browser hard refreshes may be needed after frontend changes because `app.js` and `styles.css` are cached by the browser.
 - If `git pull --ff-only` fails, inspect local changes before forcing anything.
 - Keep the repo and deployed app rooted at `/opt/fieldkit` for consistency with the current systemd and nginx assets.
+- Local operator notes such as `TODO.local.md` and `HANDOFF.md` should stay out of git and off the appliance.
