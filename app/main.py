@@ -28,8 +28,32 @@ async def index() -> FileResponse:
 
 
 @app.get("/readme", include_in_schema=False)
-async def readme() -> FileResponse:
-    return FileResponse("README.md", media_type="text/markdown", filename="README.md")
+async def readme() -> HTMLResponse:
+    body = escape(open("README.md", encoding="utf-8").read())
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit README</title>
+    <style>
+      body {{ font-family: 'IBM Plex Sans', sans-serif; background: #f6f0e5; color: #1f2a2d; margin: 0; }}
+      main {{ width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 32px 0 48px; }}
+      a {{ color: #7f311c; }}
+      article {{ background: rgba(255, 252, 246, 0.92); border: 1px solid #c2b6a2; border-radius: 18px; padding: 24px; }}
+      pre {{ white-space: pre-wrap; font-family: 'IBM Plex Mono', monospace; line-height: 1.5; }}
+    </style>
+  </head>
+  <body>
+    <main>
+      <article>
+        <p><a href="/">Back to Fieldkit</a></p>
+        <pre>{body}</pre>
+      </article>
+    </main>
+  </body>
+</html>"""
+    return HTMLResponse(html)
 
 
 @app.get("/kit-docs", include_in_schema=False)

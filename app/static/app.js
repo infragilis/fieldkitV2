@@ -18,6 +18,9 @@ async function loadMeta() {
 }
 
 function renderKeyValue(target, data) {
+  if (!target) {
+    return;
+  }
   target.innerHTML = Object.entries(data)
     .map(([key, value]) => `<p><strong>${key}</strong>: ${typeof value === "object" ? JSON.stringify(value) : value}</p>`)
     .join("");
@@ -57,14 +60,15 @@ async function loadStatus() {
       `<li><strong>${session.label}</strong> ${session.device_hint} <span class="muted">${session.baud_rate} baud${session.present ? "" : ", unavailable"}</span></li>`
   );
 
-  const form = document.getElementById("settings-form");
-  form.hostname.value = settings.hostname;
-  form.ethernet_mode.value = settings.ethernet.mode;
-  form.ethernet_address.value = settings.ethernet.address;
-  form.wifi_mode.value = settings.wifi.mode;
-  form.wifi_ssid.value = settings.wifi.ssid;
-  form.console1_baud.value = settings.serial_ports[0]?.baud_rate || 9600;
-  form.console2_baud.value = settings.serial_ports[1]?.baud_rate || 9600;
+  const networkForm = document.getElementById("settings-form");
+  const serialForm = document.getElementById("serial-settings-form");
+  networkForm.hostname.value = settings.hostname;
+  networkForm.ethernet_mode.value = settings.ethernet.mode;
+  networkForm.ethernet_address.value = settings.ethernet.address;
+  networkForm.wifi_mode.value = settings.wifi.mode;
+  networkForm.wifi_ssid.value = settings.wifi.ssid;
+  serialForm.console1_baud.value = settings.serial_ports[0]?.baud_rate || 9600;
+  serialForm.console2_baud.value = settings.serial_ports[1]?.baud_rate || 9600;
 }
 
 async function loadLibrary(name) {
@@ -78,21 +82,21 @@ async function loadLibrary(name) {
   );
 }
 
-async function saveSettings(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const payload = {
-    hostname: form.hostname.value,
+function buildSettingsPayload() {
+  const networkForm = document.getElementById("settings-form");
+  const serialForm = document.getElementById("serial-settings-form");
+  return {
+    hostname: networkForm.hostname.value,
     ethernet: {
-      mode: form.ethernet_mode.value,
-      address: form.ethernet_address.value,
+      mode: networkForm.ethernet_mode.value,
+      address: networkForm.ethernet_address.value,
       gateway: "",
       dns: [],
       interface: "eth0",
     },
     wifi: {
-      mode: form.wifi_mode.value,
-      ssid: form.wifi_ssid.value,
+      mode: networkForm.wifi_mode.value,
+      ssid: networkForm.wifi_ssid.value,
       password: "",
       country_code: "US",
     },
@@ -100,7 +104,7 @@ async function saveSettings(event) {
       {
         label: "Console 1",
         device_hint: "/dev/ttyUSB0",
-        baud_rate: Number(form.console1_baud.value || 9600),
+        baud_rate: Number(serialForm.console1_baud.value || 9600),
         data_bits: 8,
         parity: "none",
         stop_bits: 1,
@@ -108,13 +112,18 @@ async function saveSettings(event) {
       {
         label: "Console 2",
         device_hint: "/dev/ttyUSB1",
-        baud_rate: Number(form.console2_baud.value || 9600),
+        baud_rate: Number(serialForm.console2_baud.value || 9600),
         data_bits: 8,
         parity: "none",
         stop_bits: 1,
       },
     ],
   };
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+  const payload = buildSettingsPayload();
   await getJson("/api/settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -183,6 +192,7 @@ function sendConsoleInput(event) {
 }
 
 document.getElementById("settings-form").addEventListener("submit", saveSettings);
+document.getElementById("serial-settings-form").addEventListener("submit", saveSettings);
 document.getElementById("upload-form").addEventListener("submit", uploadFile);
 document.getElementById("password-form").addEventListener("submit", changePassword);
 document.getElementById("console-input-form").addEventListener("submit", sendConsoleInput);

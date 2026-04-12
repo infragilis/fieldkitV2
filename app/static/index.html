@@ -8,21 +8,30 @@
   </head>
   <body>
     <main class="app-shell">
+      <nav class="topbar">
+        <div class="brand-mark">Fieldkit</div>
+        <div class="topbar-links">
+          <a href="#connectivity">Connectivity</a>
+          <a href="#serial">Serial</a>
+          <a href="#libraries">Libraries</a>
+          <a href="#docs">Docs</a>
+          <a href="#settings">Settings</a>
+          <a href="/readme">README</a>
+        </div>
+      </nav>
+
       <section class="hero">
         <div>
-          <p class="eyebrow">Raspberry Pi Field Service</p>
           <h1>Fieldkit</h1>
           <p class="subhead">
             Download firmware, upload personal assets, inspect connectivity, and manage two serial console profiles.
           </p>
         </div>
-        <div class="status-card" id="system-status"></div>
       </section>
 
       <section class="grid">
-        <article class="panel">
+        <article class="panel" id="connectivity">
           <h2>Connectivity</h2>
-          <div id="connectivity-status"></div>
           <p id="platform-notes" class="muted"></p>
           <h3>Active Links</h3>
           <ul id="active-connections" class="list"></ul>
@@ -30,7 +39,7 @@
           <ul id="wifi-networks" class="list"></ul>
         </article>
 
-        <article class="panel">
+        <article class="panel" id="serial">
           <h2>Serial Consoles</h2>
           <ul id="serial-sessions" class="list"></ul>
           <div class="console-controls">
@@ -44,7 +53,7 @@
           </form>
         </article>
 
-        <article class="panel">
+        <article class="panel" id="libraries">
           <h2>Libraries</h2>
           <div class="tabs">
             <button data-library="data">data</button>
@@ -55,7 +64,7 @@
           <ul id="library-items" class="list"></ul>
         </article>
 
-        <article class="panel">
+        <article class="panel" id="docs">
           <h2>Reference Docs</h2>
           <p class="muted">Vendor quick-reference topics stored locally on the kit.</p>
           <ul class="list">
@@ -77,8 +86,8 @@
           <p id="upload-result" class="muted"></p>
         </article>
 
-        <article class="panel">
-          <h2>Settings</h2>
+        <article class="panel" id="settings">
+          <h2>Networking</h2>
           <form id="settings-form">
             <label>
               Hostname
@@ -107,6 +116,15 @@
               Wi-Fi SSID
               <input type="text" name="wifi_ssid" />
             </label>
+            <button type="submit">Save Network Settings</button>
+          </form>
+          <button id="apply-network-button" type="button">Prepare Network Apply</button>
+          <p id="apply-network-result" class="muted"></p>
+        </article>
+
+        <article class="panel">
+          <h2>Serial Settings</h2>
+          <form id="serial-settings-form">
             <label>
               Console 1 Baud
               <input type="number" name="console1_baud" value="9600" />
@@ -115,10 +133,8 @@
               Console 2 Baud
               <input type="number" name="console2_baud" value="9600" />
             </label>
-            <button type="submit">Save Settings</button>
+            <button type="submit">Save Serial Settings</button>
           </form>
-          <button id="apply-network-button" type="button">Prepare Network Apply</button>
-          <p id="apply-network-result" class="muted"></p>
         </article>
 
         <article class="panel">
@@ -139,7 +155,6 @@
       </section>
       <footer class="app-footer">
         <span id="app-version">Fieldkit v0.1</span>
-        <a href="/readme" target="_blank" rel="noopener noreferrer">Local README</a>
       </footer>
     </main>
 
