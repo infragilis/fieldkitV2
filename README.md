@@ -23,7 +23,7 @@ This is a factory-default credential only and should be changed immediately on a
 
 ## Open Source
 
-Fieldkit is fully open source and available for anyone to use, modify, and distribute under the MIT license in [LICENSE](/opt/fieldkit/LICENSE:1).
+Fieldkit is fully open source and available for anyone to use, modify, and distribute under the MIT license in [LICENSE](https://github.com/infragilis/fieldkitV2/blob/main/LICENSE).
 
 This project is provided `AS IS`, without warranty of any kind, express or implied.
 
@@ -167,7 +167,7 @@ Topics currently included:
 - `Brocade Fabric OS`
 - `Broadcom Ethernet Switching`
 
-These notes live in [docs/kits](/opt/fieldkit/docs/kits) and are exposed through the web UI from the main page as well as the local docs index at `/kit-docs`.
+These notes live in `docs/kits` and are exposed through the web UI from the main page as well as the local docs index at `/kit-docs`.
 
 ## Raspberry Pi target behavior
 
@@ -190,13 +190,13 @@ The current documented baseline is:
 
 If you want Fieldkit to impersonate a USB storage device over a cable, a newer OTG-capable Raspberry Pi is the recommended target instead of the current Pi 3 Model B reference box.
 
-Reference inventory and rationale are documented in [docs/platform-baseline.md](/opt/fieldkit/docs/platform-baseline.md:1).
+Reference inventory and rationale are documented in [docs/platform-baseline.md](docs/platform-baseline.md).
 
 ## Deployment Guides
 
-- [docs/pi-setup.md](/opt/fieldkit/docs/pi-setup.md:1) explains how to prepare a Raspberry Pi to the minimum supported Fieldkit baseline.
-- [docs/update-and-reload.md](/opt/fieldkit/docs/update-and-reload.md:1) explains how to pull the repo, refresh the Python environment, and reload the deployed kit.
-- [docs/golden-image-checklist.md](/opt/fieldkit/docs/golden-image-checklist.md:1) provides a concise repeatable checklist for preparing a handoff-ready Fieldkit image.
+- [docs/pi-setup.md](docs/pi-setup.md) explains how to prepare a Raspberry Pi to the minimum supported Fieldkit baseline.
+- [docs/update-and-reload.md](docs/update-and-reload.md) explains how to pull the repo, refresh the Python environment, and reload the deployed kit.
+- [docs/golden-image-checklist.md](docs/golden-image-checklist.md) provides a concise repeatable checklist for preparing a handoff-ready Fieldkit image.
 
 ## Current Limitations
 
@@ -217,16 +217,16 @@ Reference inventory and rationale are documented in [docs/platform-baseline.md](
 
 ## Deployment assets
 
-- [scripts/provision_pi.sh](/opt/fieldkit/scripts/provision_pi.sh:1) prepares hostname, user, and runtime directories.
-- [scripts/install_systemd.sh](/opt/fieldkit/scripts/install_systemd.sh:1) installs the web service unit.
-- [scripts/install_transfer_services.sh](/opt/fieldkit/scripts/install_transfer_services.sh:1) configures the shared export root, the TFTP and FTP roots, and the sudoers policy needed for UI-driven transfer service toggles while leaving built-in SSH/SCP available.
-- [scripts/smoke_test_appliance.sh](/opt/fieldkit/scripts/smoke_test_appliance.sh:1) uploads a small file and verifies HTTPS API, plain HTTP export, SCP, and optionally FTP/TFTP against a live appliance.
-- [scripts/install_nginx.sh](/opt/fieldkit/scripts/install_nginx.sh:1) exposes Fieldkit on port `80` through `nginx`.
-- [scripts/install_https_self_signed.sh](/opt/fieldkit/scripts/install_https_self_signed.sh:1) generates a self-signed certificate and exposes Fieldkit on `443` while keeping `80` available.
-- [deploy/systemd/fieldkit-web.service](/opt/fieldkit/deploy/systemd/fieldkit-web.service:1) runs the FastAPI app under `uvicorn`.
-- [deploy/nginx/fieldkit.conf](/opt/fieldkit/deploy/nginx/fieldkit.conf:1) proxies port `80` to the local app on `127.0.0.1:8000`.
-- [deploy/nginx/fieldkit-ssl.conf](/opt/fieldkit/deploy/nginx/fieldkit-ssl.conf:1) adds self-signed TLS on `443` and keeps the HTTP front end on `80`.
-- [docs/https-self-signed.md](/opt/fieldkit/docs/https-self-signed.md:1) explains how to export and trust the self-signed Fieldkit certificate.
+- [scripts/provision_pi.sh](scripts/provision_pi.sh) prepares hostname, user, and runtime directories.
+- [scripts/install_systemd.sh](scripts/install_systemd.sh) installs the web service unit.
+- [scripts/install_transfer_services.sh](scripts/install_transfer_services.sh) configures the shared export root, the TFTP and FTP roots, and the sudoers policy needed for UI-driven transfer service toggles while leaving built-in SSH/SCP available.
+- [scripts/smoke_test_appliance.sh](scripts/smoke_test_appliance.sh) uploads a small file and verifies HTTPS API, plain HTTP export, SCP, and optionally FTP/TFTP against a live appliance.
+- [scripts/install_nginx.sh](scripts/install_nginx.sh) exposes Fieldkit on port `80` through `nginx`.
+- [scripts/install_https_self_signed.sh](scripts/install_https_self_signed.sh) generates a self-signed certificate and exposes Fieldkit on `443` while keeping `80` available.
+- [deploy/systemd/fieldkit-web.service](deploy/systemd/fieldkit-web.service) runs the FastAPI app under `uvicorn`.
+- [deploy/nginx/fieldkit.conf](deploy/nginx/fieldkit.conf) proxies port `80` to the local app on `127.0.0.1:8000`.
+- [deploy/nginx/fieldkit-ssl.conf](deploy/nginx/fieldkit-ssl.conf) adds self-signed TLS on `443` and keeps the HTTP front end on `80`.
+- [docs/https-self-signed.md](docs/https-self-signed.md) explains how to export and trust the self-signed Fieldkit certificate.
 
 ## HTTPS Staging
 

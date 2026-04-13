@@ -15,7 +15,7 @@ The default appliance SSH login is `service` / `service`.
 
 This should be treated as a temporary bootstrap credential and changed as soon as the kit is provisioned.
 
-Reference baseline details are in [platform-baseline.md](/opt/fieldkit/docs/platform-baseline.md:1).
+Reference baseline details are in [platform-baseline.md](platform-baseline.md).
 
 ## Base OS preparation
 
