@@ -1,245 +1,90 @@
 # Fieldkit
 
-Fieldkit is a Raspberry Pi appliance for field servicing network devices. It exposes:
+Fieldkit is a Raspberry Pi toolkit for field work on network equipment. It gives you a local web interface for console access, file handling, transfer services, and appliance management.
 
-- A web UI for console access, file transfer, connectivity review, and appliance settings
-- Two USB serial console endpoints with independent settings and popup console windows
-- A local content library split into `data`, `personal`, `usb`, and `serial-logs`
-- A modular backend so Pi integration code stays isolated from the web layer
+## What Fieldkit Does
 
-## Hardware Note
+- Provides two USB serial console sessions with popup console windows
+- Stores files locally in `data`, `personal`, `usb`, and `serial-logs`
+- Supports browser uploads and downloads from the kit
+- Captures serial session logs for later download
+- Shares files over HTTP
+- Shares files over SCP
+- Can enable FTP and TFTP when needed
+- Includes a local shell page for direct access to the Pi from the browser
+- Includes built-in vendor reference notes for field use
+- Supports multiple UI languages in the web interface and README view
 
-Console access requires USB-to-serial console cables or USB serial adapters that present as `ttyUSB*` or `ttyACM*` devices on the appliance.
+## Hardware Recommendations
 
-USB gadget export, where Fieldkit would appear to another device like a directly attached USB key, requires a Raspberry Pi with an OTG-capable USB device port. The current reference appliance is a Raspberry Pi 3 Model B Rev 1.2 and does not support that mode.
+- Raspberry Pi 3 Model B or newer
+- 64-bit Debian 13 (`trixie`)
+- Two USB serial adapters or console cables if you want to use both console ports
+- A USB flash drive if you want removable local storage on the kit
+- Wired Ethernet recommended for setup, updates, and AP cutover testing
 
-If USB gadget export is an important workflow, prefer a Raspberry Pi model with working USB device mode support and expose that through a dedicated OTG-capable port.
+## Storage Recommendation
+
+Fieldkit stores uploaded files, exported files, and serial session logs on the appliance itself.
+
+- Minimum recommended microSD card size: `32 GB`
+- Use larger storage if you expect to keep firmware images, switch software, or long serial log history on the kit
+
+## Main Features
+
+- Dashboard for quick access to consoles, files, docs, and settings
+- Settings page for connectivity, transfer-service toggles, password change, and serial presets
+- Files page for browsing `data`, `personal`, `usb`, and `serial-logs`
+- Raw export browser at `/fieldkit` for direct file access
+- Browser shell at `/pi-shell`
+- Local documentation index at `/kit-docs`
+- Localized README page at `/readme`
+
+## Transfer Options
+
+Fieldkit can make shared files available through:
+
+- HTTP
+- SCP
+- FTP
+- TFTP
+
+HTTP export is available by default for `/fieldkit/...`. FTP and TFTP can be enabled from the Settings page when needed.
+
+## Wi-Fi Access Point Prep
+
+Fieldkit can be prepared with a precreated Wi-Fi access-point profile:
+
+- SSID: `fieldkit`
+- Password: `fieldkit`
+
+This profile can be created in advance and left disabled until the kit is ready to switch to AP mode.
 
 ## Default Access
 
 The default appliance SSH login is `service` / `service`.
 
-This is a factory-default credential only and should be changed immediately on any real kit.
+Change this immediately on any real deployment.
 
-## Open Source
-
-Fieldkit is fully open source and available for anyone to use, modify, and distribute under the MIT license in [LICENSE](https://github.com/infragilis/fieldkitV2/blob/main/LICENSE).
-
-This project is provided `AS IS`, without warranty of any kind, express or implied.
-
-## Issues And Features
-
-Post bugs, issues, and feature requests at:
-
-- <https://github.com/infragilis/fieldkitV2/issues>
-
-## Current Functionality
-
-The current repo and live kit provide:
-
-- A FastAPI backend with modular routers and services
-- A main dashboard focused on console access, docs, and uploads
-- A dedicated `/settings` page for connectivity, networking, password changes, and serial presets
-- A dedicated `/pi-shell` page for local shell access to the appliance as the `service` account using an in-browser terminal
-- A dedicated `/files` page for browsing `data`, `personal`, `usb`, and `serial-logs`
-- Desktop-to-kit uploads into `personal` or mounted `usb`
-- Duplicate upload protection so existing files are not overwritten silently
-- Delete actions for `personal` files and captured `serial-logs`
-- USB auto-detection for common mounted media roots under `/media/service`, `/media`, and `/mnt`
-- Hidden/macOS metadata filtering in the file browser so `._*`, `.Spotlight-V100`, and similar entries do not clutter USB views
-- Local vendor reference notes linked from the web UI
-- Persisted settings for ethernet, Wi-Fi mode, and serial console profiles
-- A precreated `fieldkit` Wi-Fi access-point profile on the appliance for later AP-mode use
-- Quick serial preset switching between `9600 8N1` and `115200 8N1`
-- Automatic serial adapter detection so console sessions can work without manually setting `/dev/ttyUSB*` paths
-- A dedicated `/serial-settings` page for full per-console settings such as optional device preference, baud, parity, data bits, and stop bits
-- A shared `/fieldkit` export tree for direct downloads over HTTP with the same `data`, `personal`, and `usb` structure used by TFTP, FTP, and SCP
-- Settings toggles for enabling or disabling plain HTTP export on `/fieldkit`, plus TFTP and FTP access, with SCP remaining available through the built-in SSH service without a separate toggle
-- Popup serial console windows at `/serial-console/0` and `/serial-console/1`
-- Direct keyboard capture in popup console sessions instead of line-by-line send forms
-- Timestamped serial session log capture under `runtime/state/serial-logs`
-- Reset actions for active console sessions
-- Dry-run network apply planning for hostname and ethernet changes
-- A systemd unit template and install script for the web service
-- Pi capability detection so Wi-Fi behavior can differ cleanly across Pi 3 and newer vs older models
-
-Pi-specific integrations such as `hostapd`, `dnsmasq`, `nmcli`, `tftpd`, `vsftpd`, `ssh/scp`, and serial streaming are intentionally isolated behind service modules so they can be implemented and tested separately.
-
-## Operational Requirements
-
-- Fieldkit should be able to run Ansible workflows against field devices from the kit itself.
-- Serial console sessions should be logged on the kit with date/time-stamped session files for later review.
-
-## Web UI
-
-Primary routes:
-
-- `/` for the main dashboard
-- `/settings` for connectivity, networking, password, and serial preset management
-- `/pi-shell` for browser-based local shell access on the appliance
-- `/serial-settings` for detailed per-console serial profile editing
-- `/files` for file browsing, upload, and delete actions
-- `/fieldkit` for raw export browsing and direct file downloads
-- `/readme` for the repo README rendered locally on the kit
-- `/kit-docs` for the local documentation index
-
-The `/readme` view switches to a localized README when a supported UI language is selected.
-
-## File Libraries
-
-Fieldkit exposes four file libraries through the `Files` page:
-
-- `data`
-- `personal`
-- `usb`
-- `serial-logs`
-
-These same libraries are also exposed through:
-
-- HTTP at `/fieldkit/data`, `/fieldkit/personal`, and `/fieldkit/usb`
-- FTP from the same export root when `vsftpd` is enabled
-- SCP under `/opt/fieldkit/runtime/content/fieldkit/<library>/...` through the built-in SSH service
-- TFTP with the same root structure when `scripts/install_transfer_services.sh` has been applied on the Pi
-
-`serial-logs` are intentionally not part of the shared export tree. They remain available through the Fieldkit web GUI and file download endpoint only.
-
-Plain HTTP export for `/fieldkit/...` is enabled by default so maintenance-mode devices that cannot fetch over HTTPS can still download images and firmware.
-
-The web GUI can stay on HTTPS while the raw `/fieldkit/...` export path is made available on plain HTTP port `80` for older maintenance clients.
-
-USB gadget export is not available on the current Raspberry Pi 3 Model B reference hardware. For that workflow, use an OTG-capable Raspberry Pi instead.
-
-Current USB behavior:
-
-- If removable storage is auto-mounted under `/media/service`, `/media`, or `/mnt`, Fieldkit will use that mount as the `usb` library automatically.
-- Fieldkit currently picks the first matching mounted directory it finds under those paths, which works best for the common single-USB-stick case.
-- Multi-drive selection, user-visible volume labels, and automatic hot-plug refresh are not implemented yet.
-
-Current file behavior:
-
-- Uploads are allowed to `personal` and `usb`
-- Uploads to `data` and `serial-logs` are blocked
-- Duplicate filenames return a warning instead of overwriting the existing file
-- Deletes are allowed for `personal` and `serial-logs`
-- USB files are currently treated as read-only from a delete perspective
-
-## Layout
-
-```text
-fieldkit/
-  app/
-    api/          # HTTP routes
-    core/         # Config and data models
-    services/     # Platform-specific service boundaries
-    static/       # Frontend assets
-    main.py       # FastAPI application entry
-  runtime/
-    content/
-      data/
-      personal/
-      usb/
-    state/
-      settings.json
-```
-
-## Run locally
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-uvicorn app.main:app --reload
-```
-
-Open `http://127.0.0.1:8000`.
-
-The app exposes serial console WebSocket endpoints at `/api/serial/ws/0` and `/api/serial/ws/1`.
-Each session creates a UTC-stamped log file in `runtime/state/serial-logs` and records open/close events plus `RX` and `TX` traffic.
-If no device preference is saved for a console, Fieldkit auto-assigns the next detected `ttyUSB*` or `ttyACM*` adapter.
-
-Popup console windows are exposed at `/serial-console/0` and `/serial-console/1`.
-These windows are intended to be moved around independently by field engineers and capture keyboard input directly.
-
-## Kit Documentation
-
-Fieldkit includes local vendor quick-reference notes that are served by the app and intended to be available directly on the appliance in the field.
-
-Topics currently included:
-
-- `NetApp`
-- `Cisco`
-- `NVIDIA`
-- `Brocade Fabric OS`
-- `Broadcom Ethernet Switching`
-
-These notes live in `docs/kits` and are exposed through the web UI from the main page as well as the local docs index at `/kit-docs`.
-
-## Raspberry Pi target behavior
-
-- Ethernet can be pinned to a local service IP for direct device imaging
-- Wi-Fi can operate as AP or client mode
-- A `fieldkit` access-point profile can be precreated on the Pi and left disabled until the kit is ready to switch from client or wired access
-- Pi 3 and newer should expose onboard Wi-Fi flows; older models should keep Wi-Fi disabled unless an adapter is explicitly added later
-- The fourth port service workflow should be implemented via the network service module
-- `service/service` is the intended default appliance SSH username and password
-- The device hostname target is `fieldkit`
-
-## Minimum supported platform
-
-The current documented baseline is:
+## Recommended Platform
 
 - Raspberry Pi 3 Model B or newer
 - Debian 13 (`trixie`) 64-bit
 - Python 3.13
-- NetworkManager / `nmcli`
+- NetworkManager
 - OpenSSH server
 
-If you want Fieldkit to impersonate a USB storage device over a cable, a newer OTG-capable Raspberry Pi is the recommended target instead of the current Pi 3 Model B reference box.
+## Documentation
 
-Reference inventory and rationale are documented in [docs/platform-baseline.md](docs/platform-baseline.md).
+- [docs/pi-setup.md](docs/pi-setup.md)
+- [docs/update-and-reload.md](docs/update-and-reload.md)
+- [docs/golden-image-checklist.md](docs/golden-image-checklist.md)
+- [docs/architecture.md](docs/architecture.md)
 
-## Deployment Guides
+## Open Source
 
-- [docs/pi-setup.md](docs/pi-setup.md) explains how to prepare a Raspberry Pi to the minimum supported Fieldkit baseline.
-- [docs/update-and-reload.md](docs/update-and-reload.md) explains how to pull the repo, refresh the Python environment, and reload the deployed kit.
-- [docs/golden-image-checklist.md](docs/golden-image-checklist.md) provides a concise repeatable checklist for preparing a handoff-ready Fieldkit image.
+Fieldkit is open source and available under the MIT license in [LICENSE](https://github.com/infragilis/fieldkitV2/blob/main/LICENSE).
 
-## Current Limitations
+Issues and feature requests:
 
-- USB browsing uses the first detected mounted path under `/media/service`, `/media`, or `/mnt`, so multi-drive selection is not implemented yet
-- USB volume labels and automatic hot-plug refresh are not implemented yet
-- Serial profiles prefer a saved `device_hint` when it matches a detected adapter, then fall back to the next detected `ttyUSB*` or `ttyACM*`; stable identity by USB serial number or port topology is not implemented yet
-- Network apply remains a dry-run planning workflow rather than a full live reconfiguration path
-- Ansible device-side workflows are not implemented yet
-- The browser shell is a full terminal session, but appliance-local authorization still relies on the `service` account rather than a separate Fieldkit permission layer
-
-## Next Implementation Steps
-
-1. Improve USB storage handling to support multiple mounted drives, labels, and live refresh.
-2. Add richer serial session controls such as break handling and more detailed reconnect state.
-3. Wire network service actions to real NetworkManager or systemd-networkd changes on the Pi.
-4. Add richer HTTP/TFTP/FTP serving workflows for firmware and images.
-5. Add Ansible execution workflows for field devices and NetApp runbooks.
-
-## Deployment assets
-
-- [scripts/provision_pi.sh](scripts/provision_pi.sh) prepares hostname, user, and runtime directories.
-- [scripts/install_systemd.sh](scripts/install_systemd.sh) installs the web service unit.
-- [scripts/install_transfer_services.sh](scripts/install_transfer_services.sh) configures the shared export root, the TFTP and FTP roots, and the sudoers policy needed for UI-driven transfer service toggles while leaving built-in SSH/SCP available.
-- [scripts/smoke_test_appliance.sh](scripts/smoke_test_appliance.sh) uploads a small file and verifies HTTPS API, plain HTTP export, SCP, and optionally FTP/TFTP against a live appliance.
-- [scripts/install_nginx.sh](scripts/install_nginx.sh) exposes Fieldkit on port `80` through `nginx`.
-- [scripts/install_https_self_signed.sh](scripts/install_https_self_signed.sh) generates a self-signed certificate and exposes Fieldkit on `443` while keeping `80` available.
-- [deploy/systemd/fieldkit-web.service](deploy/systemd/fieldkit-web.service) runs the FastAPI app under `uvicorn`.
-- [deploy/nginx/fieldkit.conf](deploy/nginx/fieldkit.conf) proxies port `80` to the local app on `127.0.0.1:8000`.
-- [deploy/nginx/fieldkit-ssl.conf](deploy/nginx/fieldkit-ssl.conf) adds self-signed TLS on `443` and keeps the HTTP front end on `80`.
-- [docs/https-self-signed.md](docs/https-self-signed.md) explains how to export and trust the self-signed Fieldkit certificate.
-
-## HTTPS Staging
-
-Self-signed HTTPS is staged but not enabled on the live kit yet. When ready, run:
-
-```bash
-sudo bash /opt/fieldkit/scripts/install_https_self_signed.sh
-```
-
-This adds HTTPS on port `443` using a self-signed certificate for the Fieldkit appliance and redirects HTTP on port `80` to HTTPS.
+- <https://github.com/infragilis/fieldkitV2/issues>
