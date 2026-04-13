@@ -1,5 +1,5 @@
 import asyncio
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.services.settings_store import SettingsStore
@@ -156,7 +156,7 @@ class SerialService:
 
     def _create_session_log_path(self, profile, active_device: str | None = None) -> Path:
         self._log_root.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         safe_label = self._sanitize_path_part(profile.label)
         device_name = active_device or profile.device_hint
         safe_device = self._sanitize_path_part(Path(device_name).name or device_name)
@@ -169,7 +169,7 @@ class SerialService:
         return log_path
 
     def _append_log_entry(self, log_path: Path, direction: str, payload: str) -> None:
-        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         lines = payload.splitlines() or [payload]
         with log_path.open("a", encoding="utf-8") as handle:
             for line in lines:

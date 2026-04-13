@@ -18,10 +18,54 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Fieldkit", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Fieldkit", version="0.1.1", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 storage_service = StorageService(get_settings())
+
+
+def shell_tools_html() -> str:
+    return """
+        <div class="shell-tools">
+          <button id="theme-toggle" type="button" class="shell-tool-button theme-icon-button" aria-label="Toggle theme" title="Toggle theme"><span id="theme-toggle-icon" aria-hidden="true">◐</span></button>
+          <div class="language-picker">
+            <button type="button" class="language-button">
+              <span id="language-flag" class="language-flag">🇬🇧</span>
+              <span id="language-label">English</span>
+            </button>
+            <div class="language-options">
+              <button type="button" data-language="en"><span class="language-flag">🇬🇧</span><span>English</span></button>
+              <button type="button" data-language="es"><span class="language-flag">🇪🇸</span><span>Espanol</span></button>
+              <button type="button" data-language="de"><span class="language-flag">🇩🇪</span><span>Deutsch</span></button>
+              <button type="button" data-language="nl"><span class="language-flag">🇳🇱</span><span>Nederlands</span></button>
+              <button type="button" data-language="fr"><span class="language-flag">🇫🇷</span><span>Francais</span></button>
+            </div>
+          </div>
+        </div>
+    """
+
+
+def topbar_html(*, docs_href: str = "/#docs", exports_href: str | None = None) -> str:
+    exports_link = f'<a href="{exports_href}" data-i18n="raw_exports">Exports</a>' if exports_href else ""
+    return f"""
+      <nav class="topbar">
+        <div class="brand-mark">
+          <span>Fieldkit</span>
+          <span class="brand-version">v0.1.1</span>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-links">
+            <a href="/" data-i18n="nav_home">Home</a>
+            <a href="/files" data-i18n="nav_files">Files</a>
+            {exports_link}
+            <a href="{docs_href}" data-i18n="nav_docs">Docs</a>
+            <a href="/settings" data-i18n="nav_settings">Settings</a>
+            <a href="/readme" data-i18n="nav_readme">README</a>
+          </div>
+          {shell_tools_html()}
+        </div>
+      </nav>
+    """
 
 
 @app.get("/", include_in_schema=False)
@@ -87,27 +131,16 @@ async def fieldkit_exports(requested_path: str = ""):
   </head>
   <body>
     <main class="app-shell">
-      <nav class="topbar">
-        <div class="brand-mark">
-          <span>Fieldkit</span>
-          <span class="brand-version">v0.1.0</span>
-        </div>
-        <div class="topbar-links">
-          <a href="/">Home</a>
-          <a href="/files">Files</a>
-          <a href="/fieldkit">Exports</a>
-          <a href="/settings">Settings</a>
-          <a href="/readme">README</a>
-        </div>
-      </nav>
+      {topbar_html(docs_href="/kit-docs", exports_href="/fieldkit")}
       <article class="panel">
-        <h1>Fieldkit Exports</h1>
+        <h1 data-i18n="exports_title">Fieldkit Exports</h1>
         <p class="path-note">HTTP: /fieldkit{escape(header_path)}</p>
         <p class="muted">TFTP, FTP, and SCP use the same library structure rooted at {escape(str(storage_service.export_root()))}.</p>
-        <p><a href="{parent_path}">Up one level</a></p>
+        <p><a href="{parent_path}" data-i18n="up_one_level">Up one level</a></p>
         <ul>{rows}</ul>
       </article>
     </main>
+    <script src="/static/app.js" defer></script>
   </body>
 </html>"""
     return HTMLResponse(html)
@@ -131,23 +164,12 @@ async def readme() -> HTMLResponse:
   </head>
   <body>
     <main class="app-shell">
-      <nav class="topbar">
-        <div class="brand-mark">
-          <span>Fieldkit</span>
-          <span class="brand-version">v0.1.0</span>
-        </div>
-        <div class="topbar-links">
-          <a href="/">Home</a>
-          <a href="/files">Files</a>
-          <a href="/#docs">Docs</a>
-          <a href="/settings">Settings</a>
-          <a href="/readme">README</a>
-        </div>
-      </nav>
+      {topbar_html()}
       <article class="panel">
         <pre>{body}</pre>
       </article>
     </main>
+    <script src="/static/app.js" defer></script>
   </body>
 </html>"""
     return HTMLResponse(html)
@@ -181,22 +203,10 @@ async def files_page() -> HTMLResponse:
   </head>
   <body>
     <main class="app-shell">
-      <nav class="topbar">
-        <div class="brand-mark">
-          <span>Fieldkit</span>
-          <span class="brand-version">v0.1.0</span>
-        </div>
-        <div class="topbar-links">
-          <a href="/">Home</a>
-          <a href="/files">Files</a>
-          <a href="/fieldkit">Exports</a>
-          <a href="/settings">Settings</a>
-          <a href="/readme">README</a>
-        </div>
-      </nav>
+      __TOPBAR__
       <article class="panel">
-        <h1>Files</h1>
-        <p class="muted">Browse the local file libraries available on the kit.</p>
+        <h1 data-i18n="files_title">Files</h1>
+        <p class="muted" data-i18n="files_note">Browse the local file libraries available on the kit.</p>
         <div class="tabs">
           <button data-library="data">data</button>
           <button data-library="personal">personal</button>
@@ -205,16 +215,17 @@ async def files_page() -> HTMLResponse:
         </div>
         <form id="library-upload-form" class="upload-row">
           <label>
-            Upload From Local Desktop
+            <span data-i18n="upload_from_desktop">Upload From Local Desktop</span>
             <input type="file" name="file" required />
           </label>
-          <button type="submit">Upload To Current Library</button>
+          <button type="submit" data-i18n="upload_current_library">Upload To Current Library</button>
         </form>
         <p id="upload-result" class="muted"></p>
         <p class="muted" id="library-path"></p>
         <ul id="library-items"></ul>
       </article>
     </main>
+    <script src="/static/app.js"></script>
     <script>
       let currentLibrary = "data";
 
@@ -229,14 +240,14 @@ async def files_page() -> HTMLResponse:
       }
 
       async function deleteEntry(library, path) {
-        const confirmed = window.confirm(`Delete ${path} from ${library}?`);
+        const confirmed = window.confirm(window.fieldkitUi ? window.fieldkitUi.t("delete_confirm", { path, library }) : `Delete ${path} from ${library}?`);
         if (!confirmed) return;
         const response = await fetch(`/api/files?library=${encodeURIComponent(library)}&path=${encodeURIComponent(path)}`, {
           method: "DELETE"
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          window.alert(payload.detail || "Delete failed");
+          window.alert(payload.detail || (window.fieldkitUi ? window.fieldkitUi.t("delete_failed") : "Delete failed"));
           return;
         }
         await loadLibrary(library);
@@ -247,10 +258,10 @@ async def files_page() -> HTMLResponse:
         const button = form.querySelector("button");
         const allowed = library === "personal" || library === "usb";
         form.style.display = allowed ? "flex" : "none";
-        button.textContent = `Upload To ${library}`;
+        button.textContent = window.fieldkitUi ? window.fieldkitUi.t("upload_current_library") : `Upload To ${library}`;
         document.getElementById("upload-result").textContent = allowed
           ? ""
-          : `Uploads are not allowed to ${library}.`;
+          : (window.fieldkitUi ? window.fieldkitUi.t("uploads_not_allowed", { library }) : `Uploads are not allowed to ${library}.`);
       }
 
       async function uploadToCurrentLibrary(event) {
@@ -263,10 +274,10 @@ async def files_page() -> HTMLResponse:
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          document.getElementById("upload-result").textContent = payload.detail || "Upload failed";
+          document.getElementById("upload-result").textContent = payload.detail || (window.fieldkitUi ? window.fieldkitUi.t("upload_failed") : "Upload failed");
           return;
         }
-        document.getElementById("upload-result").textContent = `Saved ${payload.saved} to ${payload.library}`;
+        document.getElementById("upload-result").textContent = window.fieldkitUi ? window.fieldkitUi.t("saved_to", { name: payload.saved, library: payload.library }) : `Saved ${payload.saved} to ${payload.library}`;
         form.reset();
         await loadLibrary(currentLibrary);
       }
@@ -277,6 +288,7 @@ async def files_page() -> HTMLResponse:
         const response = await fetch(`/api/files?library=${encodeURIComponent(name)}`);
         const payload = await response.json();
         document.getElementById("library-path").textContent = `/${payload.library}/${payload.path || ""}`;
+        const i18n = window.fieldkitUi;
         document.getElementById("library-items").innerHTML =
           payload.items.map((item) =>
             `<li>
@@ -285,14 +297,14 @@ async def files_page() -> HTMLResponse:
                   ? `<span>${escapeHtml(item.name)}</span>`
                   : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${escapeHtml(item.name)}</a>`
                 }
-                <span class="muted">${item.is_dir ? `directory: ${escapeHtml(item.path)}` : `${item.size} bytes`}</span>
+                <span class="muted">${item.is_dir ? (i18n ? i18n.t("directory_path", { path: escapeHtml(item.path) }) : `directory: ${escapeHtml(item.path)}`) : (i18n ? i18n.t("bytes", { size: item.size }) : `${item.size} bytes`)}</span>
               </div>
               <div class="item-actions">
-                ${item.is_dir ? "" : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>Download</a>`}
-                ${item.deletable ? `<button class="delete-button" type="button" data-delete-path="${escapeHtml(item.path)}">Delete</button>` : ""}
+                ${item.is_dir ? "" : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${i18n ? i18n.t("download") : "Download"}</a>`}
+                ${item.deletable ? `<button class="delete-button" type="button" data-delete-path="${escapeHtml(item.path)}">${i18n ? i18n.t("delete") : "Delete"}</button>` : ""}
               </div>
             </li>`
-          ).join("") || "<li>No entries</li>";
+          ).join("") || `<li>${i18n ? i18n.t("no_entries") : "No entries"}</li>`;
         document.querySelectorAll("[data-delete-path]").forEach((button) => {
           button.addEventListener("click", () => deleteEntry(currentLibrary, button.dataset.deletePath));
         });
@@ -305,6 +317,7 @@ async def files_page() -> HTMLResponse:
     </script>
   </body>
 </html>"""
+    html = html.replace("__TOPBAR__", topbar_html(exports_href="/fieldkit"))
     return HTMLResponse(html)
 
 
@@ -331,40 +344,28 @@ async def serial_settings_page() -> HTMLResponse:
   </head>
   <body>
     <main class="app-shell">
-      <nav class="topbar">
-        <div class="brand-mark">
-          <span>Fieldkit</span>
-          <span class="brand-version">v0.1.0</span>
-        </div>
-        <div class="topbar-links">
-          <a href="/">Home</a>
-          <a href="/files">Files</a>
-          <a href="/#docs">Docs</a>
-          <a href="/settings">Settings</a>
-          <a href="/readme">README</a>
-        </div>
-      </nav>
+      __TOPBAR__
       <article class="panel">
-        <h1>Serial Profiles</h1>
-        <p class="muted">Serial adapters are auto-detected by default. Only set a device preference when you need to pin a console to a specific adapter.</p>
+        <h1 data-i18n="serial_profiles_title">Serial Profiles</h1>
+        <p class="muted" data-i18n="serial_profiles_note">Serial adapters are auto-detected by default. Only set a device preference when you need to pin a console to a specific adapter.</p>
         <form id="serial-profiles-form">
           <div class="profiles">
             <section class="profile">
-              <h2>Console 1</h2>
+              <h2 data-i18n="console_1">Console 1</h2>
               <label>
-                Label
+                <span data-i18n="label">Label</span>
                 <input type="text" name="console1_label" />
               </label>
               <label>
-                Device Preference
-                <input type="text" name="console1_device_hint" placeholder="Optional: /dev/ttyUSB0" />
+                <span data-i18n="device_preference">Device Preference</span>
+                <input type="text" name="console1_device_hint" placeholder="Optional: /dev/ttyUSB0" data-i18n-placeholder="device_optional_0" />
               </label>
               <label>
-                Baud Rate
+                <span data-i18n="baud_rate">Baud Rate</span>
                 <input type="number" name="console1_baud_rate" min="50" step="1" />
               </label>
               <label>
-                Data Bits
+                <span data-i18n="data_bits">Data Bits</span>
                 <select name="console1_data_bits">
                   <option value="5">5</option>
                   <option value="6">6</option>
@@ -373,15 +374,15 @@ async def serial_settings_page() -> HTMLResponse:
                 </select>
               </label>
               <label>
-                Parity
+                <span data-i18n="parity">Parity</span>
                 <select name="console1_parity">
-                  <option value="none">None</option>
-                  <option value="even">Even</option>
-                  <option value="odd">Odd</option>
+                  <option value="none" data-i18n="none">None</option>
+                  <option value="even" data-i18n="even">Even</option>
+                  <option value="odd" data-i18n="odd">Odd</option>
                 </select>
               </label>
               <label>
-                Stop Bits
+                <span data-i18n="stop_bits">Stop Bits</span>
                 <select name="console1_stop_bits">
                   <option value="1">1</option>
                   <option value="2">2</option>
@@ -389,21 +390,21 @@ async def serial_settings_page() -> HTMLResponse:
               </label>
             </section>
             <section class="profile">
-              <h2>Console 2</h2>
+              <h2 data-i18n="console_2">Console 2</h2>
               <label>
-                Label
+                <span data-i18n="label">Label</span>
                 <input type="text" name="console2_label" />
               </label>
               <label>
-                Device Preference
-                <input type="text" name="console2_device_hint" placeholder="Optional: /dev/ttyUSB1" />
+                <span data-i18n="device_preference">Device Preference</span>
+                <input type="text" name="console2_device_hint" placeholder="Optional: /dev/ttyUSB1" data-i18n-placeholder="device_optional_1" />
               </label>
               <label>
-                Baud Rate
+                <span data-i18n="baud_rate">Baud Rate</span>
                 <input type="number" name="console2_baud_rate" min="50" step="1" />
               </label>
               <label>
-                Data Bits
+                <span data-i18n="data_bits">Data Bits</span>
                 <select name="console2_data_bits">
                   <option value="5">5</option>
                   <option value="6">6</option>
@@ -412,15 +413,15 @@ async def serial_settings_page() -> HTMLResponse:
                 </select>
               </label>
               <label>
-                Parity
+                <span data-i18n="parity">Parity</span>
                 <select name="console2_parity">
-                  <option value="none">None</option>
-                  <option value="even">Even</option>
-                  <option value="odd">Odd</option>
+                  <option value="none" data-i18n="none">None</option>
+                  <option value="even" data-i18n="even">Even</option>
+                  <option value="odd" data-i18n="odd">Odd</option>
                 </select>
               </label>
               <label>
-                Stop Bits
+                <span data-i18n="stop_bits">Stop Bits</span>
                 <select name="console2_stop_bits">
                   <option value="1">1</option>
                   <option value="2">2</option>
@@ -429,12 +430,13 @@ async def serial_settings_page() -> HTMLResponse:
             </section>
           </div>
           <p>
-            <button type="submit">Save Serial Profiles</button>
+            <button type="submit" data-i18n="save_serial_profiles">Save Serial Profiles</button>
           </p>
           <p id="save-result" class="muted"></p>
         </form>
       </article>
     </main>
+    <script src="/static/app.js"></script>
     <script>
       function defaultProfiles() {
         return [
@@ -487,7 +489,7 @@ async def serial_settings_page() -> HTMLResponse:
           writeProfile(form, "console2", profiles[1] || defaults[1]);
           target.textContent = "";
         } catch (error) {
-          target.textContent = `Failed to load serial profiles: ${error.message}`;
+          target.textContent = window.fieldkitUi ? window.fieldkitUi.t("failed_load_profiles", { message: error.message }) : `Failed to load serial profiles: ${error.message}`;
         }
       }
 
@@ -511,9 +513,9 @@ async def serial_settings_page() -> HTMLResponse:
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          target.textContent = response.ok ? "Serial profiles saved." : "Serial profile save failed.";
+          target.textContent = response.ok ? (window.fieldkitUi ? window.fieldkitUi.t("serial_profiles_saved") : "Serial profiles saved.") : (window.fieldkitUi ? window.fieldkitUi.t("serial_profile_save_failed") : "Serial profile save failed.");
         } catch (error) {
-          target.textContent = `Serial profile save failed: ${error.message}`;
+          target.textContent = window.fieldkitUi ? window.fieldkitUi.t("serial_profile_save_failed", { message: error.message }) : `Serial profile save failed: ${error.message}`;
         }
       }
 
@@ -522,6 +524,7 @@ async def serial_settings_page() -> HTMLResponse:
     </script>
   </body>
 </html>"""
+    html = html.replace("__TOPBAR__", topbar_html())
     return HTMLResponse(html)
 
 
@@ -720,25 +723,14 @@ async def kit_docs_index() -> HTMLResponse:
   </head>
   <body>
     <main class="app-shell">
-      <nav class="topbar">
-        <div class="brand-mark">
-          <span>Fieldkit</span>
-          <span class="brand-version">v0.1.0</span>
-        </div>
-        <div class="topbar-links">
-          <a href="/">Home</a>
-          <a href="/files">Files</a>
-          <a href="/kit-docs">Docs</a>
-          <a href="/settings">Settings</a>
-          <a href="/readme">README</a>
-        </div>
-      </nav>
+      {topbar_html(docs_href="/kit-docs")}
       <article class="panel">
-        <h1>Fieldkit Reference Notes</h1>
-        <p>Starter command references for common vendor platforms.</p>
+        <h1 data-i18n="docs_title">Fieldkit Reference Notes</h1>
+        <p data-i18n="docs_intro">Starter command references for common vendor platforms.</p>
         <ul>{links}</ul>
       </article>
     </main>
+    <script src="/static/app.js" defer></script>
   </body>
 </html>"""
     return HTMLResponse(html)
@@ -766,24 +758,13 @@ async def kit_doc(slug: str) -> HTMLResponse:
   </head>
   <body>
     <main class="app-shell">
-      <nav class="topbar">
-        <div class="brand-mark">
-          <span>Fieldkit</span>
-          <span class="brand-version">v0.1.0</span>
-        </div>
-        <div class="topbar-links">
-          <a href="/">Home</a>
-          <a href="/files">Files</a>
-          <a href="/kit-docs">Docs</a>
-          <a href="/settings">Settings</a>
-          <a href="/readme">README</a>
-        </div>
-      </nav>
+      {topbar_html(docs_href="/kit-docs")}
       <article class="panel">
-        <p><a href="/kit-docs">Back to docs index</a></p>
+        <p><a href="/kit-docs" data-i18n="back_to_docs">Back to docs index</a></p>
         <pre>{body}</pre>
       </article>
     </main>
+    <script src="/static/app.js" defer></script>
   </body>
 </html>"""
     return HTMLResponse(html)

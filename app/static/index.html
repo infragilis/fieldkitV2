@@ -11,45 +11,63 @@
       <nav class="topbar">
         <div class="brand-mark">
           <span>Fieldkit</span>
-          <span id="app-version" class="brand-version">v0.1.0</span>
+          <span id="app-version" class="brand-version">v0.1.1</span>
         </div>
-        <div class="topbar-links">
-          <a href="/">Home</a>
-          <a href="#serial">Console</a>
-          <a href="/files">Files</a>
-          <a href="#docs">Docs</a>
-          <a href="/settings">Settings</a>
-          <a href="/readme">README</a>
+        <div class="topbar-right">
+          <div class="topbar-links">
+            <a href="/" data-i18n="nav_home">Home</a>
+            <a href="#serial" data-i18n="nav_console">Console</a>
+            <a href="/files" data-i18n="nav_files">Files</a>
+            <a href="#docs" data-i18n="nav_docs">Docs</a>
+            <a href="/settings" data-i18n="nav_settings">Settings</a>
+            <a href="/readme" data-i18n="nav_readme">README</a>
+          </div>
+          <div class="shell-tools">
+            <button id="theme-toggle" type="button" class="shell-tool-button theme-icon-button" aria-label="Toggle theme" title="Toggle theme"><span id="theme-toggle-icon" aria-hidden="true">◐</span></button>
+            <div class="language-picker">
+              <button type="button" class="language-button">
+                <span id="language-flag" class="language-flag">🇬🇧</span>
+                <span id="language-label">English</span>
+              </button>
+              <div class="language-options">
+                <button type="button" data-language="en"><span class="language-flag">🇬🇧</span><span>English</span></button>
+                <button type="button" data-language="es"><span class="language-flag">🇪🇸</span><span>Espanol</span></button>
+                <button type="button" data-language="de"><span class="language-flag">🇩🇪</span><span>Deutsch</span></button>
+                <button type="button" data-language="nl"><span class="language-flag">🇳🇱</span><span>Nederlands</span></button>
+                <button type="button" data-language="fr"><span class="language-flag">🇫🇷</span><span>Francais</span></button>
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
 
       <section class="hero">
         <article class="panel hero-card hero-card-main" id="serial">
-          <h2>Serial Consoles</h2>
+          <h2 data-i18n="serial_consoles">Serial Consoles</h2>
           <ul id="serial-sessions" class="list"></ul>
           <p id="serial-quick-result" class="muted"></p>
           <p id="serial-reset-result" class="muted"></p>
           <div class="console-controls">
-            <button id="open-console-0" type="button">Open Console 1</button>
-            <button id="open-console-1" type="button">Open Console 2</button>
+            <button id="open-console-0" type="button" data-i18n="open_console_1">Open Console 1</button>
+            <button id="open-console-1" type="button" data-i18n="open_console_2">Open Console 2</button>
           </div>
-          <p class="muted">Each console opens in its own movable popup window for field use.</p>
+          <p class="muted" data-i18n="popup_note">Each console opens in its own movable popup window for field use.</p>
         </article>
         <div class="hero-card hero-card-side">
-          <p class="hero-kicker">Quick Access</p>
+          <p class="hero-kicker" data-i18n="quick_access">Quick Access</p>
           <div class="hero-shortcuts">
-            <a href="#serial">Jump to Console</a>
-            <a href="/files">Browse Files</a>
-            <a href="/fieldkit">Raw Exports</a>
-            <a href="/settings">Open Settings</a>
+            <a href="#serial" data-i18n="jump_console">Jump to Console</a>
+            <a href="/files" data-i18n="browse_files">Browse Files</a>
+            <a href="/fieldkit" data-i18n="raw_exports">Raw Exports</a>
+            <a href="/settings" data-i18n="open_settings">Open Settings</a>
           </div>
         </div>
       </section>
 
       <section class="grid">
         <article class="panel" id="docs">
-          <h2>Reference Docs</h2>
-          <p class="muted">Vendor quick-reference topics stored locally on the kit.</p>
+          <h2 data-i18n="reference_docs">Reference Docs</h2>
+          <p class="muted" data-i18n="docs_note">Vendor quick-reference topics stored locally on the kit.</p>
           <ul class="list">
             <li><a href="/kit-docs/netapp" target="_blank" rel="noopener noreferrer">NetApp</a></li>
             <li><a href="/kit-docs/cisco" target="_blank" rel="noopener noreferrer">Cisco</a></li>
@@ -57,21 +75,21 @@
             <li><a href="/kit-docs/brocade-fabric-os" target="_blank" rel="noopener noreferrer">Brocade Fabric OS</a></li>
             <li><a href="/kit-docs/broadcom-ethernet-switching" target="_blank" rel="noopener noreferrer">Broadcom Ethernet Switching</a></li>
           </ul>
-          <p class="docs-index-link"><a href="/kit-docs" target="_blank" rel="noopener noreferrer">Open docs index</a></p>
+          <p class="docs-index-link"><a href="/kit-docs" target="_blank" rel="noopener noreferrer" data-i18n="docs_index">Open docs index</a></p>
         </article>
 
         <article class="panel">
-          <h2>Upload</h2>
+          <h2 data-i18n="upload_title">Upload</h2>
           <form id="upload-form">
             <label>
-              Destination
+              <span data-i18n="destination">Destination</span>
               <select name="upload_library">
                 <option value="personal">personal</option>
                 <option value="usb">usb</option>
               </select>
             </label>
             <input type="file" name="file" required />
-            <button type="submit">Upload File</button>
+            <button type="submit" data-i18n="upload_file">Upload File</button>
           </form>
           <p id="upload-result" class="muted"></p>
         </article>

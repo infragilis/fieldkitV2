@@ -11,150 +11,168 @@
       <nav class="topbar">
         <div class="brand-mark">
           <span>Fieldkit</span>
-          <span id="app-version" class="brand-version">v0.1.0</span>
+          <span id="app-version" class="brand-version">v0.1.1</span>
         </div>
-        <div class="topbar-links">
-          <a href="/">Home</a>
-          <a href="/">Console</a>
-          <a href="/files">Files</a>
-          <a href="/#docs">Docs</a>
-          <a href="/settings">Settings</a>
-          <a href="/readme">README</a>
+        <div class="topbar-right">
+          <div class="topbar-links">
+            <a href="/" data-i18n="nav_home">Home</a>
+            <a href="/" data-i18n="nav_console">Console</a>
+            <a href="/files" data-i18n="nav_files">Files</a>
+            <a href="/#docs" data-i18n="nav_docs">Docs</a>
+            <a href="/settings" data-i18n="nav_settings">Settings</a>
+            <a href="/readme" data-i18n="nav_readme">README</a>
+          </div>
+          <div class="shell-tools">
+            <button id="theme-toggle" type="button" class="shell-tool-button theme-icon-button" aria-label="Toggle theme" title="Toggle theme"><span id="theme-toggle-icon" aria-hidden="true">◐</span></button>
+            <div class="language-picker">
+              <button type="button" class="language-button">
+                <span id="language-flag" class="language-flag">🇬🇧</span>
+                <span id="language-label">English</span>
+              </button>
+              <div class="language-options">
+                <button type="button" data-language="en"><span class="language-flag">🇬🇧</span><span>English</span></button>
+                <button type="button" data-language="es"><span class="language-flag">🇪🇸</span><span>Espanol</span></button>
+                <button type="button" data-language="de"><span class="language-flag">🇩🇪</span><span>Deutsch</span></button>
+                <button type="button" data-language="nl"><span class="language-flag">🇳🇱</span><span>Nederlands</span></button>
+                <button type="button" data-language="fr"><span class="language-flag">🇫🇷</span><span>Francais</span></button>
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
 
       <section class="hero">
         <div class="hero-card hero-card-main">
-          <p class="hero-kicker">Appliance Controls</p>
-          <h1>Settings</h1>
-          <p class="subhead">
+          <p class="hero-kicker" data-i18n="appliance_controls">Appliance Controls</p>
+          <h1 data-i18n="settings_title">Settings</h1>
+          <p class="subhead" data-i18n="settings_subhead">
             Connectivity status, network configuration, password changes, and serial console settings.
           </p>
           <div class="hero-pills">
-            <a href="#settings">Networking</a>
-            <a href="#transfer-services">Transfer services</a>
-            <a href="#serial-settings">Serial presets</a>
-            <a href="#password-settings">Password</a>
+            <a href="#settings" data-i18n="networking">Networking</a>
+            <a href="#transfer-services" data-i18n="transfer_services">Transfer services</a>
+            <a href="#serial-settings" data-i18n="serial_presets">Serial presets</a>
+            <a href="#password-settings" data-i18n="password">Password</a>
           </div>
         </div>
         <div class="hero-card hero-card-side">
-          <p class="hero-kicker">Operational Notes</p>
+          <p class="hero-kicker" data-i18n="operational_notes">Operational Notes</p>
           <div class="hero-shortcuts">
-            <a href="/fieldkit">Export Browser</a>
-            <a href="/serial-settings">Full Serial Profiles</a>
-            <a href="/readme">Open README</a>
-            <a href="/">Back to Console</a>
+            <a href="/fieldkit" data-i18n="export_browser">Export Browser</a>
+            <a href="/serial-settings" data-i18n="full_serial_profiles">Full Serial Profiles</a>
+            <a href="/readme" data-i18n="open_readme">Open README</a>
+            <a href="/" data-i18n="back_to_console">Back to Console</a>
           </div>
         </div>
       </section>
 
       <section class="grid">
         <article class="panel" id="connectivity">
-          <h2>Connectivity</h2>
+          <h2 data-i18n="connectivity">Connectivity</h2>
           <p id="platform-notes" class="muted"></p>
-          <h3>Active Links</h3>
+          <h3 data-i18n="active_links">Active Links</h3>
           <ul id="active-connections" class="list"></ul>
-          <h3>Nearby Wi-Fi</h3>
+          <h3 data-i18n="nearby_wifi">Nearby Wi-Fi</h3>
           <ul id="wifi-networks" class="list"></ul>
         </article>
 
         <article class="panel" id="settings">
-          <h2>Networking</h2>
+          <h2 data-i18n="networking">Networking</h2>
           <form id="settings-form">
             <label>
-              Hostname
+              <span data-i18n="hostname">Hostname</span>
               <input type="text" name="hostname" />
             </label>
             <label>
-              Ethernet Mode
+              <span data-i18n="ethernet_mode">Ethernet Mode</span>
               <select name="ethernet_mode">
-                <option value="static">Static</option>
+                <option value="static" data-i18n="static">Static</option>
                 <option value="dhcp">DHCP</option>
               </select>
             </label>
             <label>
-              Ethernet Address
+              <span data-i18n="ethernet_address">Ethernet Address</span>
               <input type="text" name="ethernet_address" />
             </label>
             <label>
-              Wi-Fi Mode
+              <span data-i18n="wifi_mode">Wi-Fi Mode</span>
               <select name="wifi_mode">
-                <option value="disabled">Disabled</option>
-                <option value="ap">AP</option>
-                <option value="client">Client</option>
+                <option value="disabled" data-i18n="disabled">Disabled</option>
+                <option value="ap" data-i18n="ap">AP</option>
+                <option value="client" data-i18n="client">Client</option>
               </select>
             </label>
             <label>
-              Wi-Fi SSID
+              <span data-i18n="wifi_ssid">Wi-Fi SSID</span>
               <input type="text" name="wifi_ssid" />
             </label>
             <div class="button-row">
-              <button type="submit">Save Network Settings</button>
-              <button id="apply-network-button" type="button">Prepare Network Apply</button>
+              <button type="submit" data-i18n="save_network_settings">Save Network Settings</button>
+              <button id="apply-network-button" type="button" data-i18n="prepare_network_apply">Prepare Network Apply</button>
             </div>
           </form>
-          <p class="muted action-note">Prepare Network Apply shows the planned hostname and network commands before any real system-side execution.</p>
+          <p class="muted action-note" data-i18n="network_apply_note">Prepare Network Apply shows the planned hostname and network commands before any real system-side execution.</p>
           <p id="apply-network-result" class="muted"></p>
         </article>
 
         <article class="panel" id="transfer-services">
-          <h2>Transfer Services</h2>
+          <h2 data-i18n="transfer_services_title">Transfer Services</h2>
           <form id="transfer-services-form">
             <label class="toggle-row">
-              <span>HTTP Export Access</span>
+              <span data-i18n="http_export_access">HTTP Export Access</span>
               <input type="checkbox" name="http_export_enabled" checked />
             </label>
             <label class="toggle-row">
-              <span>TFTP Access</span>
+              <span data-i18n="tftp_access">TFTP Access</span>
               <input type="checkbox" name="tftp_enabled" />
             </label>
             <label class="toggle-row">
-              <span>FTP Access</span>
+              <span data-i18n="ftp_access">FTP Access</span>
               <input type="checkbox" name="ftp_enabled" />
             </label>
-            <button type="submit">Apply Transfer Services</button>
+            <button type="submit" data-i18n="apply_transfer_services">Apply Transfer Services</button>
           </form>
           <p id="transfer-result" class="muted"></p>
           <div id="transfer-status" class="muted"></div>
-          <p class="muted serial-settings-note">HTTP export access exposes only <a href="/fieldkit">/fieldkit</a> on plain port 80 for device downloads. FTP and TFTP stay off until enabled here. SCP remains available through the normal SSH service.</p>
+          <p class="muted serial-settings-note" data-i18n="transfer_services_note">HTTP export access exposes only /fieldkit on plain port 80 for device downloads. FTP and TFTP stay off until enabled here. SCP remains available through the normal SSH service.</p>
         </article>
 
         <article class="panel" id="serial-settings">
-          <h2>Serial Settings</h2>
+          <h2 data-i18n="serial_settings">Serial Settings</h2>
           <form id="serial-settings-form">
             <label>
-              Console 1 Preset
+              <span data-i18n="console_1_preset">Console 1 Preset</span>
               <select name="console1_preset">
                 <option value="9600-8n1">9600 8N1</option>
                 <option value="115200-8n1">115200 8N1</option>
-                <option value="custom">Custom</option>
+                <option value="custom" data-i18n="custom">Custom</option>
               </select>
             </label>
             <label>
-              Console 2 Preset
+              <span data-i18n="console_2_preset">Console 2 Preset</span>
               <select name="console2_preset">
                 <option value="9600-8n1">9600 8N1</option>
                 <option value="115200-8n1">115200 8N1</option>
-                <option value="custom">Custom</option>
+                <option value="custom" data-i18n="custom">Custom</option>
               </select>
             </label>
-            <button type="submit">Save Serial Settings</button>
+            <button type="submit" data-i18n="save_serial_settings">Save Serial Settings</button>
           </form>
-          <p class="muted serial-settings-note">For nonstandard baud, parity, stop bits, or device paths, use <a href="/serial-settings">Serial Profiles</a>.</p>
+          <p class="muted serial-settings-note" data-i18n="serial_settings_note">For nonstandard baud, parity, stop bits, or device paths, use Serial Profiles.</p>
         </article>
 
         <article class="panel" id="password-settings">
-          <h2>Change Password</h2>
+          <h2 data-i18n="change_password">Change Password</h2>
           <form id="password-form">
             <label>
-              Current Password
+              <span data-i18n="current_password">Current Password</span>
               <input type="password" name="current_password" />
             </label>
             <label>
-              New Password
+              <span data-i18n="new_password">New Password</span>
               <input type="password" name="new_password" />
             </label>
-            <button type="submit">Change Password</button>
+            <button type="submit" data-i18n="change_password">Change Password</button>
           </form>
           <p id="password-result" class="muted"></p>
         </article>
