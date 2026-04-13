@@ -63,7 +63,17 @@ Use wired Ethernet for setup and recovery while testing AP mode changes.
 
 ## Default Access
 
-The default appliance SSH login is `service` / `service`.
+Default appliance access credentials:
+
+- SSH user: `service`
+- SSH password: `service`
+- Wi-Fi AP SSID: `fieldkit`
+- Wi-Fi AP password: `fieldkit`
+
+When the appliance is in AP mode, clients can connect to the GUI at:
+
+- `https://10.42.0.1/`
+- `https://fieldkit.local/` on Bonjour-capable clients such as iPadOS and macOS
 
 Change this immediately on any real deployment.
 
