@@ -16,7 +16,7 @@ if ! id -u "${FIELDKIT_USER}" >/dev/null 2>&1; then
 fi
 
 echo "${FIELDKIT_USER}:${FIELDKIT_PASS}" | chpasswd
-hostnamectl set-hostname "${FIELDKIT_HOSTNAME}"
+/bin/bash "${FIELDKIT_ROOT}/scripts/set_appliance_hostname.sh" "${FIELDKIT_HOSTNAME}"
 
 install -d -o "${FIELDKIT_USER}" -g "${FIELDKIT_USER}" "${FIELDKIT_ROOT}"
 install -d -o "${FIELDKIT_USER}" -g "${FIELDKIT_USER}" "${FIELDKIT_ROOT}/runtime/content/data"

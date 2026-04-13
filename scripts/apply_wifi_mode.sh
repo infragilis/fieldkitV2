@@ -117,8 +117,9 @@ start_ap_mode() {
   systemctl stop dnsmasq >/dev/null 2>&1 || true
   take_networkmanager_offline
   configure_ap_link
-  systemctl enable --now fieldkit-ap-dnsmasq
-  systemctl enable --now fieldkit-ap-hostapd
+  systemctl enable fieldkit-ap-dnsmasq fieldkit-ap-hostapd >/dev/null 2>&1 || true
+  systemctl restart fieldkit-ap-dnsmasq
+  systemctl restart fieldkit-ap-hostapd
   sleep 2
   systemctl is-active --quiet fieldkit-ap-dnsmasq
   systemctl is-active --quiet fieldkit-ap-hostapd

@@ -36,6 +36,7 @@ class TransferService:
         export_root = self._storage.sync_export_tree()
         commands = [
             f"export root {export_root}",
+            "sudo -n /bin/bash /opt/fieldkit/scripts/install_transfer_services.sh",
             self._http_export_preview(configured.http_export_enabled),
             self._command_preview("tftpd-hpa", configured.tftp_enabled),
             self._command_preview("vsftpd", configured.ftp_enabled),
@@ -50,17 +51,26 @@ class TransferService:
 
         notes = [f"Export root synced at {export_root}."]
         failures: list[str] = []
+        install_result = self._runner.run(
+            ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/install_transfer_services.sh"]
+        )
+        if not install_result.ok:
+            failures.append(
+                "transfer support: "
+                + (install_result.stderr.strip() or install_result.stdout.strip() or "command failed")
+            )
         http_export_result = self._apply_http_export(configured.http_export_enabled)
         if http_export_result.ok:
             notes.append(f"http export {'enabled' if configured.http_export_enabled else 'disabled'} on port 80.")
         else:
             failures.append(f"http export: {http_export_result.stderr.strip() or http_export_result.stdout.strip() or 'command failed'}")
-        for unit, enabled in (("tftpd-hpa", configured.tftp_enabled), ("vsftpd", configured.ftp_enabled)):
-            result = self._apply_unit(unit, enabled)
-            if result.ok:
-                notes.append(f"{unit} {'enabled' if enabled else 'disabled'}.")
-            else:
-                failures.append(f"{unit}: {result.stderr.strip() or result.stdout.strip() or 'command failed'}")
+        if not failures:
+            for unit, enabled in (("tftpd-hpa", configured.tftp_enabled), ("vsftpd", configured.ftp_enabled)):
+                result = self._apply_unit(unit, enabled)
+                if result.ok:
+                    notes.append(f"{unit} {'enabled' if enabled else 'disabled'}.")
+                else:
+                    failures.append(f"{unit}: {result.stderr.strip() or result.stdout.strip() or 'command failed'}")
 
         return ApplyResult(
             applied=not failures,

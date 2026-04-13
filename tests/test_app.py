@@ -156,9 +156,9 @@ def test_update_settings():
             "interface": "eth0",
         },
         "wifi": {
-            "mode": "disabled",
-            "ssid": "",
-            "password": "",
+            "mode": "ap",
+            "ssid": "fieldkit",
+            "password": "fieldkitpass",
             "country_code": "US",
         },
         "serial_ports": [
@@ -187,6 +187,7 @@ def test_update_settings():
     response = client.put("/api/settings", json=payload)
     assert response.status_code == 200
     assert response.json()["serial_ports"][1]["baud_rate"] == 115200
+    assert response.json()["wifi"]["password"] == "fieldkitpass"
     assert response.json()["transfer_services"]["tftp_enabled"] is True
 
 
@@ -412,6 +413,7 @@ def test_transfer_service_refuses_to_disable_ssh_with_active_sessions(monkeypatc
     result = service.apply_settings()
 
     assert result.applied is True
+    assert any("install_transfer_services.sh" in command for command in result.commands)
     assert any("vsftpd disabled." in note for note in result.notes)
 
 

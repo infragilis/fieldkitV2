@@ -59,6 +59,8 @@ const TRANSLATIONS = {
     ethernet_address: "Ethernet Address",
     wifi_mode: "Wi-Fi Mode",
     wifi_ssid: "Wi-Fi SSID",
+    wifi_password: "Wi-Fi AP Password",
+    wifi_access_note: "Apple devices can reach the GUI at https://{hostname}.local/ while connected to the Fieldkit AP. Direct fallback: https://10.42.0.1/",
     disabled: "Disabled",
     ap: "AP",
     client: "Client",
@@ -595,6 +597,11 @@ async function loadStatus() {
     networkForm.ethernet_address.value = settings.ethernet.address;
     networkForm.wifi_mode.value = settings.wifi.mode;
     networkForm.wifi_ssid.value = settings.wifi.ssid;
+    networkForm.wifi_password.value = settings.wifi.password || "";
+  }
+  const wifiAccessNote = document.getElementById("wifi-access-note");
+  if (wifiAccessNote) {
+    wifiAccessNote.textContent = t("wifi_access_note", { hostname: settings.hostname || "fieldkit" });
   }
   if (serialForm) {
     serialForm.console1_preset.value = serialPresetValue(settings.serial_ports[0]);
@@ -645,7 +652,7 @@ function buildSettingsPayload() {
     wifi: {
       mode: networkForm.wifi_mode.value,
       ssid: networkForm.wifi_ssid.value,
-      password: "",
+      password: networkForm.wifi_password.value,
       country_code: "US",
     },
     serial_ports: serialPorts,

@@ -1,4 +1,5 @@
 service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/install_wifi_ap_support.sh
+service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/set_appliance_hostname.sh *
 service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/apply_wifi_mode.sh
 service ALL=(root) NOPASSWD: /bin/systemctl is-active fieldkit-ap-hostapd
 service ALL=(root) NOPASSWD: /bin/systemctl is-active fieldkit-ap-dnsmasq

@@ -76,7 +76,7 @@ class NetworkService:
 
     def _build_apply_commands(self, settings: AppSettingsPayload) -> list[str]:
         connection = self._resolve_ethernet_connection(settings)
-        commands = [f"sudo -n hostnamectl set-hostname {settings.hostname}"]
+        commands = [f"sudo -n /bin/bash /opt/fieldkit/scripts/set_appliance_hostname.sh {settings.hostname}"]
         if settings.ethernet.mode == "static":
             commands.extend(
                 [
@@ -122,7 +122,9 @@ class NetworkService:
 
         connection = self._resolve_ethernet_connection(settings)
 
-        hostname_result = self._runner.run(["sudo", "-n", "hostnamectl", "set-hostname", settings.hostname])
+        hostname_result = self._runner.run(
+            ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/set_appliance_hostname.sh", settings.hostname]
+        )
         if not hostname_result.ok:
             return {"applied": False, "notes": [hostname_result.stderr.strip() or "Failed to set hostname."]}
 

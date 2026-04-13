@@ -19,7 +19,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Fieldkit", version="0.1.2", lifespan=lifespan)
+app = FastAPI(title="Fieldkit", version="0.1.3", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 storage_service = StorageService(get_settings())
@@ -63,7 +63,7 @@ def topbar_html(*, docs_href: str = "/#docs", exports_href: str | None = None) -
       <nav class="topbar">
         <div class="brand-mark">
           <span>Fieldkit</span>
-          <span class="brand-version">v0.1.2</span>
+          <span class="brand-version">v0.1.3</span>
         </div>
         <div class="topbar-right">
           <div class="topbar-links">

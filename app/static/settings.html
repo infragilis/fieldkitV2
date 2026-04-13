@@ -11,7 +11,7 @@
       <nav class="topbar">
         <div class="brand-mark">
           <span>Fieldkit</span>
-          <span id="app-version" class="brand-version">v0.1.2</span>
+          <span id="app-version" class="brand-version">v0.1.3</span>
         </div>
         <div class="topbar-right">
           <div class="topbar-links">
@@ -107,11 +107,16 @@
               <span data-i18n="wifi_ssid">Wi-Fi SSID</span>
               <input type="text" name="wifi_ssid" />
             </label>
+            <label>
+              <span data-i18n="wifi_password">Wi-Fi AP Password</span>
+              <input type="password" name="wifi_password" />
+            </label>
             <div class="button-row">
               <button type="submit" data-i18n="save_network_settings">Save Network Settings</button>
               <button id="apply-network-button" type="button" data-i18n="apply_network_settings">Apply Network Settings</button>
             </div>
           </form>
+          <p class="muted" id="wifi-access-note"></p>
           <p class="muted action-note" data-i18n="network_apply_note">Apply Network Settings saves the current form values and executes the live appliance network change.</p>
           <p id="apply-network-result" class="muted"></p>
         </article>

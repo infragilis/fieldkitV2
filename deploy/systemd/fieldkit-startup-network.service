@@ -1,0 +1,13 @@
+[Unit]
+Description=Fieldkit Startup Network Apply
+After=NetworkManager.service
+Wants=NetworkManager.service
+Before=fieldkit-web.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/fieldkit/scripts/apply_startup_network_mode.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -10,8 +10,10 @@ if [[ ${EUID} -ne 0 ]]; then
   exit 1
 fi
 
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y nginx
+if ! dpkg -s nginx >/dev/null 2>&1; then
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y nginx
+fi
 
 if [[ -f "${CERT_DIR}/${CERT_NAME}.crt" && -f "${CERT_DIR}/${CERT_NAME}.key" ]]; then
   if [[ "${EXPORT_HTTP_ENABLED}" == "1" ]]; then
@@ -27,6 +29,6 @@ ln -sf /etc/nginx/sites-available/fieldkit /etc/nginx/sites-enabled/fieldkit
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl enable nginx
-systemctl restart nginx
+systemctl reload nginx || systemctl restart nginx
 
 echo "HTTP export mode installed: export_http=${EXPORT_HTTP_ENABLED}"
