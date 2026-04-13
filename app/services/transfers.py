@@ -128,17 +128,16 @@ class TransferService:
         )
 
     def _http_export_status(self, configured_enabled: bool) -> dict:
-        nginx_config = self._runner.run(["sudo", "-n", "nginx", "-T"])
-        rendered = nginx_config.stdout if nginx_config.ok else ""
+        rendered = self._read_text(Path("/etc/nginx/sites-enabled/fieldkit"))
         export_http_active = "listen 80;" in rendered and (
             "location ^~ /fieldkit" in rendered
             or ("proxy_pass http://127.0.0.1:8000;" in rendered and "return 301 https://$host$request_uri;" not in rendered)
         )
-        note = "" if nginx_config.ok else (nginx_config.stderr.strip() or "nginx status unavailable.")
+        note = "" if rendered else "nginx config unavailable."
         return {
             "configured_enabled": configured_enabled,
             "active": export_http_active,
-            "manageable": nginx_config.ok,
+            "manageable": bool(rendered),
             "note": note,
         }
 

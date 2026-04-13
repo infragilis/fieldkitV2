@@ -135,6 +135,7 @@ async def pi_shell_page() -> HTMLResponse:
     <script src="/static/app.js"></script>
     <script>
       let shellSocket = null;
+      let suppressNextClose = false;
       const output = document.getElementById("shell-output");
       const terminal = new Terminal({{
         cursorBlink: true,
@@ -149,6 +150,13 @@ async def pi_shell_page() -> HTMLResponse:
       const fitAddon = new FitAddon.FitAddon();
       terminal.loadAddon(fitAddon);
       terminal.open(output);
+      if (terminal.textarea) {{
+        terminal.textarea.setAttribute("autocapitalize", "off");
+        terminal.textarea.setAttribute("autocomplete", "off");
+        terminal.textarea.setAttribute("autocorrect", "off");
+        terminal.textarea.setAttribute("spellcheck", "false");
+        terminal.textarea.setAttribute("inputmode", "text");
+      }}
 
       function sendShellMessage(payload) {{
         if (!shellSocket || shellSocket.readyState !== WebSocket.OPEN) {{
@@ -163,7 +171,8 @@ async def pi_shell_page() -> HTMLResponse:
       }}
 
       function connectShell() {{
-        if (shellSocket) {{
+        if (shellSocket && (shellSocket.readyState === WebSocket.OPEN || shellSocket.readyState === WebSocket.CONNECTING)) {{
+          suppressNextClose = true;
           shellSocket.close();
         }}
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -177,11 +186,21 @@ async def pi_shell_page() -> HTMLResponse:
           status.textContent = window.fieldkitUi ? window.fieldkitUi.t("connected") : "Connected";
           resizeShell();
           terminal.focus();
+          if (terminal.textarea) {{
+            terminal.textarea.focus();
+          }}
         }};
         shellSocket.onmessage = (event) => {{
           terminal.write(event.data);
         }};
+        shellSocket.onerror = () => {{
+          status.textContent = window.fieldkitUi ? window.fieldkitUi.t("disconnected") : "Disconnected";
+        }};
         shellSocket.onclose = () => {{
+          if (suppressNextClose) {{
+            suppressNextClose = false;
+            return;
+          }}
           status.textContent = window.fieldkitUi ? window.fieldkitUi.t("disconnected") : "Disconnected";
           terminal.writeln("");
           terminal.writeln(`[${{window.fieldkitUi ? window.fieldkitUi.t("console_disconnected").toLowerCase() : "disconnected"}}]`);
@@ -195,8 +214,21 @@ async def pi_shell_page() -> HTMLResponse:
       }});
       terminal.onData((data) => sendShellMessage({{ type: "input", data }}));
       window.addEventListener("resize", resizeShell);
-      document.getElementById("shell-reconnect-button").addEventListener("click", connectShell);
-      output.addEventListener("click", () => terminal.focus());
+      document.getElementById("shell-reconnect-button").addEventListener("click", () => {{
+        connectShell();
+      }});
+      output.addEventListener("click", () => {{
+        terminal.focus();
+        if (terminal.textarea) {{
+          terminal.textarea.focus();
+        }}
+      }});
+      output.addEventListener("touchstart", () => {{
+        terminal.focus();
+        if (terminal.textarea) {{
+          terminal.textarea.focus();
+        }}
+      }}, {{ passive: true }});
       connectShell();
     </script>
   </body>

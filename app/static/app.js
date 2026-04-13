@@ -367,8 +367,21 @@ function initializeShellControls() {
   });
 }
 
-async function getJson(url, options) {
-  const response = await fetch(url, options);
+async function getJson(url, options = {}) {
+  const { timeoutMs = 10000, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  let response;
+  try {
+    response = await fetch(url, { ...fetchOptions, signal: controller.signal });
+  } catch (error) {
+    window.clearTimeout(timeoutId);
+    if (error.name === "AbortError") {
+      throw new Error(`Request timed out: ${url}`);
+    }
+    throw error;
+  }
+  window.clearTimeout(timeoutId);
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`);
   }
@@ -526,17 +539,23 @@ async function resetConsoleSession(index) {
   }
 }
 
-async function loadStatus() {
-  const [system, connectivity, wifi, serial, settings, transfers] = await Promise.all([
-    getJson("/api/system/status"),
-    getJson("/api/connectivity/status"),
-    getJson("/api/connectivity/wifi/networks"),
-    getJson("/api/serial/sessions"),
-    getJson("/api/settings"),
-    getJson("/api/transfers/status"),
-  ]);
+async function loadWifiNetworks() {
+  try {
+    const wifi = await getJson("/api/connectivity/wifi/networks", { timeoutMs: 5000 });
+    renderList(
+      document.getElementById("wifi-networks"),
+      wifi.networks,
+      (network) => `<li>${network.ssid} <span class="muted">(${network.signal}%${network.secure ? `, ${t("secure")}` : ""})</span></li>`
+    );
+  } catch (_) {
+    renderList(document.getElementById("wifi-networks"), [], () => "");
+  }
+}
 
-  renderKeyValue(document.getElementById("system-status"), system);
+function renderConnectivity(connectivity) {
+  if (!connectivity) {
+    return;
+  }
   renderKeyValue(document.getElementById("connectivity-status"), connectivity);
   const platformNotes = document.getElementById("platform-notes");
   if (platformNotes) {
@@ -548,11 +567,12 @@ async function loadStatus() {
     (connection) =>
       `<li><strong>${connection.device}</strong> ${connection.name} <span class="muted">${connection.type}, ${connection.state}</span></li>`
   );
-  renderList(
-    document.getElementById("wifi-networks"),
-    wifi.networks,
-    (network) => `<li>${network.ssid} <span class="muted">(${network.signal}%${network.secure ? `, ${t("secure")}` : ""})</span></li>`
-  );
+}
+
+function renderSerial(serial) {
+  if (!serial) {
+    return;
+  }
   renderList(
     document.getElementById("serial-sessions"),
     serial.sessions,
@@ -586,6 +606,12 @@ async function loadStatus() {
     }
   );
 
+}
+
+function renderSettings(settings, transfers) {
+  if (!settings) {
+    return;
+  }
   currentSettings = settings;
   bindQuickSerialPresetControls();
   bindResetConsoleControls();
@@ -613,6 +639,19 @@ async function loadStatus() {
     transferForm.tftp_enabled.checked = Boolean(settings.transfer_services?.tftp_enabled);
     transferForm.ftp_enabled.checked = Boolean(settings.transfer_services?.ftp_enabled);
   }
+  renderTransfers(transfers);
+}
+
+function renderTransfers(transfers) {
+  if (!transfers) {
+    return;
+  }
+  const transferForm = document.getElementById("transfer-services-form");
+  if (transferForm) {
+    transferForm.http_export_enabled.checked = Boolean(currentSettings?.transfer_services?.http_export_enabled);
+    transferForm.tftp_enabled.checked = Boolean(currentSettings?.transfer_services?.tftp_enabled);
+    transferForm.ftp_enabled.checked = Boolean(currentSettings?.transfer_services?.ftp_enabled);
+  }
   const transferStatus = document.getElementById("transfer-status");
   if (transferStatus) {
     transferStatus.innerHTML = [
@@ -630,6 +669,36 @@ async function loadStatus() {
       transfers.scp.note ? `<p>${transfers.scp.note}</p>` : "",
     ].join("");
   }
+}
+
+async function loadStatus() {
+  const results = await Promise.allSettled([
+    getJson("/api/system/status", { timeoutMs: 5000 }),
+    getJson("/api/connectivity/status", { timeoutMs: 5000 }),
+    getJson("/api/serial/sessions", { timeoutMs: 5000 }),
+    getJson("/api/settings", { timeoutMs: 5000 }),
+    getJson("/api/transfers/status", { timeoutMs: 5000 }),
+  ]);
+
+  const [systemResult, connectivityResult, serialResult, settingsResult, transfersResult] = results;
+  if (systemResult.status === "fulfilled") {
+    renderKeyValue(document.getElementById("system-status"), systemResult.value);
+  }
+  if (connectivityResult.status === "fulfilled") {
+    renderConnectivity(connectivityResult.value);
+  }
+  if (serialResult.status === "fulfilled") {
+    renderSerial(serialResult.value);
+  }
+  if (settingsResult.status === "fulfilled") {
+    renderSettings(
+      settingsResult.value,
+      transfersResult.status === "fulfilled" ? transfersResult.value : null
+    );
+  } else if (transfersResult.status === "fulfilled") {
+    renderTransfers(transfersResult.value);
+  }
+  loadWifiNetworks();
 }
 
 function buildSettingsPayload() {
@@ -679,7 +748,7 @@ async function applyNetworkPlan() {
   try {
     const payload = buildSettingsPayload();
     await savePayload(payload);
-    const result = await getJson("/api/connectivity/apply", { method: "POST" });
+    const result = await getJson("/api/connectivity/apply", { method: "POST", timeoutMs: 60000 });
     if (target) {
       target.textContent = [...result.notes, ...result.commands].join(" | ");
     }
@@ -733,7 +802,7 @@ async function applyTransferServices(event) {
   try {
     const payload = buildSettingsPayload();
     await savePayload(payload);
-    const result = await getJson("/api/transfers/apply", { method: "POST" });
+    const result = await getJson("/api/transfers/apply", { method: "POST", timeoutMs: 60000 });
     target.textContent = [...result.commands, ...result.notes].join(" | ");
     await loadStatus();
   } catch (error) {

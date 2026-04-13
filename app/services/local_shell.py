@@ -23,7 +23,8 @@ class LocalShellService:
             "HOME": str(Path.home()),
             "SHELL": os.environ.get("SHELL", "/bin/bash"),
             "PS1": "service@fieldkit:$ ",
-            "PROMPT_COMMAND": "",
+            "PROMPT_COMMAND": "bind 'set enable-bracketed-paste off' >/dev/null 2>&1",
+            "INPUTRC": "/dev/null",
         }
         process = subprocess.Popen(
             [env["SHELL"], "--noprofile", "--norc", "-i"],
