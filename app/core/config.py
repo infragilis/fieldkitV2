@@ -14,8 +14,8 @@ class RuntimeSettings(BaseModel):
     personal_dir_name: str = "personal"
     usb_dir_name: str = "usb"
     settings_file: str = "settings.json"
-    command_timeout_seconds: float = 5.0
-    dry_run_system_changes: bool = True
+    command_timeout_seconds: float = 30.0
+    dry_run_system_changes: bool = False
     dry_run_transfer_changes: bool = False
 
 

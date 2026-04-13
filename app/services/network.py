@@ -29,7 +29,11 @@ class NetworkService:
             "wifi_access_point": self._wifi_ap_status(settings),
             "applied": False,
             "dry_run": self._settings.dry_run_system_changes,
-            "note": "Apply actions are prepared, but host network changes remain dry-run by default.",
+            "note": (
+                "Live network apply is enabled."
+                if not self._settings.dry_run_system_changes
+                else "Apply actions are prepared, but host network changes remain dry-run by default."
+            ),
         }
 
     def scan_wifi_networks(self) -> list[dict]:
@@ -71,24 +75,24 @@ class NetworkService:
         return ApplyResult(applied=execution["applied"], dry_run=False, commands=commands, notes=notes)
 
     def _build_apply_commands(self, settings: AppSettingsPayload) -> list[str]:
-        connection = settings.ethernet.interface or "eth0"
-        commands = [f"hostnamectl set-hostname {settings.hostname}"]
+        connection = self._resolve_ethernet_connection(settings)
+        commands = [f"sudo -n hostnamectl set-hostname {settings.hostname}"]
         if settings.ethernet.mode == "static":
             commands.extend(
                 [
-                    f"nmcli connection modify {connection} ipv4.method manual",
-                    f"nmcli connection modify {connection} ipv4.addresses {settings.ethernet.address}",
-                    f"nmcli connection modify {connection} ipv4.gateway {settings.ethernet.gateway or ''}",
-                    f"nmcli connection modify {connection} ipv4.dns {','.join(settings.ethernet.dns)}",
+                    f"sudo -n nmcli connection modify {connection} ipv4.method manual",
+                    f"sudo -n nmcli connection modify {connection} ipv4.addresses {settings.ethernet.address}",
+                    f"sudo -n nmcli connection modify {connection} ipv4.gateway {settings.ethernet.gateway or ''}",
+                    f"sudo -n nmcli connection modify {connection} ipv4.dns {','.join(settings.ethernet.dns)}",
                 ]
             )
         else:
             commands.extend(
                 [
-                    f"nmcli connection modify {connection} ipv4.method auto",
-                    f"nmcli connection modify {connection} ipv4.addresses ''",
-                    f"nmcli connection modify {connection} ipv4.gateway ''",
-                    f"nmcli connection modify {connection} ipv4.dns ''",
+                    f"sudo -n nmcli connection modify {connection} ipv4.method auto",
+                    f"sudo -n nmcli connection modify {connection} ipv4.addresses ''",
+                    f"sudo -n nmcli connection modify {connection} ipv4.gateway ''",
+                    f"sudo -n nmcli connection modify {connection} ipv4.dns ''",
                 ]
             )
         commands.append("sudo -n /bin/bash /opt/fieldkit/scripts/install_wifi_ap_support.sh")
@@ -106,7 +110,7 @@ class NetworkService:
             commands.append(
                 "sudo -n /bin/bash /opt/fieldkit/scripts/apply_wifi_mode.sh disabled wlan0"
             )
-        commands.append(f"nmcli connection up {connection}")
+        commands.append(f"sudo -n nmcli connection up {connection}")
         return commands
 
     def _execute_apply(self, settings: AppSettingsPayload) -> dict:
@@ -116,7 +120,9 @@ class NetworkService:
         if not self._runner.available("nmcli"):
             return {"applied": False, "notes": ["nmcli is not available on this host."]}
 
-        hostname_result = self._runner.run(["hostnamectl", "set-hostname", settings.hostname])
+        connection = self._resolve_ethernet_connection(settings)
+
+        hostname_result = self._runner.run(["sudo", "-n", "hostnamectl", "set-hostname", settings.hostname])
         if not hostname_result.ok:
             return {"applied": False, "notes": [hostname_result.stderr.strip() or "Failed to set hostname."]}
 
@@ -141,7 +147,7 @@ class NetworkService:
             return {"applied": False, "notes": notes}
 
         if settings.wifi.mode != "ap":
-            result = self._runner.run(["nmcli", "connection", "up", connection])
+            result = self._runner.run(["sudo", "-n", "nmcli", "connection", "up", connection])
             if not result.ok:
                 notes.append(result.stderr.strip() or f"Failed: nmcli connection up {connection}")
                 return {"applied": False, "notes": notes}
@@ -150,27 +156,36 @@ class NetworkService:
         return {"applied": True, "notes": notes}
 
     def _ethernet_commands(self, settings: AppSettingsPayload) -> list[list[str]]:
-        connection = settings.ethernet.interface or "eth0"
+        connection = self._resolve_ethernet_connection(settings)
         commands: list[list[str]] = []
         if settings.ethernet.mode == "static":
             commands.extend(
                 [
-                    ["nmcli", "connection", "modify", connection, "ipv4.method", "manual"],
-                    ["nmcli", "connection", "modify", connection, "ipv4.addresses", settings.ethernet.address],
-                    ["nmcli", "connection", "modify", connection, "ipv4.gateway", settings.ethernet.gateway],
-                    ["nmcli", "connection", "modify", connection, "ipv4.dns", ",".join(settings.ethernet.dns)],
+                    ["sudo", "-n", "nmcli", "connection", "modify", connection, "ipv4.method", "manual"],
+                    ["sudo", "-n", "nmcli", "connection", "modify", connection, "ipv4.addresses", settings.ethernet.address],
+                    ["sudo", "-n", "nmcli", "connection", "modify", connection, "ipv4.gateway", settings.ethernet.gateway],
+                    ["sudo", "-n", "nmcli", "connection", "modify", connection, "ipv4.dns", ",".join(settings.ethernet.dns)],
                 ]
             )
         else:
             commands.extend(
                 [
-                    ["nmcli", "connection", "modify", connection, "ipv4.method", "auto"],
-                    ["nmcli", "connection", "modify", connection, "ipv4.addresses", ""],
-                    ["nmcli", "connection", "modify", connection, "ipv4.gateway", ""],
-                    ["nmcli", "connection", "modify", connection, "ipv4.dns", ""],
+                    ["sudo", "-n", "nmcli", "connection", "modify", connection, "ipv4.method", "auto"],
+                    ["sudo", "-n", "nmcli", "connection", "modify", connection, "ipv4.addresses", ""],
+                    ["sudo", "-n", "nmcli", "connection", "modify", connection, "ipv4.gateway", ""],
+                    ["sudo", "-n", "nmcli", "connection", "modify", connection, "ipv4.dns", ""],
                 ]
             )
         return commands
+
+    def _resolve_ethernet_connection(self, settings: AppSettingsPayload) -> str:
+        interface = settings.ethernet.interface or "eth0"
+        result = self._runner.run(["nmcli", "-g", "GENERAL.CONNECTION", "device", "show", interface])
+        if result.ok:
+            connection = result.stdout.strip()
+            if connection and connection != "--":
+                return connection
+        return interface
 
     def _apply_wifi_mode(self, settings: AppSettingsPayload):
         command = [
