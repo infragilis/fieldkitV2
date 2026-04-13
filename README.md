@@ -51,14 +51,14 @@ Fieldkit can make shared files available through:
 
 HTTP export is available by default for `/fieldkit/...`. FTP and TFTP can be enabled from the Settings page when needed.
 
-## Wi-Fi Access Point Prep
+## Wi-Fi Access Point
 
-Fieldkit can be prepared with a precreated Wi-Fi access-point profile:
+Fieldkit can run a dedicated Wi-Fi access point for direct local access:
 
 - SSID: `fieldkit`
 - Password: `fieldkit`
 
-This profile can be created in advance and left disabled until the kit is ready to switch to AP mode.
+Use wired Ethernet for setup and recovery while testing AP mode changes.
 
 ## Default Access
 

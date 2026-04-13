@@ -24,7 +24,8 @@ This document is the technical companion to the user-facing README.
 - `nginx` provides the front end for HTTP and HTTPS
 - SSH provides SCP access and the system account used by the local shell
 - FTP and TFTP are optional transfer services managed from the Fieldkit UI
-- NetworkManager handles appliance networking
+- NetworkManager handles normal client-side networking
+- Dedicated `hostapd` and `dnsmasq` units provide the Fieldkit Wi-Fi AP mode
 
 ## Notes
 

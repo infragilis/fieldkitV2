@@ -82,23 +82,23 @@ sudo systemctl disable systemd-networkd || true
 sudo systemctl restart NetworkManager
 ```
 
-## Precreate the Wi-Fi AP profile
+## Install dedicated Wi-Fi AP support
 
-If the kit will later expose its own access point for direct browser access, precreate the profile now but leave it disabled until cutover time:
+If the kit will offer its own Wi-Fi access point, install the dedicated AP support after deployment:
 
 ```bash
-sudo nmcli connection add type wifi ifname wlan0 con-name fieldkit-ap ssid fieldkit
-sudo nmcli connection modify fieldkit-ap \
-  802-11-wireless.mode ap \
-  802-11-wireless.band bg \
-  802-11-wireless-security.key-mgmt wpa-psk \
-  802-11-wireless-security.psk fieldkit \
-  ipv4.method shared \
-  ipv6.method ignore \
-  connection.autoconnect no
+cd /opt/fieldkit
+sudo bash scripts/install_wifi_ap_support.sh
 ```
 
-This stages the `fieldkit` SSID and password without dropping the current connection.
+This installs dedicated `hostapd` and AP-only `dnsmasq` units used by Fieldkit AP mode.
+
+Default AP credentials:
+
+- SSID: `fieldkit`
+- Password: `fieldkit`
+
+Use wired Ethernet while testing AP mode so the Pi remains reachable for recovery.
 
 ## Clone the repo
 

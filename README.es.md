@@ -51,14 +51,14 @@ Fieldkit puede exponer archivos compartidos por:
 
 La exportacion HTTP para `/fieldkit/...` esta disponible por defecto. FTP y TFTP pueden activarse desde la pagina Settings cuando haga falta.
 
-## Preparacion Del Punto De Acceso Wi-Fi
+## Punto De Acceso Wi-Fi
 
-Fieldkit puede prepararse con un perfil de punto de acceso Wi-Fi ya creado:
+Fieldkit puede ejecutar un punto de acceso Wi-Fi dedicado para acceso local directo:
 
 - SSID: `fieldkit`
 - Contrasena: `fieldkit`
 
-Este perfil puede crearse por adelantado y dejarse desactivado hasta que el kit pase a modo AP.
+Use Ethernet cableado para instalacion y recuperacion mientras prueba cambios del modo AP.
 
 ## Acceso Predeterminado
 

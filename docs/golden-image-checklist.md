@@ -37,7 +37,7 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 
 - [ ] `fieldkit-web.service` installed, enabled, and active
 - [ ] `nginx` installed, enabled, and active
-- [ ] `fieldkit` Wi-Fi AP profile precreated if the kit will offer direct wireless access later
+- [ ] dedicated Fieldkit Wi-Fi AP support installed if the kit will offer direct wireless access later
 - [ ] HTTP or HTTPS path validated locally on the Pi
 - [ ] Self-signed TLS applied if the deployment expects HTTPS by default
 

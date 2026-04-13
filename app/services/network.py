@@ -26,6 +26,7 @@ class NetworkService:
             "interfaces": interfaces,
             "active_connections": active_connections,
             "platform": platform,
+            "wifi_access_point": self._wifi_ap_status(settings),
             "applied": False,
             "dry_run": self._settings.dry_run_system_changes,
             "note": "Apply actions are prepared, but host network changes remain dry-run by default.",
@@ -90,8 +91,21 @@ class NetworkService:
                     f"nmcli connection modify {connection} ipv4.dns ''",
                 ]
             )
+        commands.append("sudo -n /bin/bash /opt/fieldkit/scripts/install_wifi_ap_support.sh")
         if settings.wifi.mode == "client" and settings.wifi.ssid:
-            commands.append(f"nmcli device wifi connect {settings.wifi.ssid} password <hidden>")
+            commands.append(
+                "sudo -n /bin/bash /opt/fieldkit/scripts/apply_wifi_mode.sh "
+                f"client wlan0 {settings.wifi.ssid} <hidden> {settings.wifi.country_code} {settings.wifi.ssid} <hidden>"
+            )
+        elif settings.wifi.mode == "ap":
+            commands.append(
+                "sudo -n /bin/bash /opt/fieldkit/scripts/apply_wifi_mode.sh "
+                f"ap wlan0 {settings.wifi.ssid or 'fieldkit'} <hidden> {settings.wifi.country_code}"
+            )
+        else:
+            commands.append(
+                "sudo -n /bin/bash /opt/fieldkit/scripts/apply_wifi_mode.sh disabled wlan0"
+            )
         commands.append(f"nmcli connection up {connection}")
         return commands
 
@@ -106,16 +120,36 @@ class NetworkService:
         if not hostname_result.ok:
             return {"applied": False, "notes": [hostname_result.stderr.strip() or "Failed to set hostname."]}
 
-        for command in self._nmcli_commands(settings):
+        install_result = self._runner.run(
+            ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/install_wifi_ap_support.sh"]
+        )
+        if not install_result.ok:
+            return {
+                "applied": False,
+                "notes": [install_result.stderr.strip() or install_result.stdout.strip() or "Failed to install Wi-Fi AP support."],
+            }
+
+        for command in self._ethernet_commands(settings):
             result = self._runner.run(command)
             if not result.ok:
                 notes.append(result.stderr.strip() or f"Failed: {' '.join(command)}")
                 return {"applied": False, "notes": notes}
 
+        wifi_result = self._apply_wifi_mode(settings)
+        if not wifi_result.ok:
+            notes.append(wifi_result.stderr.strip() or wifi_result.stdout.strip() or "Failed to apply Wi-Fi mode.")
+            return {"applied": False, "notes": notes}
+
+        if settings.wifi.mode != "ap":
+            result = self._runner.run(["nmcli", "connection", "up", connection])
+            if not result.ok:
+                notes.append(result.stderr.strip() or f"Failed: nmcli connection up {connection}")
+                return {"applied": False, "notes": notes}
+
         notes.append("Network settings applied.")
         return {"applied": True, "notes": notes}
 
-    def _nmcli_commands(self, settings: AppSettingsPayload) -> list[list[str]]:
+    def _ethernet_commands(self, settings: AppSettingsPayload) -> list[list[str]]:
         connection = settings.ethernet.interface or "eth0"
         commands: list[list[str]] = []
         if settings.ethernet.mode == "static":
@@ -136,13 +170,37 @@ class NetworkService:
                     ["nmcli", "connection", "modify", connection, "ipv4.dns", ""],
                 ]
             )
-        if settings.wifi.mode == "client" and settings.wifi.ssid:
-            wifi_command = ["nmcli", "device", "wifi", "connect", settings.wifi.ssid]
-            if settings.wifi.password:
-                wifi_command.extend(["password", settings.wifi.password])
-            commands.append(wifi_command)
-        commands.append(["nmcli", "connection", "up", connection])
         return commands
+
+    def _apply_wifi_mode(self, settings: AppSettingsPayload):
+        command = [
+            "sudo",
+            "-n",
+            "/bin/bash",
+            "/opt/fieldkit/scripts/apply_wifi_mode.sh",
+            settings.wifi.mode,
+            "wlan0",
+            settings.wifi.ssid or "fieldkit",
+            settings.wifi.password or "fieldkit",
+            settings.wifi.country_code,
+            settings.wifi.ssid,
+            settings.wifi.password,
+        ]
+        return self._runner.run(
+            command,
+        )
+
+    def _wifi_ap_status(self, settings: AppSettingsPayload) -> dict:
+        hostapd = self._runner.run(["sudo", "-n", "systemctl", "is-active", "fieldkit-ap-hostapd"])
+        dnsmasq = self._runner.run(["sudo", "-n", "systemctl", "is-active", "fieldkit-ap-dnsmasq"])
+        return {
+            "configured_mode": settings.wifi.mode,
+            "ssid": settings.wifi.ssid or "fieldkit",
+            "hostapd_active": hostapd.stdout.strip() == "active",
+            "dnsmasq_active": dnsmasq.stdout.strip() == "active",
+            "manageable": hostapd.ok or dnsmasq.ok,
+            "note": "" if (hostapd.ok or dnsmasq.ok) else (hostapd.stderr.strip() or dnsmasq.stderr.strip()),
+        }
 
     def _detect_interfaces(self) -> list[dict]:
         if self._runner.available("ip"):

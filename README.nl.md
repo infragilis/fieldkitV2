@@ -51,14 +51,14 @@ Fieldkit kan gedeelde bestanden aanbieden via:
 
 HTTP-export voor `/fieldkit/...` is standaard beschikbaar. FTP en TFTP kunnen indien nodig op de instellingenpagina worden ingeschakeld.
 
-## Wi-Fi-Access-Point-Voorbereiding
+## Wi-Fi-Access-Point
 
-Fieldkit kan worden voorbereid met een vooraf aangemaakt Wi-Fi-access-point-profiel:
+Fieldkit kan een dedicated Wi-Fi-access-point draaien voor directe lokale toegang:
 
 - SSID: `fieldkit`
 - Wachtwoord: `fieldkit`
 
-Dit profiel kan vooraf worden aangemaakt en uitgeschakeld blijven totdat het kit naar AP-modus overschakelt.
+Gebruik bekabeld ethernet voor setup en herstel terwijl je AP-wijzigingen test.
 
 ## Standaardtoegang
 

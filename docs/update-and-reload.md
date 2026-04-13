@@ -59,6 +59,15 @@ sudo bash scripts/install_transfer_services.sh
 
 That install step leaves FTP and TFTP disabled by default. Enable them from the Settings page only when needed.
 
+## Refresh Wi-Fi AP support
+
+If the dedicated Wi-Fi AP scripts, units, or sudoers policy changed:
+
+```bash
+cd /opt/fieldkit
+sudo bash scripts/install_wifi_ap_support.sh
+```
+
 ## Re-apply HTTPS
 
 If the TLS config or certificate workflow changed:
@@ -123,4 +132,5 @@ This uploads a temporary file to `personal` and verifies:
 - The shared export tree is only for `data`, `personal`, and `usb`; `serial-logs` remain GUI-only.
 - TFTP and FTP are toggle-controlled from the UI; SCP remains available through the normal SSH service without a separate toggle.
 - Plain HTTP export for `/fieldkit/...` is the default so non-HTTPS-capable maintenance clients can still download from the appliance.
-- A `fieldkit` Wi-Fi AP profile may be precreated on the Pi and left disabled until field cutover or wired validation time.
+- Fieldkit AP mode now uses dedicated `hostapd` and AP-only `dnsmasq` units instead of a NetworkManager hotspot profile.
+- Keep a wired path available when testing AP mode changes.

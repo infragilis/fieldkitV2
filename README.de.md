@@ -51,14 +51,14 @@ Fieldkit kann gemeinsame Dateien bereitstellen ueber:
 
 HTTP-Export fuer `/fieldkit/...` ist standardmaessig verfuegbar. FTP und TFTP koennen bei Bedarf auf der Einstellungsseite aktiviert werden.
 
-## Wi-Fi-Access-Point-Vorbereitung
+## Wi-Fi-Access-Point
 
-Fieldkit kann mit einem vorab angelegten Wi-Fi-Access-Point-Profil vorbereitet werden:
+Fieldkit kann einen dedizierten Wi-Fi-Access-Point fuer direkten lokalen Zugriff bereitstellen:
 
 - SSID: `fieldkit`
 - Passwort: `fieldkit`
 
-Dieses Profil kann im Voraus erstellt und bis zur Umstellung auf AP-Modus deaktiviert gelassen werden.
+Fuer Einrichtung und Wiederherstellung waehrend AP-Tests sollte kabelgebundenes Ethernet verwendet werden.
 
 ## Standardzugang
 
