@@ -78,6 +78,23 @@ def test_delete_disallowed_library_fails():
     assert response.status_code == 400
 
 
+def test_serial_log_download_uses_actual_filename():
+    upload = client.post(
+        "/api/files/upload",
+        params={"library": "personal"},
+        files={"file": ("download-check.txt", b"content", "text/plain")},
+    )
+    assert upload.status_code == 200
+
+    response = client.get(
+        "/api/files/download",
+        params={"library": "personal", "path": "download-check.txt"},
+    )
+
+    assert response.status_code == 200
+    assert 'filename="download-check.txt"' in response.headers["content-disposition"]
+
+
 def test_personal_listing_marks_files_deletable(tmp_path):
     settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
     service = StorageService(settings)

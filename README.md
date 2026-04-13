@@ -40,6 +40,7 @@ The current repo and live kit provide:
 - A FastAPI backend with modular routers and services
 - A main dashboard focused on console access, docs, and uploads
 - A dedicated `/settings` page for connectivity, networking, password changes, and serial presets
+- A dedicated `/pi-shell` page for local shell access to the appliance as the `service` account using an in-browser terminal
 - A dedicated `/files` page for browsing `data`, `personal`, `usb`, and `serial-logs`
 - Desktop-to-kit uploads into `personal` or mounted `usb`
 - Duplicate upload protection so existing files are not overwritten silently
@@ -48,6 +49,7 @@ The current repo and live kit provide:
 - Hidden/macOS metadata filtering in the file browser so `._*`, `.Spotlight-V100`, and similar entries do not clutter USB views
 - Local vendor reference notes linked from the web UI
 - Persisted settings for ethernet, Wi-Fi mode, and serial console profiles
+- A precreated `fieldkit` Wi-Fi access-point profile on the appliance for later AP-mode use
 - Quick serial preset switching between `9600 8N1` and `115200 8N1`
 - Automatic serial adapter detection so console sessions can work without manually setting `/dev/ttyUSB*` paths
 - A dedicated `/serial-settings` page for full per-console settings such as optional device preference, baud, parity, data bits, and stop bits
@@ -74,11 +76,14 @@ Primary routes:
 
 - `/` for the main dashboard
 - `/settings` for connectivity, networking, password, and serial preset management
+- `/pi-shell` for browser-based local shell access on the appliance
 - `/serial-settings` for detailed per-console serial profile editing
 - `/files` for file browsing, upload, and delete actions
 - `/fieldkit` for raw export browsing and direct file downloads
 - `/readme` for the repo README rendered locally on the kit
 - `/kit-docs` for the local documentation index
+
+The `/readme` view switches to a localized README when a supported UI language is selected.
 
 ## File Libraries
 
@@ -107,8 +112,8 @@ USB gadget export is not available on the current Raspberry Pi 3 Model B referen
 Current USB behavior:
 
 - If removable storage is auto-mounted under `/media/service`, `/media`, or `/mnt`, Fieldkit will use that mount as the `usb` library automatically.
-- The current implementation is intended for the common single-mounted-USB-stick case.
-- Multi-drive handling, labels, and hot-plug refresh are planned but tracked only in the local working notes, not in the deployed repo.
+- Fieldkit currently picks the first matching mounted directory it finds under those paths, which works best for the common single-USB-stick case.
+- Multi-drive selection, user-visible volume labels, and automatic hot-plug refresh are not implemented yet.
 
 Current file behavior:
 
@@ -173,6 +178,7 @@ These notes live in `docs/kits` and are exposed through the web UI from the main
 
 - Ethernet can be pinned to a local service IP for direct device imaging
 - Wi-Fi can operate as AP or client mode
+- A `fieldkit` access-point profile can be precreated on the Pi and left disabled until the kit is ready to switch from client or wired access
 - Pi 3 and newer should expose onboard Wi-Fi flows; older models should keep Wi-Fi disabled unless an adapter is explicitly added later
 - The fourth port service workflow should be implemented via the network service module
 - `service/service` is the intended default appliance SSH username and password
@@ -200,12 +206,12 @@ Reference inventory and rationale are documented in [docs/platform-baseline.md](
 
 ## Current Limitations
 
-- USB browsing still assumes the common single-mounted-drive case
-- Multi-drive labels and hot-plug refresh are not implemented yet
-- Serial adapters are auto-assigned in detected order, but stable identity by USB serial number or port topology is not implemented yet
-- Password changes are still handled by a backend placeholder path
+- USB browsing uses the first detected mounted path under `/media/service`, `/media`, or `/mnt`, so multi-drive selection is not implemented yet
+- USB volume labels and automatic hot-plug refresh are not implemented yet
+- Serial profiles prefer a saved `device_hint` when it matches a detected adapter, then fall back to the next detected `ttyUSB*` or `ttyACM*`; stable identity by USB serial number or port topology is not implemented yet
 - Network apply remains a dry-run planning workflow rather than a full live reconfiguration path
 - Ansible device-side workflows are not implemented yet
+- The browser shell is a full terminal session, but appliance-local authorization still relies on the `service` account rather than a separate Fieldkit permission layer
 
 ## Next Implementation Steps
 

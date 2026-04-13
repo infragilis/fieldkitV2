@@ -11,7 +11,7 @@
       <nav class="topbar">
         <div class="brand-mark">
           <span>Fieldkit</span>
-          <span id="app-version" class="brand-version">v0.1.1</span>
+          <span id="app-version" class="brand-version">v0.1.2</span>
         </div>
         <div class="topbar-right">
           <div class="topbar-links">
@@ -25,7 +25,7 @@
           <div class="shell-tools">
             <button id="theme-toggle" type="button" class="shell-tool-button theme-icon-button" aria-label="Toggle theme" title="Toggle theme"><span id="theme-toggle-icon" aria-hidden="true">◐</span></button>
             <div class="language-picker">
-              <button type="button" class="language-button">
+              <button id="language-toggle" type="button" class="language-button" aria-haspopup="true" aria-expanded="false">
                 <span id="language-flag" class="language-flag">🇬🇧</span>
                 <span id="language-label">English</span>
               </button>
@@ -59,6 +59,7 @@
           <p class="hero-kicker" data-i18n="operational_notes">Operational Notes</p>
           <div class="hero-shortcuts">
             <a href="/fieldkit" data-i18n="export_browser">Export Browser</a>
+            <a href="/pi-shell" data-i18n="open_local_shell">Open Local Shell</a>
             <a href="/serial-settings" data-i18n="full_serial_profiles">Full Serial Profiles</a>
             <a href="/readme" data-i18n="open_readme">Open README</a>
             <a href="/" data-i18n="back_to_console">Back to Console</a>
@@ -175,6 +176,12 @@
             <button type="submit" data-i18n="change_password">Change Password</button>
           </form>
           <p id="password-result" class="muted"></p>
+        </article>
+
+        <article class="panel" id="local-shell-settings">
+          <h2 data-i18n="local_shell_title">Local Pi Shell</h2>
+          <p class="muted" data-i18n="local_shell_note">This terminal runs directly on the Fieldkit appliance as the local service account.</p>
+          <p><a href="/pi-shell" data-i18n="open_local_shell">Open Local Shell</a></p>
         </article>
       </section>
 

@@ -1,3 +1,4 @@
+import json
 from contextlib import asynccontextmanager
 from html import escape
 from urllib.parse import quote
@@ -18,10 +19,21 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Fieldkit", version="0.1.1", lifespan=lifespan)
+app = FastAPI(title="Fieldkit", version="0.1.2", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 storage_service = StorageService(get_settings())
+
+
+def readme_path_for_language(language: str) -> str:
+    if language in {"es", "de", "nl", "fr"}:
+        localized = f"README.{language}.md"
+        try:
+            with open(localized, encoding="utf-8"):
+                return localized
+        except FileNotFoundError:
+            pass
+    return "README.md"
 
 
 def shell_tools_html() -> str:
@@ -29,7 +41,7 @@ def shell_tools_html() -> str:
         <div class="shell-tools">
           <button id="theme-toggle" type="button" class="shell-tool-button theme-icon-button" aria-label="Toggle theme" title="Toggle theme"><span id="theme-toggle-icon" aria-hidden="true">◐</span></button>
           <div class="language-picker">
-            <button type="button" class="language-button">
+            <button id="language-toggle" type="button" class="language-button" aria-haspopup="true" aria-expanded="false">
               <span id="language-flag" class="language-flag">🇬🇧</span>
               <span id="language-label">English</span>
             </button>
@@ -51,7 +63,7 @@ def topbar_html(*, docs_href: str = "/#docs", exports_href: str | None = None) -
       <nav class="topbar">
         <div class="brand-mark">
           <span>Fieldkit</span>
-          <span class="brand-version">v0.1.1</span>
+          <span class="brand-version">v0.1.2</span>
         </div>
         <div class="topbar-right">
           <div class="topbar-links">
@@ -78,6 +90,120 @@ async def settings_page() -> FileResponse:
     return FileResponse("app/static/settings.html")
 
 
+@app.get("/pi-shell", include_in_schema=False)
+async def pi_shell_page() -> HTMLResponse:
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Local Shell</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/vendor/xterm.css" />
+    <style>
+      main {{ width: min(1100px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }}
+      article {{ padding: 24px; }}
+      .shell-note {{ margin-bottom: 12px; }}
+      .shell-output {{
+        min-height: 520px;
+        margin: 0 0 12px;
+        overflow: auto;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: #1e2326;
+        outline: none;
+      }}
+      .shell-output .xterm {{ padding: 14px; }}
+      .shell-toolbar {{ display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }}
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      {topbar_html()}
+      <article class="panel">
+        <h1 data-i18n="local_shell_title">Local Pi Shell</h1>
+        <p class="muted shell-note" data-i18n="local_shell_note">This terminal runs directly on the Fieldkit appliance as the local service account.</p>
+        <div class="shell-toolbar">
+          <button id="shell-reconnect-button" type="button" data-i18n="reconnect">Reconnect</button>
+          <span id="shell-status" class="muted" data-i18n="opening_session">Opening session...</span>
+        </div>
+        <div id="shell-output" class="shell-output"></div>
+      </article>
+    </main>
+    <script src="/static/vendor/xterm.js"></script>
+    <script src="/static/vendor/xterm-addon-fit.js"></script>
+    <script src="/static/app.js"></script>
+    <script>
+      let shellSocket = null;
+      const output = document.getElementById("shell-output");
+      const terminal = new Terminal({{
+        cursorBlink: true,
+        fontFamily: "'IBM Plex Mono', monospace",
+        fontSize: 15,
+        theme: {{
+          background: "#1e2326",
+          foreground: "#d6ead9",
+          cursor: "#d6ead9",
+        }},
+      }});
+      const fitAddon = new FitAddon.FitAddon();
+      terminal.loadAddon(fitAddon);
+      terminal.open(output);
+
+      function sendShellMessage(payload) {{
+        if (!shellSocket || shellSocket.readyState !== WebSocket.OPEN) {{
+          return;
+        }}
+        shellSocket.send(JSON.stringify(payload));
+      }}
+
+      function resizeShell() {{
+        fitAddon.fit();
+        sendShellMessage({{ type: "resize", cols: terminal.cols, rows: terminal.rows }});
+      }}
+
+      function connectShell() {{
+        if (shellSocket) {{
+          shellSocket.close();
+        }}
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        shellSocket = new WebSocket(`${{protocol}}//${{window.location.host}}/api/shell/ws`);
+        const status = document.getElementById("shell-status");
+        status.textContent = window.fieldkitUi ? window.fieldkitUi.t("connecting") : "Connecting...";
+        if (terminal.buffer.active.length) {{
+          terminal.writeln(`[${{window.fieldkitUi ? window.fieldkitUi.t("reconnecting").toLowerCase() : "reconnecting"}}]`);
+        }}
+        shellSocket.onopen = () => {{
+          status.textContent = window.fieldkitUi ? window.fieldkitUi.t("connected") : "Connected";
+          resizeShell();
+          terminal.focus();
+        }};
+        shellSocket.onmessage = (event) => {{
+          terminal.write(event.data);
+        }};
+        shellSocket.onclose = () => {{
+          status.textContent = window.fieldkitUi ? window.fieldkitUi.t("disconnected") : "Disconnected";
+          terminal.writeln("");
+          terminal.writeln(`[${{window.fieldkitUi ? window.fieldkitUi.t("console_disconnected").toLowerCase() : "disconnected"}}]`);
+        }};
+      }}
+
+      window.addEventListener("beforeunload", () => {{
+        if (shellSocket) {{
+          shellSocket.close();
+        }}
+      }});
+      terminal.onData((data) => sendShellMessage({{ type: "input", data }}));
+      window.addEventListener("resize", resizeShell);
+      document.getElementById("shell-reconnect-button").addEventListener("click", connectShell);
+      output.addEventListener("click", () => terminal.focus());
+      connectShell();
+    </script>
+  </body>
+</html>"""
+    return HTMLResponse(html)
+
+
 @app.get("/fieldkit", include_in_schema=False)
 @app.get("/fieldkit/{requested_path:path}", include_in_schema=False)
 async def fieldkit_exports(requested_path: str = ""):
@@ -99,19 +225,8 @@ async def fieldkit_exports(requested_path: str = ""):
     if current_path:
         parent_parts = current_path.split("/")[:-1]
         parent_path = "/fieldkit" if not parent_parts else f"/fieldkit/{quote('/'.join(parent_parts))}"
-    rows = "".join(
-        f"""
-        <li>
-          <div class="item-meta">
-            <strong><a href="/fieldkit/{quote(item['path'])}{'/' if item['is_dir'] else ''}">{escape(item['name'])}</a></strong>
-            <span class="muted">{'Directory' if item['is_dir'] else f"{item['size']} bytes"}</span>
-          </div>
-          {"<a href='/fieldkit/" + quote(item["path"]) + "' download>Download</a>" if not item["is_dir"] else ""}
-        </li>
-        """
-        for item in listing["items"]
-    ) or "<li><span class='muted'>No files</span></li>"
     header_path = f"/{current_path}" if current_path else "/"
+    listing_json = json.dumps(listing["items"])
     html = f"""<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -134,13 +249,50 @@ async def fieldkit_exports(requested_path: str = ""):
       {topbar_html(docs_href="/kit-docs", exports_href="/fieldkit")}
       <article class="panel">
         <h1 data-i18n="exports_title">Fieldkit Exports</h1>
-        <p class="path-note">HTTP: /fieldkit{escape(header_path)}</p>
-        <p class="muted">TFTP, FTP, and SCP use the same library structure rooted at {escape(str(storage_service.export_root()))}.</p>
+        <p id="export-path-note" class="path-note"></p>
+        <p id="export-root-note" class="muted"></p>
         <p><a href="{parent_path}" data-i18n="up_one_level">Up one level</a></p>
-        <ul>{rows}</ul>
+        <ul id="export-items"></ul>
       </article>
     </main>
     <script src="/static/app.js" defer></script>
+    <script>
+      const exportListing = {listing_json};
+      const exportHeaderPath = {json.dumps(header_path)};
+      const exportRootPath = {json.dumps(str(storage_service.export_root()))};
+
+      function escapeHtml(value) {{
+        return String(value).replace(/[&<>\"']/g, (char) => ({{
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }}[char]));
+      }}
+
+      function renderExportItems() {{
+        const i18n = window.fieldkitUi;
+        document.getElementById("export-path-note").textContent = i18n
+          ? i18n.t("export_path", {{ path: exportHeaderPath }})
+          : `HTTP: /fieldkit${{exportHeaderPath}}`;
+        document.getElementById("export-root-note").textContent = i18n
+          ? i18n.t("export_root_note", {{ root: exportRootPath }})
+          : `TFTP, FTP, and SCP use the same library structure rooted at ${{exportRootPath}}.`;
+        document.getElementById("export-items").innerHTML = exportListing.map((item) => `
+          <li>
+            <div class="item-meta">
+              <strong><a href="/fieldkit/${{encodeURIComponent(item.path)}}${{item.is_dir ? "/" : ""}}">${{escapeHtml(item.name)}}</a></strong>
+              <span class="muted">${{item.is_dir ? (i18n ? i18n.t("directory") : "Directory") : (i18n ? i18n.t("bytes", {{ size: item.size }}) : `${{item.size}} bytes`)}}</span>
+            </div>
+            ${{item.is_dir ? "" : `<a href="/fieldkit/${{encodeURIComponent(item.path)}}" download>${{i18n ? i18n.t("download") : "Download"}}</a>`}}
+          </li>
+        `).join("") || `<li><span class="muted">${{i18n ? i18n.t("no_files") : "No files"}}</span></li>`;
+      }}
+
+      window.addEventListener("fieldkit:language-change", renderExportItems);
+      window.addEventListener("DOMContentLoaded", renderExportItems);
+    </script>
   </body>
 </html>"""
     return HTMLResponse(html)
@@ -166,13 +318,35 @@ async def readme() -> HTMLResponse:
     <main class="app-shell">
       {topbar_html()}
       <article class="panel">
-        <pre>{body}</pre>
+        <pre id="readme-body">{body}</pre>
       </article>
     </main>
     <script src="/static/app.js" defer></script>
+    <script>
+      async function loadReadmeContent(language) {{
+        const response = await fetch(`/api/readme-content?lang=${{encodeURIComponent(language)}}`);
+        if (!response.ok) {{
+          return;
+        }}
+        const payload = await response.json();
+        document.getElementById("readme-body").textContent = payload.content;
+      }}
+
+      window.addEventListener("fieldkit:language-change", (event) => loadReadmeContent(event.detail.language));
+      window.addEventListener("DOMContentLoaded", () => {{
+        const language = window.fieldkitUi ? window.localStorage.getItem("fieldkit-language") || "en" : "en";
+        loadReadmeContent(language);
+      }});
+    </script>
   </body>
 </html>"""
     return HTMLResponse(html)
+
+
+@app.get("/api/readme-content")
+async def readme_content(lang: str = "en"):
+    path = readme_path_for_language(lang)
+    return {"language": lang, "path": path, "content": open(path, encoding="utf-8").read()}
 
 
 @app.get("/files", include_in_schema=False)
@@ -594,21 +768,34 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
     <main>
       <article>
         <div class="header">
-          <h1>Console {console_number}</h1>
+          <h1 id="console-title">Console {console_number}</h1>
           <span id="console-status" class="muted">Opening session...</span>
         </div>
         <div class="toolbar">
           <button id="reconnect-button" type="button">Reconnect</button>
-          <span class="muted">This popup can be moved independently by the field engineer.</span>
+          <span id="console-move-note" class="muted">This popup can be moved independently by the field engineer.</span>
         </div>
-        <p class="muted capture-note">Keyboard input is captured directly in this window. Click the terminal area if input focus is lost.</p>
+        <p id="console-capture-note" class="muted capture-note">Keyboard input is captured directly in this window. Click the terminal area if input focus is lost.</p>
         <pre id="console-output" class="console-output" tabindex="0"></pre>
       </article>
     </main>
+    <script src="/static/app.js"></script>
     <script>
       const profileIndex = {profile_index};
+      const consoleNumber = {console_number};
       let consoleSocket = null;
       const output = document.getElementById("console-output");
+
+      function uiText(key, fallback, vars = {{}}) {{
+        return window.fieldkitUi ? window.fieldkitUi.t(key, vars) : fallback;
+      }}
+
+      function translateConsolePage() {{
+        document.getElementById("console-title").textContent = uiText("console_window_title", `Console ${{consoleNumber}}`, {{ index: consoleNumber }});
+        document.getElementById("reconnect-button").textContent = uiText("reconnect", "Reconnect");
+        document.getElementById("console-move-note").textContent = uiText("console_move_note", "This popup can be moved independently by the field engineer.");
+        document.getElementById("console-capture-note").textContent = uiText("console_capture_note", "Keyboard input is captured directly in this window. Click the terminal area if input focus is lost.");
+      }}
 
       function sendRawInput(data) {{
         if (!consoleSocket || consoleSocket.readyState !== WebSocket.OPEN) {{
@@ -660,11 +847,11 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const socketUrl = `${{protocol}}//${{window.location.host}}/api/serial/ws/${{profileIndex}}`;
         const status = document.getElementById("console-status");
-        status.textContent = "Connecting...";
-        output.textContent += output.textContent ? "\\n[reconnecting]\\n" : `Connecting to console {console_number}...\\n`;
+        status.textContent = uiText("connecting", "Connecting...");
+        output.textContent += output.textContent ? `\\n[${{uiText("reconnecting", "reconnecting").toLowerCase()}}]\\n` : `${{uiText("connecting_to_console", `Connecting to console ${{consoleNumber}}...`, {{ index: consoleNumber }})}}\\n`;
         consoleSocket = new WebSocket(socketUrl);
         consoleSocket.onopen = () => {{
-          status.textContent = "Connected";
+          status.textContent = uiText("connected", "Connected");
           output.focus();
         }};
         consoleSocket.onmessage = (event) => {{
@@ -672,8 +859,8 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
           output.scrollTop = output.scrollHeight;
         }};
         consoleSocket.onclose = () => {{
-          status.textContent = "Disconnected";
-          output.textContent += "\\n[console disconnected]\\n";
+          status.textContent = uiText("disconnected", "Disconnected");
+          output.textContent += `\\n[${{uiText("console_disconnected", "console disconnected").toLowerCase()}}]\\n`;
           output.scrollTop = output.scrollHeight;
         }};
       }}
@@ -692,10 +879,12 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
           consoleSocket.close();
         }}
       }});
+      window.addEventListener("fieldkit:language-change", translateConsolePage);
 
       window.addEventListener("keydown", handleConsoleKeydown);
       document.getElementById("reconnect-button").addEventListener("click", connectConsole);
       output.addEventListener("click", () => output.focus());
+      translateConsolePage();
       connectConsole();
     </script>
   </body>

@@ -82,6 +82,24 @@ sudo systemctl disable systemd-networkd || true
 sudo systemctl restart NetworkManager
 ```
 
+## Precreate the Wi-Fi AP profile
+
+If the kit will later expose its own access point for direct browser access, precreate the profile now but leave it disabled until cutover time:
+
+```bash
+sudo nmcli connection add type wifi ifname wlan0 con-name fieldkit-ap ssid fieldkit
+sudo nmcli connection modify fieldkit-ap \
+  802-11-wireless.mode ap \
+  802-11-wireless.band bg \
+  802-11-wireless-security.key-mgmt wpa-psk \
+  802-11-wireless-security.psk fieldkit \
+  ipv4.method shared \
+  ipv6.method ignore \
+  connection.autoconnect no
+```
+
+This stages the `fieldkit` SSID and password without dropping the current connection.
+
 ## Clone the repo
 
 Use the SSH remote if you have access:

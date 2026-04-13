@@ -6,6 +6,7 @@ The currently deployed web UI includes:
 
 - a main dashboard at `/`
 - a dedicated settings page at `/settings`
+- a local shell page at `/pi-shell` backed by an in-browser terminal emulator
 - popup console windows at `/serial-console/0` and `/serial-console/1`
 - a files page at `/files`
 - a raw export browser at `/fieldkit`
@@ -88,6 +89,7 @@ Verify locally on the Pi:
 ```bash
 curl -k https://127.0.0.1/
 curl -k https://127.0.0.1/settings
+curl -k https://127.0.0.1/pi-shell
 curl -k https://127.0.0.1/files
 curl -k https://127.0.0.1/readme
 curl -fsS http://127.0.0.1/fieldkit/
@@ -114,9 +116,11 @@ This uploads a temporary file to `personal` and verifies:
 
 - Short `502` responses from nginx can happen during app restarts if the proxy comes up before uvicorn is ready.
 - Browser hard refreshes may be needed after frontend changes because `app.js` and `styles.css` are cached by the browser.
+- `/pi-shell` also depends on vendored terminal assets under `app/static/vendor`, so a hard refresh is especially important after shell UI changes.
 - If `git pull --ff-only` fails, inspect local changes before forcing anything.
 - Keep the repo and deployed app rooted at `/opt/fieldkit` for consistency with the current systemd and nginx assets.
 - Local operator notes such as `TODO.local.md` and `HANDOFF.md` should stay out of git and off the appliance.
 - The shared export tree is only for `data`, `personal`, and `usb`; `serial-logs` remain GUI-only.
 - TFTP and FTP are toggle-controlled from the UI; SCP remains available through the normal SSH service without a separate toggle.
 - Plain HTTP export for `/fieldkit/...` is the default so non-HTTPS-capable maintenance clients can still download from the appliance.
+- A `fieldkit` Wi-Fi AP profile may be precreated on the Pi and left disabled until field cutover or wired validation time.

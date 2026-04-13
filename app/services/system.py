@@ -17,21 +17,26 @@ class SystemService:
         return {
             "hostname": settings.hostname,
             "default_user": "service",
+            "local_shell_user": "service",
             "password_change_supported": not self._settings.dry_run_system_changes,
             "dry_run": self._settings.dry_run_system_changes,
             "note": "System changes are dry-run by default.",
         }
 
     def change_password(self, current_password: str, new_password: str) -> bool:
-        if current_password != "service":
-            return False
         if len(new_password) < 4:
             return False
         if self._settings.dry_run_system_changes:
-            return True
-        if not self._runner.available("chpasswd"):
+            return bool(current_password)
+        if not self._runner.available("chpasswd") or not self._runner.available("sudo") or not self._runner.available("su"):
             return False
-        result = self._runner.run_with_input(["chpasswd"], f"service:{new_password}\n")
+        verified = self._runner.run_with_input(
+            ["sudo", "-u", "nobody", "su", "service", "-c", "true"],
+            f"{current_password}\n",
+        )
+        if not verified.ok:
+            return False
+        result = self._runner.run_with_input(["sudo", "chpasswd"], f"service:{new_password}\n")
         return result.ok
 
     def apply_hostname(self) -> ApplyResult:

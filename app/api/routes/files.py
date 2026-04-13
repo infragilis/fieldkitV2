@@ -38,7 +38,7 @@ async def download_file(library: str = Query("data"), path: str = Query(...)):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not resolved.is_file():
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(resolved)
+    return FileResponse(resolved, filename=resolved.name)
 
 
 @router.delete("")
