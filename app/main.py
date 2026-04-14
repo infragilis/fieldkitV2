@@ -745,7 +745,13 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Console {console_number}</title>
+    <link rel="stylesheet" href="/static/vendor/xterm.css" />
     <style>
+      html {{
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }}
       :root {{
         --line: #c2b6a2;
         --text: #1f2a2d;
@@ -756,31 +762,54 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
       * {{ box-sizing: border-box; }}
       body {{
         margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
         font-family: 'IBM Plex Sans', sans-serif;
         color: var(--text);
         background:
           radial-gradient(circle at top left, rgba(178, 74, 43, 0.18), transparent 24%),
           linear-gradient(180deg, #f6f0e5, #e9dece);
       }}
-      main {{ width: min(100vw, 1100px); margin: 0 auto; padding: 18px; }}
-      article {{ background: rgba(255, 252, 246, 0.94); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }}
-      .header {{ display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 12px; }}
+      main {{
+        position: fixed;
+        inset: 0;
+        width: min(100vw, 1100px);
+        height: 100%;
+        margin: 0 auto;
+        padding: 18px;
+        overflow: hidden;
+      }}
+      article {{
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 252, 246, 0.94);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        overflow: hidden;
+      }}
+      .header {{ display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; }}
+      .header-actions {{ display: flex; align-items: center; gap: 12px; }}
       .header h1 {{ margin: 0; font-size: 1.4rem; }}
       .muted {{ color: var(--muted); }}
       .console-output {{
-        min-height: 420px;
-        margin: 0 0 12px;
-        padding: 12px;
-        overflow: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0;
         border-radius: 12px;
         border: 1px solid var(--line);
         background: #1e2326;
-        color: #d6ead9;
-        font-family: 'IBM Plex Mono', monospace;
-        white-space: pre-wrap;
         outline: none;
+        overflow: hidden;
+        overscroll-behavior: contain;
       }}
-      .toolbar {{ display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }}
+      .console-output .xterm {{
+        height: 100%;
+        padding: 12px;
+      }}
       button {{ font: inherit; }}
       button {{
         padding: 10px 14px;
@@ -791,7 +820,7 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
         cursor: pointer;
       }}
       .capture-note {{
-        margin: 0;
+        margin: 0 0 12px;
         font-size: 0.88rem;
       }}
     </style>
@@ -801,109 +830,106 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
       <article>
         <div class="header">
           <h1 id="console-title">Console {console_number}</h1>
-          <span id="console-status" class="muted">Opening session...</span>
-        </div>
-        <div class="toolbar">
-          <button id="reconnect-button" type="button">Reconnect</button>
-          <span id="console-move-note" class="muted">This popup can be moved independently by the field engineer.</span>
+          <div class="header-actions">
+            <button id="reconnect-button" type="button">Reconnect</button>
+            <span id="console-status" class="muted">Opening session...</span>
+          </div>
         </div>
         <p id="console-capture-note" class="muted capture-note">Keyboard input is captured directly in this window. Click the terminal area if input focus is lost.</p>
-        <pre id="console-output" class="console-output" tabindex="0"></pre>
+        <div id="console-output" class="console-output"></div>
       </article>
     </main>
+    <script src="/static/vendor/xterm.js"></script>
+    <script src="/static/vendor/xterm-addon-fit.js"></script>
     <script src="/static/app.js"></script>
     <script>
       const profileIndex = {profile_index};
       const consoleNumber = {console_number};
       let consoleSocket = null;
+      let suppressNextClose = false;
       const output = document.getElementById("console-output");
+      const terminal = new Terminal({{
+        cursorBlink: true,
+        fontFamily: "'IBM Plex Mono', monospace",
+        fontSize: 15,
+        theme: {{
+          background: "#1e2326",
+          foreground: "#d6ead9",
+          cursor: "#d6ead9",
+        }},
+      }});
+      const fitAddon = new FitAddon.FitAddon();
+      terminal.loadAddon(fitAddon);
+      terminal.open(output);
+      if (terminal.element) {{
+        terminal.element.addEventListener("wheel", (event) => event.stopPropagation(), {{ passive: true }});
+        terminal.element.addEventListener("touchmove", (event) => event.stopPropagation(), {{ passive: true }});
+      }}
+      if (terminal.textarea) {{
+        terminal.textarea.setAttribute("autocapitalize", "off");
+        terminal.textarea.setAttribute("autocomplete", "off");
+        terminal.textarea.setAttribute("autocorrect", "off");
+        terminal.textarea.setAttribute("spellcheck", "false");
+        terminal.textarea.setAttribute("inputmode", "text");
+      }}
 
       function uiText(key, fallback, vars = {{}}) {{
         return window.fieldkitUi ? window.fieldkitUi.t(key, vars) : fallback;
       }}
 
+      function focusTerminal() {{
+        terminal.focus();
+        if (terminal.textarea) {{
+          terminal.textarea.focus();
+        }}
+      }}
+
       function translateConsolePage() {{
         document.getElementById("console-title").textContent = uiText("console_window_title", `Console ${{consoleNumber}}`, {{ index: consoleNumber }});
         document.getElementById("reconnect-button").textContent = uiText("reconnect", "Reconnect");
-        document.getElementById("console-move-note").textContent = uiText("console_move_note", "This popup can be moved independently by the field engineer.");
         document.getElementById("console-capture-note").textContent = uiText("console_capture_note", "Keyboard input is captured directly in this window. Click the terminal area if input focus is lost.");
       }}
 
       function sendRawInput(data) {{
         if (!consoleSocket || consoleSocket.readyState !== WebSocket.OPEN) {{
-          output.textContent += "\\n[no active console]\\n";
-          output.scrollTop = output.scrollHeight;
+          terminal.writeln("[no active console]");
           return;
         }}
         consoleSocket.send(data);
       }}
 
-      function keyToSequence(event) {{
-        if (event.metaKey || event.altKey) {{
-          return null;
-        }}
-        if (event.ctrlKey && event.key.length === 1) {{
-          const upper = event.key.toUpperCase();
-          if (upper >= "A" && upper <= "Z") {{
-            return String.fromCharCode(upper.charCodeAt(0) - 64);
-          }}
-        }}
-        const special = {{
-          Enter: "\\r",
-          Backspace: "\\u007f",
-          Tab: "\\t",
-          Escape: "\\u001b",
-          ArrowUp: "\\u001b[A",
-          ArrowDown: "\\u001b[B",
-          ArrowRight: "\\u001b[C",
-          ArrowLeft: "\\u001b[D",
-          Delete: "\\u001b[3~",
-          Home: "\\u001b[H",
-          End: "\\u001b[F",
-          PageUp: "\\u001b[5~",
-          PageDown: "\\u001b[6~",
-        }};
-        if (special[event.key]) {{
-          return special[event.key];
-        }}
-        if (!event.ctrlKey && event.key.length === 1) {{
-          return event.key;
-        }}
-        return null;
-      }}
-
       function connectConsole() {{
-        if (consoleSocket) {{
+        if (consoleSocket && (consoleSocket.readyState === WebSocket.OPEN || consoleSocket.readyState === WebSocket.CONNECTING)) {{
+          suppressNextClose = true;
           consoleSocket.close();
         }}
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const socketUrl = `${{protocol}}//${{window.location.host}}/api/serial/ws/${{profileIndex}}`;
         const status = document.getElementById("console-status");
         status.textContent = uiText("connecting", "Connecting...");
-        output.textContent += output.textContent ? `\\n[${{uiText("reconnecting", "reconnecting").toLowerCase()}}]\\n` : `${{uiText("connecting_to_console", `Connecting to console ${{consoleNumber}}...`, {{ index: consoleNumber }})}}\\n`;
+        if (terminal.buffer.active.length) {{
+          terminal.writeln(`[${{uiText("reconnecting", "reconnecting").toLowerCase()}}]`);
+        }} else {{
+          terminal.writeln(uiText("connecting_to_console", `Connecting to console ${{consoleNumber}}...`, {{ index: consoleNumber }}));
+        }}
         consoleSocket = new WebSocket(socketUrl);
         consoleSocket.onopen = () => {{
           status.textContent = uiText("connected", "Connected");
-          output.focus();
+          fitAddon.fit();
+          focusTerminal();
         }};
         consoleSocket.onmessage = (event) => {{
-          output.textContent += event.data;
-          output.scrollTop = output.scrollHeight;
+          terminal.write(event.data);
         }};
         consoleSocket.onclose = () => {{
+          if (suppressNextClose) {{
+            suppressNextClose = false;
+            return;
+          }}
           status.textContent = uiText("disconnected", "Disconnected");
-          output.textContent += `\\n[${{uiText("console_disconnected", "console disconnected").toLowerCase()}}]\\n`;
-          output.scrollTop = output.scrollHeight;
+          terminal.writeln("");
+          terminal.writeln(`[${{uiText("console_disconnected", "console disconnected").toLowerCase()}}]`);
         }};
-      }}
-
-      function handleConsoleKeydown(event) {{
-        const sequence = keyToSequence(event);
-        if (sequence === null) {{
-          return;
-        }}
-        event.preventDefault();
-        sendRawInput(sequence);
       }}
 
       window.addEventListener("beforeunload", () => {{
@@ -912,11 +938,27 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
         }}
       }});
       window.addEventListener("fieldkit:language-change", translateConsolePage);
-
-      window.addEventListener("keydown", handleConsoleKeydown);
+      window.addEventListener("resize", () => {{
+        fitAddon.fit();
+        focusTerminal();
+      }});
+      window.addEventListener("keydown", (event) => {{
+        if (event.key === " " || event.key === "PageUp" || event.key === "PageDown" || event.key === "ArrowUp" || event.key === "ArrowDown") {{
+          event.preventDefault();
+        }}
+        focusTerminal();
+      }}, {{ capture: true }});
+      window.addEventListener("focus", focusTerminal);
+      terminal.onData(sendRawInput);
       document.getElementById("reconnect-button").addEventListener("click", connectConsole);
-      output.addEventListener("click", () => output.focus());
+      output.addEventListener("click", () => {{
+        focusTerminal();
+      }});
+      output.addEventListener("touchstart", () => {{
+        focusTerminal();
+      }}, {{ passive: true }});
       translateConsolePage();
+      fitAddon.fit();
       connectConsole();
     </script>
   </body>
