@@ -4,5 +4,3 @@ __pycache__/
 *.pyc
 .codex
 runtime/
-TODO.local.md
-HANDOFF.md
