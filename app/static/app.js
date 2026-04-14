@@ -170,6 +170,10 @@ const TRANSLATIONS = {
     serial_profiles_saved: "Serial profiles saved.",
     serial_profile_save_failed: "Serial profile save failed.",
     failed_load_profiles: "Failed to load serial profiles: {message}",
+    input_voltage_ok: "Input voltage: OK",
+    input_voltage_low_now: "Input voltage: LOW",
+    input_voltage_low_seen: "Input voltage: LOW SEEN",
+    input_voltage_unavailable: "Input voltage unavailable",
   },
 };
 TRANSLATIONS.es = { ...TRANSLATIONS.en, nav_home: "Inicio", nav_console: "Consola", nav_files: "Archivos", nav_docs: "Docs", nav_settings: "Configuracion", theme_dark: "Oscuro", theme_light: "Claro", serial_consoles: "Consolas seriales", open_console_1: "Abrir Consola 1", open_console_2: "Abrir Consola 2", popup_note: "Cada consola se abre en su propia ventana movible para trabajo en campo.", quick_access: "Acceso rapido", jump_console: "Ir a consola", browse_files: "Explorar archivos", raw_exports: "Exportaciones", open_settings: "Abrir ajustes", reference_docs: "Documentacion", docs_note: "Temas de referencia de fabricantes guardados localmente en el kit.", docs_index: "Abrir indice de docs", upload_title: "Subir", destination: "Destino", upload_file: "Subir archivo", settings_title: "Configuracion", settings_subhead: "Estado de conectividad, red, cambio de contrasena y ajustes de consola serial.", networking: "Red", transfer_services: "Servicios de transferencia", serial_presets: "Perfiles seriales", password: "Contrasena", operational_notes: "Notas operativas", export_browser: "Explorador de exportaciones", open_local_shell: "Abrir shell local", full_serial_profiles: "Perfiles seriales completos", open_readme: "Abrir README", back_to_console: "Volver a consola", connectivity: "Conectividad", active_links: "Enlaces activos", nearby_wifi: "Wi-Fi cercano", hostname: "Hostname", ethernet_mode: "Modo Ethernet", ethernet_address: "Direccion Ethernet", wifi_mode: "Modo Wi-Fi", wifi_ssid: "SSID Wi-Fi", ap: "AP", client: "Cliente", save_network_settings: "Guardar red", apply_network_settings: "Aplicar red", network_apply_note: "Aplicar red guarda los valores actuales y ejecuta el cambio de red real en el appliance.", applying_network_settings: "Aplicando ajustes de red...", network_apply_failed: "La aplicacion de red fallo: {message}", transfer_services_title: "Servicios de transferencia", http_export_access: "Acceso HTTP de exportacion", tftp_access: "Acceso TFTP", ftp_access: "Acceso FTP", apply_transfer_services: "Aplicar servicios", transfer_services_note: "La exportacion HTTP expone solo /fieldkit en puerto 80 para descargas. FTP y TFTP quedan apagados hasta activarlos aqui. SCP sigue disponible por SSH.", serial_settings: "Ajustes seriales", console_1_preset: "Perfil Consola 1", console_2_preset: "Perfil Consola 2", custom: "Personalizado", save_serial_settings: "Guardar ajustes seriales", serial_settings_note: "Para valores no estandar use Serial Profiles.", change_password: "Cambiar contrasena", current_password: "Contrasena actual", new_password: "Nueva contrasena", files_title: "Archivos", files_note: "Explora las bibliotecas locales del kit.", upload_from_desktop: "Subir desde escritorio", upload_current_library: "Subir a biblioteca actual", exports_title: "Exportaciones Fieldkit", up_one_level: "Subir un nivel", readme_title: "README", docs_title: "Notas de referencia Fieldkit", docs_intro: "Referencias iniciales para plataformas comunes.", back_to_docs: "Volver al indice", serial_profiles_title: "Perfiles seriales", serial_profiles_note: "Los adaptadores seriales se detectan automaticamente. Solo fije un dispositivo si hace falta.", label: "Etiqueta", device_preference: "Preferencia de dispositivo", device_optional_0: "Opcional: /dev/ttyUSB0", device_optional_1: "Opcional: /dev/ttyUSB1", baud_rate: "Baudios", data_bits: "Bits de datos", parity: "Paridad", stop_bits: "Bits de parada", none: "Ninguna", even: "Par", odd: "Impar", console_1: "Consola 1", console_2: "Consola 2", save_serial_profiles: "Guardar perfiles seriales", upload_failed: "Fallo de carga", saved_to: "Guardado {name} en {library}", uploads_not_allowed: "No se permiten cargas en {library}.", no_entries: "Sin entradas", directory_path: "directorio: {path}", download: "Descargar", delete: "Borrar", reset: "Reiniciar", delete_confirm: "Borrar {path} de {library}?", delete_failed: "Fallo al borrar", no_files: "Sin archivos", directory: "Directorio", bytes: "{size} bytes", secure: "segura", preferred: "preferido", auto_detect: "deteccion automatica", unavailable: "no disponible", yes: "si", no: "no", http_label: "HTTP", root_label: "Raiz", http_export_label: "Exportacion HTTP", tftp_label: "TFTP", ftp_label: "FTP", scp_label: "SCP", usb_gadget_label: "Exportacion USB Gadget", configured: "configurado", active: "activo", enabled: "habilitado", built_in_over_ssh: "integrado por SSH", local_shell_title: "Shell local del Pi", local_shell_note: "Este terminal se ejecuta directamente en el appliance Fieldkit como la cuenta local service.", password_change_accepted: "Contrasena cambiada para la cuenta local service." };
@@ -569,6 +573,36 @@ function renderConnectivity(connectivity) {
   );
 }
 
+function renderPowerStatus(system) {
+  const target = document.getElementById("footer-power-status");
+  if (!target) {
+    return;
+  }
+  const power = system?.power;
+  let text = t("input_voltage_unavailable");
+  let statusClass = "footer-status-unknown";
+  if (power?.supported) {
+    if (power.undervoltage_now) {
+      text = t("input_voltage_low_now");
+      statusClass = "footer-status-bad";
+    } else if (power.undervoltage_seen) {
+      text = t("input_voltage_low_seen");
+      statusClass = "footer-status-warn";
+    } else {
+      text = t("input_voltage_ok");
+      statusClass = "footer-status-ok";
+    }
+  }
+  target.textContent = text;
+  target.classList.remove("footer-status-ok", "footer-status-bad", "footer-status-warn", "footer-status-unknown");
+  target.classList.add(statusClass);
+  if (power?.raw) {
+    target.title = `vcgencmd get_throttled: ${power.raw}`;
+  } else {
+    target.removeAttribute("title");
+  }
+}
+
 function renderSerial(serial) {
   if (!serial) {
     return;
@@ -683,6 +717,7 @@ async function loadStatus() {
   const [systemResult, connectivityResult, serialResult, settingsResult, transfersResult] = results;
   if (systemResult.status === "fulfilled") {
     renderKeyValue(document.getElementById("system-status"), systemResult.value);
+    renderPowerStatus(systemResult.value);
   }
   if (connectivityResult.status === "fulfilled") {
     renderConnectivity(connectivityResult.value);
