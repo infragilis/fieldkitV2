@@ -1,8 +1,7 @@
 from pathlib import Path
-
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import app, serial_console_window
 from app.core.config import RuntimeSettings
 from app.services.serial import SerialService
 from app.services.storage import StorageService
@@ -131,6 +130,15 @@ def test_serial_console_popup_route():
     assert response.status_code == 200
     assert "Fieldkit Console 1" in response.text
     assert "Reconnect" in response.text
+
+
+def test_serial_console_does_not_block_spacebar():
+    import asyncio
+    response = asyncio.run(serial_console_window(0))
+    body = response.body.decode()
+    assert 'event.key === " "' not in body
+    assert 'event.key === "PageUp"' in body
+    assert "terminalEvent" in body
 
 
 def test_kit_docs_index_route():
@@ -301,6 +309,41 @@ def test_serial_log_entries_include_direction_and_timestamp(tmp_path):
     assert "RX line 1" in content
     assert "RX line 2" in content
     assert "TX show version" in content
+
+
+def test_serial_writer_preserves_common_console_input():
+    service = SerialService()
+
+    class FakeSerial:
+        def __init__(self):
+            self.writes = []
+
+        def write(self, payload):
+            self.writes.append(payload)
+
+    fake_serial = FakeSerial()
+    for message in [
+        "show version\n",
+        "configure terminal\n",
+        "interface Gi0/1\n",
+        "description Uplink Port\n",
+        "ping 192.168.1.1\n",
+        "\t",
+        "\x1b[A",
+        "\x03",
+    ]:
+        service._write_serial_payload(fake_serial, message)
+
+    assert fake_serial.writes == [
+        b"show version\n",
+        b"configure terminal\n",
+        b"interface Gi0/1\n",
+        b"description Uplink Port\n",
+        b"ping 192.168.1.1\n",
+        b"\t",
+        b"\x1b[A",
+        b"\x03",
+    ]
 
 
 def test_library_listing_deduplicates_same_resolved_entry(tmp_path):

@@ -142,7 +142,10 @@ class SerialService:
         while True:
             message = await websocket.receive_text()
             self._append_log_entry(log_path, "tx", message)
-            await asyncio.to_thread(serial_handle.write, message.encode())
+            await asyncio.to_thread(self._write_serial_payload, serial_handle, message)
+
+    def _write_serial_payload(self, serial_handle, message: str) -> None:
+        serial_handle.write(message.encode())
 
     def _parity(self, parity: str) -> str:
         if serial is None:

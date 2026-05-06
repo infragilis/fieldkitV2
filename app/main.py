@@ -943,7 +943,10 @@ async def serial_console_window(profile_index: int) -> HTMLResponse:
         focusTerminal();
       }});
       window.addEventListener("keydown", (event) => {{
-        if (event.key === " " || event.key === "PageUp" || event.key === "PageDown" || event.key === "ArrowUp" || event.key === "ArrowDown") {{
+        const target = event.target;
+        const terminalEvent = (terminal.textarea && target === terminal.textarea) ||
+          (terminal.element && target instanceof Node && terminal.element.contains(target));
+        if (!terminalEvent && (event.key === "PageUp" || event.key === "PageDown" || event.key === "ArrowUp" || event.key === "ArrowDown")) {{
           event.preventDefault();
         }}
         focusTerminal();
