@@ -3,6 +3,7 @@
 __pycache__/
 *.pyc
 .codex
+.claude/
 runtime/
 
 # Local Obsidian vault
