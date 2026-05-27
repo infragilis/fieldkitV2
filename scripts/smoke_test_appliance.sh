@@ -2,18 +2,20 @@
 set -euo pipefail
 
 FIELDKIT_HOST=${FIELDKIT_HOST:-192.168.200.120}
+FIELDKIT_SCHEME=${FIELDKIT_SCHEME:-http}
 FIELDKIT_USER=${FIELDKIT_USER:-service}
 FIELDKIT_PASSWORD=${FIELDKIT_PASSWORD:-service}
 FIELDKIT_APP_ROOT=${FIELDKIT_APP_ROOT:-/opt/fieldkit}
 SMOKE_NAME=${SMOKE_NAME:-fieldkit-smoke.txt}
 SMOKE_PAYLOAD=${SMOKE_PAYLOAD:-fieldkit smoke payload}
 TEST_TFTP=${TEST_TFTP:-auto}
+FIELDKIT_BASE_URL="${FIELDKIT_SCHEME}://${FIELDKIT_HOST}"
 TMP_FILE=$(mktemp)
 TMP_FETCH=$(mktemp)
 
 cleanup() {
   rm -f "${TMP_FILE}" "${TMP_FETCH}"
-  curl -sk -X DELETE "https://${FIELDKIT_HOST}/api/files?library=personal&path=${SMOKE_NAME}" >/dev/null 2>&1 || true
+  curl -sk -X DELETE "${FIELDKIT_BASE_URL}/api/files?library=personal&path=${SMOKE_NAME}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -31,14 +33,14 @@ need_bin python3
 
 printf '%s\n' "${SMOKE_PAYLOAD}" > "${TMP_FILE}"
 
-curl -sk -X DELETE "https://${FIELDKIT_HOST}/api/files?library=personal&path=${SMOKE_NAME}" >/dev/null 2>&1 || true
+curl -sk -X DELETE "${FIELDKIT_BASE_URL}/api/files?library=personal&path=${SMOKE_NAME}" >/dev/null 2>&1 || true
 
-echo "Uploading ${SMOKE_NAME} to personal library via HTTPS API..."
+echo "Uploading ${SMOKE_NAME} to personal library via HTTP API..."
 curl -sk -f -X POST -F "file=@${TMP_FILE};filename=${SMOKE_NAME}" \
-  "https://${FIELDKIT_HOST}/api/files/upload?library=personal" >/dev/null
+  "${FIELDKIT_BASE_URL}/api/files/upload?library=personal" >/dev/null
 
-echo "Verifying HTTPS API download..."
-curl -sk -f "https://${FIELDKIT_HOST}/api/files/download?library=personal&path=${SMOKE_NAME}" > "${TMP_FETCH}"
+echo "Verifying HTTP API download..."
+curl -sk -f "${FIELDKIT_BASE_URL}/api/files/download?library=personal&path=${SMOKE_NAME}" > "${TMP_FETCH}"
 cmp -s "${TMP_FILE}" "${TMP_FETCH}"
 
 echo "Verifying plain HTTP export download..."
@@ -51,7 +53,7 @@ sshpass -p "${FIELDKIT_PASSWORD}" scp -o StrictHostKeyChecking=no -o UserKnownHo
 cmp -s "${TMP_FILE}" "${TMP_FETCH}"
 
 echo "Checking transfer service status..."
-STATUS_JSON=$(curl -sk -f "https://${FIELDKIT_HOST}/api/transfers/status")
+STATUS_JSON=$(curl -sk -f "${FIELDKIT_BASE_URL}/api/transfers/status")
 printf '%s' "${STATUS_JSON}" | python3 -c 'import json,sys; data=json.load(sys.stdin); print(json.dumps({"http_export": data["http_export"], "tftp": data["tftp"], "ftp": data["ftp"], "scp": data["scp"]}, indent=2))'
 
 FTP_ACTIVE=$(printf '%s' "${STATUS_JSON}" | python3 -c 'import json,sys; data=json.load(sys.stdin); print("1" if data["ftp"]["active"] else "0")')

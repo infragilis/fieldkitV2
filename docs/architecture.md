@@ -21,7 +21,7 @@ This document is the technical companion to the user-facing README.
 ## External Service Boundaries
 
 - `fieldkit-web.service` runs the FastAPI app
-- `nginx` provides the front end for HTTP and HTTPS
+- `nginx` provides the front end for plain HTTP
 - SSH provides SCP access and the system account used by the local shell
 - FTP and TFTP are optional transfer services managed from the Fieldkit UI
 - NetworkManager handles normal client-side networking

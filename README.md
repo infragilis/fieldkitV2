@@ -1,7 +1,7 @@
 # Fieldkit
 
 Fieldkit is a Raspberry Pi toolkit for field work on network equipment. It gives you a local web interface for console access, file handling, transfer services, and appliance management.
-Apple devices can reach the GUI at https://fieldkit.local/ while connected to the Fieldkit AP. Direct fallback: https://10.42.0.1/
+Apple devices can reach the GUI at http://fieldkit.local/ while connected to the Fieldkit AP. Direct fallback: http://10.42.0.1/
 
 ## What Fieldkit Does
 
@@ -72,8 +72,8 @@ Default appliance access credentials:
 
 When the appliance is in AP mode, clients can connect to the GUI at:
 
-- `https://10.42.0.1/`
-- `https://fieldkit.local/` on Bonjour-capable clients such as iPadOS and macOS
+- `http://10.42.0.1/`
+- `http://fieldkit.local/` on Bonjour-capable clients such as iPadOS and macOS
 
 Change this immediately on any real deployment.
 

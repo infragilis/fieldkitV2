@@ -12,10 +12,11 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 ## OS baseline
 
 - [ ] `sudo apt-get update && sudo apt-get upgrade -y`
+- [ ] `sudo bash scripts/bootstrap_fresh_pi.sh` completed successfully
 - [ ] `network-manager` installed and enabled
 - [ ] `openssh-server` installed and reachable
-- [ ] `python3`, `python3-venv`, and `python3-pip` installed
-- [ ] `hostapd`, `dnsmasq`, `tftpd-hpa`, `nginx`, and `openssl` installed
+- [ ] `python3`, `python3-venv`, `python3-pip`, and `sudo` installed
+- [ ] `hostapd`, `dnsmasq`, `tftpd-hpa`, `nginx` installed
 
 ## Appliance identity
 
@@ -28,7 +29,7 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 ## Repo and runtime
 
 - [ ] Repo cloned to the target system
-- [ ] Runtime provisioned with `scripts/provision_pi.sh`
+- [ ] Runtime provisioned by `scripts/bootstrap_fresh_pi.sh` or `scripts/provision_pi.sh`
 - [ ] Deployed app rooted at `/opt/fieldkit`
 - [ ] Python venv created at `/opt/fieldkit/.venv`
 - [ ] `pip install -e .` completed successfully
@@ -38,12 +39,11 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 - [ ] `fieldkit-web.service` installed, enabled, and active
 - [ ] `nginx` installed, enabled, and active
 - [ ] dedicated Fieldkit Wi-Fi AP support installed if the kit will offer direct wireless access later
-- [ ] HTTP or HTTPS path validated locally on the Pi
-- [ ] Self-signed TLS applied if the deployment expects HTTPS by default
+- [ ] HTTP path validated locally on the Pi
 
 ## Validation
 
-- [ ] `curl -k https://127.0.0.1/` returns the Fieldkit UI
+- [ ] `curl -fsS http://127.0.0.1/` returns the Fieldkit UI
 - [ ] Main page loads from another machine on the same network
 - [ ] `/readme` renders as a web page
 - [ ] `/pi-shell` renders as a working in-browser terminal
@@ -54,5 +54,4 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 
 - [ ] Repo access method documented for the next engineer
 - [ ] Fieldkit IP or access method documented
-- [ ] HTTPS certificate trust steps documented for client machines if HTTPS is enabled
 - [ ] Local content/data sync expectations documented

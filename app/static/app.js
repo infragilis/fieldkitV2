@@ -60,7 +60,7 @@ const TRANSLATIONS = {
     wifi_mode: "Wi-Fi Mode",
     wifi_ssid: "Wi-Fi SSID",
     wifi_password: "Wi-Fi AP Password",
-    wifi_access_note: "Apple devices can reach the GUI at https://{hostname}.local/ while connected to the Fieldkit AP. Direct fallback: https://10.42.0.1/",
+    wifi_access_note: "Apple devices can reach the GUI at http://{hostname}.local/ while connected to the Fieldkit AP. Direct fallback: http://10.42.0.1/",
     disabled: "Disabled",
     ap: "AP",
     client: "Client",

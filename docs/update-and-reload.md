@@ -11,7 +11,7 @@ The currently deployed web UI includes:
 - a files page at `/files`
 - a raw export browser at `/fieldkit`
 
-The raw export browser is intended for device-side downloads. By default, `/fieldkit/...` is available over plain HTTP on port `80`, while the main GUI can remain on HTTPS.
+Fieldkit is served over plain HTTP by default. The raw export browser remains available at `/fieldkit/...` on the same HTTP endpoint.
 
 ## Pull the latest repo state
 
@@ -68,15 +68,6 @@ cd /opt/fieldkit
 sudo bash scripts/install_wifi_ap_support.sh
 ```
 
-## Re-apply HTTPS
-
-If the TLS config or certificate workflow changed:
-
-```bash
-cd /opt/fieldkit
-sudo bash scripts/install_https_self_signed.sh
-```
-
 ## Full update sequence
 
 ```bash
@@ -96,11 +87,11 @@ sudo systemctl reload nginx
 Verify locally on the Pi:
 
 ```bash
-curl -k https://127.0.0.1/
-curl -k https://127.0.0.1/settings
-curl -k https://127.0.0.1/pi-shell
-curl -k https://127.0.0.1/files
-curl -k https://127.0.0.1/readme
+curl -fsS http://127.0.0.1/
+curl -fsS http://127.0.0.1/settings
+curl -fsS http://127.0.0.1/pi-shell
+curl -fsS http://127.0.0.1/files
+curl -fsS http://127.0.0.1/readme
 curl -fsS http://127.0.0.1/fieldkit/
 systemctl is-active fieldkit-web.service
 systemctl is-active nginx
@@ -116,8 +107,8 @@ Run the reusable smoke harness from the repo root when you want an end-to-end tr
 
 This uploads a temporary file to `personal` and verifies:
 
-- HTTPS API upload and download
-- plain HTTP download from `/fieldkit/personal/...`
+- HTTP API upload and download
+- HTTP download from `/fieldkit/personal/...`
 - SCP download from `/opt/fieldkit/runtime/content/fieldkit/personal/...`
 - FTP and TFTP downloads when those services are currently active
 
@@ -131,6 +122,6 @@ This uploads a temporary file to `personal` and verifies:
 - Local operator notes such as `TODO.local.md` and `HANDOFF.md` should stay out of git and off the appliance.
 - The shared export tree is only for `data`, `personal`, and `usb`; `serial-logs` remain GUI-only.
 - TFTP and FTP are toggle-controlled from the UI; SCP remains available through the normal SSH service without a separate toggle.
-- Plain HTTP export for `/fieldkit/...` is the default so non-HTTPS-capable maintenance clients can still download from the appliance.
+- Plain HTTP is the default appliance access path.
 - Fieldkit AP mode now uses dedicated `hostapd` and AP-only `dnsmasq` units instead of a NetworkManager hotspot profile.
 - Keep a wired path available when testing AP mode changes.
