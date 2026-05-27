@@ -112,7 +112,7 @@ class TransferService:
         return f"sudo -n systemctl {action} {unit}"
 
     def _http_export_preview(self, enabled: bool) -> str:
-        return f"sudo -n /bin/bash /opt/fieldkit/scripts/install_export_http_mode.sh (EXPORT_HTTP_ENABLED={1 if enabled else 0})"
+        return "sudo -n /bin/bash /opt/fieldkit/scripts/install_export_http_mode.sh"
 
     def _apply_http_export(self, enabled: bool):
         return self._runner.run(
@@ -121,10 +121,7 @@ class TransferService:
                 "-n",
                 "/bin/bash",
                 "/opt/fieldkit/scripts/install_export_http_mode.sh",
-            ],
-            env={
-                "EXPORT_HTTP_ENABLED": "1" if enabled else "0",
-            },
+            ]
         )
 
     def _http_export_status(self, configured_enabled: bool) -> dict:

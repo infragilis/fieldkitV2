@@ -1,7 +1,9 @@
 from pathlib import Path
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app, serial_console_window
+from app.api.routes.connectivity import network_service
 from app.core.config import RuntimeSettings
 from app.services.serial import SerialService
 from app.services.storage import StorageService
@@ -9,6 +11,29 @@ from app.services.transfers import TransferService
 
 
 client = TestClient(app)
+
+
+TEST_FILE_NAMES = {"delete-me.txt", "usb-test.txt", "duplicate.txt", "download-check.txt"}
+
+
+@pytest.fixture(autouse=True)
+def clean_runtime_state():
+    runtime = RuntimeSettings()
+    settings_path = runtime.state_root / runtime.settings_file
+    if settings_path.exists():
+        settings_path.unlink()
+    for library in (runtime.personal_dir_name, runtime.usb_dir_name):
+        for name in TEST_FILE_NAMES:
+            path = runtime.content_root / library / name
+            if path.exists():
+                path.unlink()
+    yield
+    for library in (runtime.personal_dir_name, runtime.usb_dir_name):
+        for name in TEST_FILE_NAMES:
+            path = runtime.content_root / library / name
+            if path.exists():
+                path.unlink()
+
 
 
 def test_system_status():
@@ -199,12 +224,13 @@ def test_update_settings():
     assert response.json()["transfer_services"]["tftp_enabled"] is True
 
 
-def test_connectivity_apply_returns_commands():
+def test_connectivity_apply_returns_commands(monkeypatch):
+    monkeypatch.setattr(network_service._settings, "dry_run_system_changes", True)
     response = client.post("/api/connectivity/apply")
     assert response.status_code == 200
     payload = response.json()
     assert payload["dry_run"] is True
-    assert any("hostnamectl set-hostname" in command for command in payload["commands"])
+    assert any("set_appliance_hostname.sh" in command for command in payload["commands"])
 
 
 def test_connectivity_status_includes_platform_capabilities():
@@ -241,7 +267,7 @@ def test_fieldkit_export_root_route():
     response = client.get("/fieldkit")
     assert response.status_code == 200
     assert "Fieldkit Exports" in response.text
-    assert "/fieldkit/data" in response.text
+    assert '"path": "data"' in response.text
 
 
 def test_serial_profiles_auto_resolve_detected_devices(monkeypatch):
@@ -259,7 +285,9 @@ def test_serial_profiles_auto_resolve_detected_devices(monkeypatch):
 
 def test_serial_profiles_prefer_matching_device_hint(monkeypatch):
     service = SerialService()
-
+    settings = service._store.load()
+    settings.serial_ports[1].device_hint = "/dev/ttyUSB1"
+    monkeypatch.setattr(service._store, "load", lambda: settings)
     monkeypatch.setattr(service, "_detected_devices", lambda: ["/dev/ttyUSB1", "/dev/ttyUSB9"])
 
     statuses = service.profile_status()
@@ -445,6 +473,16 @@ def test_transfer_service_refuses_to_disable_ssh_with_active_sessions(monkeypatc
     monkeypatch.setattr(service._store, "load", lambda: settings)
     monkeypatch.setattr(service._runtime, "dry_run_transfer_changes", False)
     monkeypatch.setattr(service._storage, "sync_export_tree", lambda: Path("/tmp/fieldkit"))
+    monkeypatch.setattr(
+        service._runner,
+        "run",
+        lambda *args, **kwargs: type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})(),
+    )
+    monkeypatch.setattr(
+        service,
+        "_apply_http_export",
+        lambda enabled: type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})(),
+    )
     monkeypatch.setattr(
         service,
         "_apply_unit",

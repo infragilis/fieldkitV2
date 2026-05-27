@@ -192,13 +192,15 @@ class SerialService:
     def _resolve_profile_devices(self, profiles) -> list[str | None]:
         detected = self._detected_devices()
         remaining = detected.copy()
-        resolved: list[str | None] = []
-        for profile in profiles:
-            selected = None
+        resolved: list[str | None] = [None] * len(profiles)
+
+        for index, profile in enumerate(profiles):
             if profile.device_hint in remaining:
-                selected = profile.device_hint
+                resolved[index] = profile.device_hint
                 remaining.remove(profile.device_hint)
-            elif remaining:
-                selected = remaining.pop(0)
-            resolved.append(selected)
+
+        for index, selected in enumerate(resolved):
+            if selected is None and remaining:
+                resolved[index] = remaining.pop(0)
+
         return resolved
