@@ -146,7 +146,32 @@ def test_tools_page_includes_subnet_calculator():
     assert response.status_code == 200
     assert "Subnet Calculator" in response.text
     assert 'id="subnet-form"' in response.text
-    assert "/static/app.js?v=tools-20260709" in response.text
+    assert "/static/app.js?v=tools-i18n-20260709" in response.text
+
+
+def test_subnet_calculator_has_supported_language_strings():
+    app_js = Path("app/static/app.js").read_text(encoding="utf-8")
+    keys = [
+        "nav_tools",
+        "subnet_calculator",
+        "subnet_note",
+        "ip_address",
+        "cidr_prefix",
+        "calculate",
+        "subnet_invalid_ip",
+        "subnet_invalid_prefix",
+        "subnet_network",
+        "subnet_netmask",
+        "subnet_wildcard",
+        "subnet_broadcast",
+        "subnet_host_range",
+        "subnet_hosts",
+        "subnet_single_host",
+        "subnet_point_to_point",
+    ]
+    for language in ("es", "de", "nl", "fr"):
+        for key in keys:
+            assert f"TRANSLATIONS.{language}.{key} =" in app_js
 
 
 def test_settings_page_route():
