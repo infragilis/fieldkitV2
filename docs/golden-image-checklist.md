@@ -12,7 +12,8 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 ## OS baseline
 
 - [ ] `sudo apt-get update && sudo apt-get upgrade -y`
-- [ ] `sudo bash scripts/bootstrap_fresh_pi.sh` completed successfully
+- [ ] Repo cloned to `/opt/fieldkit`
+- [ ] `sudo bash scripts/install_fieldkit.sh` completed successfully from `/opt/fieldkit`
 - [ ] `network-manager` installed and enabled
 - [ ] `openssh-server` installed and reachable
 - [ ] `python3`, `python3-venv`, `python3-pip`, and `sudo` installed
@@ -28,8 +29,7 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 
 ## Repo and runtime
 
-- [ ] Repo cloned to the target system
-- [ ] Runtime provisioned by `scripts/bootstrap_fresh_pi.sh` or `scripts/provision_pi.sh`
+- [ ] Runtime provisioned by `scripts/install_fieldkit.sh`
 - [ ] Deployed app rooted at `/opt/fieldkit`
 - [ ] Python venv created at `/opt/fieldkit/.venv`
 - [ ] `pip install -e .` completed successfully
@@ -46,6 +46,7 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 - [ ] `curl -fsS http://127.0.0.1/` returns the Fieldkit UI
 - [ ] Main page loads from another machine on the same network
 - [ ] `/readme` renders as a web page
+- [ ] `/tools` renders the offline subnet calculator
 - [ ] `/pi-shell` renders as a working in-browser terminal
 - [ ] `/kit-docs` loads
 - [ ] Serial adapters are visible in the UI when attached

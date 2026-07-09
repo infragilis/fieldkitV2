@@ -11,18 +11,27 @@ This document describes how to prepare a fresh Raspberry Pi as a Fieldkit applia
 
 Reference baseline details are in [platform-baseline.md](platform-baseline.md).
 
-## Fresh install bootstrap
+## Standard install after cloning
 
 Start from a clean Debian 13 64-bit Raspberry Pi install with SSH enabled and wired Ethernet available.
 
-Install only what is needed to fetch the repo:
+Install only what is needed to fetch the repo, then clone Fieldkit directly to the intended appliance root:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git
+sudo git clone https://github.com/infragilis/fieldkitV2.git /opt/fieldkit
+cd /opt/fieldkit
+sudo bash scripts/install_fieldkit.sh
 ```
 
-Clone Fieldkit and run the bootstrap script:
+The installer script installs OS packages, creates or updates the `service` user, configures NetworkManager, creates the Python virtualenv, installs Fieldkit, installs systemd/nginx/transfer/AP support, and starts the web service.
+
+Fieldkit serves the dashboard over plain HTTP only.
+
+## Fresh OS bootstrap helper
+
+If you are starting from a minimal shell and want the script to install bootstrap prerequisites and clone/update `/opt/fieldkit` for you, use:
 
 ```bash
 git clone https://github.com/infragilis/fieldkitV2.git
@@ -30,9 +39,7 @@ cd fieldkitV2
 sudo bash scripts/bootstrap_fresh_pi.sh
 ```
 
-The script installs OS packages, creates or updates the `service` user, configures NetworkManager, clones or updates `/opt/fieldkit`, creates the Python virtualenv, installs Fieldkit, installs systemd/nginx/transfer/AP support, and starts the web service.
-
-The default bootstrap uses plain HTTP, not HTTPS.
+The bootstrap helper installs `git`, clones or updates `/opt/fieldkit`, then runs `scripts/install_fieldkit.sh` from that checkout.
 
 Default access after setup:
 
@@ -48,34 +55,32 @@ Default credentials:
 
 Change the default password immediately on any real deployment.
 
-## Bootstrap options
+## Install options
 
-The script can be customized with environment variables:
+Both install scripts can be customized with environment variables:
 
 ```bash
 sudo FIELDKIT_PASS='new-password' \
   FIELDKIT_HOSTNAME=fieldkit \
   FIELDKIT_ROOT=/opt/fieldkit \
-  FIELDKIT_REPO_URL=https://github.com/infragilis/fieldkitV2.git \
-  FIELDKIT_BRANCH=main \
-  bash scripts/bootstrap_fresh_pi.sh
+  bash scripts/install_fieldkit.sh
 ```
 
 Supported variables:
 
-- `FIELDKIT_ROOT` defaults to `/opt/fieldkit`
+- `FIELDKIT_ROOT` defaults to the current checkout root for `install_fieldkit.sh` and `/opt/fieldkit` for `bootstrap_fresh_pi.sh`
 - `FIELDKIT_USER` defaults to `service`
 - `FIELDKIT_PASS` defaults to `service`
 - `FIELDKIT_HOSTNAME` defaults to `fieldkit`
-- `FIELDKIT_REPO_URL` defaults to the public GitHub repo URL
-- `FIELDKIT_BRANCH` defaults to `main`
+- `INSTALL_OS_PACKAGES` defaults to `1` for `install_fieldkit.sh`
 - `INSTALL_AP_SUPPORT` defaults to `1`
 - `INSTALL_TRANSFER_SUPPORT` defaults to `1`
 - `START_SERVICES` defaults to `1`
+- `FIELDKIT_REPO_URL` and `FIELDKIT_BRANCH` are supported by `bootstrap_fresh_pi.sh` only
 
 ## Manual install pieces
 
-The bootstrap script wraps the existing lower-level installers. They can still be run individually when debugging or updating one subsystem.
+The main installer wraps the existing lower-level installers. They can still be run individually when debugging or updating one subsystem.
 
 Provision runtime layout:
 
@@ -108,7 +113,7 @@ cd /opt/fieldkit
 sudo bash scripts/install_wifi_ap_support.sh
 ```
 
-Install or refresh nginx plain HTTP export mode:
+Install or refresh nginx plain HTTP mode:
 
 ```bash
 cd /opt/fieldkit

@@ -19,7 +19,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Fieldkit", version="0.1.3", lifespan=lifespan)
+app = FastAPI(title="Fieldkit", version="0.1.4", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 storage_service = StorageService(get_settings())
@@ -63,7 +63,7 @@ def topbar_html(*, docs_href: str = "/#docs", exports_href: str | None = None) -
       <nav class="topbar">
         <div class="brand-mark">
           <span>Fieldkit</span>
-          <span class="brand-version">v0.1.3</span>
+          <span class="brand-version">v0.1.4</span>
         </div>
         <div class="topbar-right">
           <div class="topbar-links">
@@ -71,6 +71,7 @@ def topbar_html(*, docs_href: str = "/#docs", exports_href: str | None = None) -
             <a href="/files" data-i18n="nav_files">Files</a>
             {exports_link}
             <a href="{docs_href}" data-i18n="nav_docs">Docs</a>
+            <a href="/tools" data-i18n="nav_tools">Tools</a>
             <a href="/settings" data-i18n="nav_settings">Settings</a>
             <a href="/readme" data-i18n="nav_readme">README</a>
           </div>
@@ -88,6 +89,11 @@ async def index() -> FileResponse:
 @app.get("/settings", include_in_schema=False)
 async def settings_page() -> FileResponse:
     return FileResponse("app/static/settings.html")
+
+
+@app.get("/tools", include_in_schema=False)
+async def tools_page() -> FileResponse:
+    return FileResponse("app/static/tools.html")
 
 
 @app.get("/pi-shell", include_in_schema=False)

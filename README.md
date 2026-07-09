@@ -87,6 +87,7 @@ Change this immediately on any real deployment.
 
 ## Documentation
 
+- Fresh install after cloning: `sudo bash scripts/install_fieldkit.sh`
 - [docs/pi-setup.md](docs/pi-setup.md)
 - [docs/update-and-reload.md](docs/update-and-reload.md)
 - [docs/golden-image-checklist.md](docs/golden-image-checklist.md)

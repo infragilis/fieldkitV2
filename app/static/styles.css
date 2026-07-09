@@ -417,6 +417,10 @@ h1 {
   gap: 20px;
 }
 
+.tools-grid {
+  grid-template-columns: minmax(0, 760px);
+}
+
 .panel {
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.4);
@@ -533,6 +537,54 @@ h1 {
   flex-wrap: wrap;
 }
 
+.subnet-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 12px;
+  align-items: end;
+}
+
+.subnet-form button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.subnet-error {
+  min-height: 1.4em;
+  margin-bottom: 10px;
+  color: #c43f33;
+}
+
+.subnet-results {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.subnet-results div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.45fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.subnet-results div:last-child {
+  border-bottom: 0;
+}
+
+.subnet-results dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.subnet-results dd {
+  margin: 0;
+  font-family: "IBM Plex Mono", monospace;
+  overflow-wrap: anywhere;
+}
+
 .action-note {
   margin-top: 10px;
   font-size: 0.84rem;
@@ -637,6 +689,11 @@ select:focus {
   .hero-card-main,
   .hero-card-side {
     padding: 22px;
+  }
+
+  .subnet-form,
+  .subnet-results div {
+    grid-template-columns: 1fr;
   }
 
   h1 {

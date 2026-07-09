@@ -17,6 +17,7 @@ const TRANSLATIONS = {
     nav_console: "Console",
     nav_files: "Files",
     nav_docs: "Docs",
+    nav_tools: "Tools",
     nav_settings: "Settings",
     nav_readme: "README",
     theme_dark: "Dark",
@@ -36,6 +37,21 @@ const TRANSLATIONS = {
     upload_title: "Upload",
     destination: "Destination",
     upload_file: "Upload File",
+    subnet_calculator: "Subnet Calculator",
+    subnet_note: "Calculate IPv4 network details for field addressing and handoff notes.",
+    ip_address: "IP Address",
+    cidr_prefix: "CIDR Prefix",
+    calculate: "Calculate",
+    subnet_invalid_ip: "Enter an IPv4 address like 192.168.200.120.",
+    subnet_invalid_prefix: "Enter a CIDR prefix from 0 to 32.",
+    subnet_network: "Network",
+    subnet_netmask: "Netmask",
+    subnet_wildcard: "Wildcard",
+    subnet_broadcast: "Broadcast",
+    subnet_host_range: "Usable Range",
+    subnet_hosts: "Usable Hosts",
+    subnet_single_host: "Single host route",
+    subnet_point_to_point: "Point-to-point range",
     settings_title: "Settings",
     appliance_controls: "Appliance Controls",
     settings_subhead: "Connectivity status, network configuration, password changes, and serial console settings.",
@@ -317,6 +333,113 @@ function translateStaticContent(root = document) {
 
 function yesNo(value) {
   return value ? t("yes") : t("no");
+}
+
+function parseIpv4Address(value) {
+  const parts = value.trim().split(".");
+  if (parts.length !== 4) {
+    return null;
+  }
+  const octets = parts.map((part) => {
+    if (!/^\d{1,3}$/.test(part)) {
+      return null;
+    }
+    const octet = Number(part);
+    return octet >= 0 && octet <= 255 ? octet : null;
+  });
+  if (octets.some((octet) => octet === null)) {
+    return null;
+  }
+  return (((octets[0] << 24) >>> 0) + (octets[1] << 16) + (octets[2] << 8) + octets[3]) >>> 0;
+}
+
+function formatIpv4Address(value) {
+  return [
+    (value >>> 24) & 255,
+    (value >>> 16) & 255,
+    (value >>> 8) & 255,
+    value & 255,
+  ].join(".");
+}
+
+function calculateSubnet(addressValue, prefixValue) {
+  const cidrParts = addressValue.trim().split("/");
+  if (cidrParts.length > 2) {
+    throw new Error(t("subnet_invalid_ip"));
+  }
+  const [addressText, inlinePrefix] = cidrParts;
+  const address = parseIpv4Address(addressText);
+  if (address === null) {
+    throw new Error(t("subnet_invalid_ip"));
+  }
+  const prefixText = inlinePrefix === undefined ? String(prefixValue).trim() : inlinePrefix.trim();
+  if (!/^\d{1,2}$/.test(prefixText)) {
+    throw new Error(t("subnet_invalid_prefix"));
+  }
+  const prefix = Number(prefixText);
+  if (prefix < 0 || prefix > 32) {
+    throw new Error(t("subnet_invalid_prefix"));
+  }
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  const wildcard = (~mask) >>> 0;
+  const network = (address & mask) >>> 0;
+  const broadcast = (network | wildcard) >>> 0;
+  const totalHosts = 2 ** (32 - prefix);
+  const usableHosts = prefix === 32 ? 1 : prefix === 31 ? 2 : Math.max(totalHosts - 2, 0);
+  const firstHost = prefix >= 31 ? network : (network + 1) >>> 0;
+  const lastHost = prefix >= 31 ? broadcast : (broadcast - 1) >>> 0;
+  const hostRange = prefix === 32 ? formatIpv4Address(network) : `${formatIpv4Address(firstHost)} - ${formatIpv4Address(lastHost)}`;
+  return {
+    prefix,
+    network: `${formatIpv4Address(network)}/${prefix}`,
+    netmask: formatIpv4Address(mask),
+    wildcard: formatIpv4Address(wildcard),
+    broadcast: formatIpv4Address(broadcast),
+    hostRange,
+    usableHosts: usableHosts.toLocaleString(),
+  };
+}
+
+function renderSubnetResult(result) {
+  const target = document.getElementById("subnet-results");
+  if (!target) {
+    return;
+  }
+  const rows = [
+    [t("subnet_network"), result.network],
+    [t("subnet_netmask"), result.netmask],
+    [t("subnet_wildcard"), result.wildcard],
+    [t("subnet_broadcast"), result.broadcast],
+    [t("subnet_host_range"), result.hostRange],
+    [t("subnet_hosts"), result.usableHosts],
+  ];
+  target.innerHTML = rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+}
+
+function updateSubnetCalculator(event) {
+  event?.preventDefault();
+  const addressInput = document.getElementById("subnet-ip");
+  const prefixInput = document.getElementById("subnet-prefix");
+  const errorTarget = document.getElementById("subnet-error");
+  if (!addressInput || !prefixInput || !errorTarget) {
+    return;
+  }
+  try {
+    const result = calculateSubnet(addressInput.value, prefixInput.value);
+    prefixInput.value = String(result.prefix);
+    errorTarget.textContent = "";
+    renderSubnetResult(result);
+  } catch (error) {
+    errorTarget.textContent = error.message;
+    renderSubnetResult({
+      network: "",
+      netmask: "",
+      wildcard: "",
+      broadcast: "",
+      hostRange: "",
+      usableHosts: "",
+    });
+  }
 }
 
 function setLanguage(language) {
@@ -883,7 +1006,14 @@ document.getElementById("password-form")?.addEventListener("submit", changePassw
 document.getElementById("apply-network-button")?.addEventListener("click", applyNetworkPlan);
 document.getElementById("open-console-0")?.addEventListener("click", () => openConsolePopup(0));
 document.getElementById("open-console-1")?.addEventListener("click", () => openConsolePopup(1));
+document.getElementById("subnet-form")?.addEventListener("submit", updateSubnetCalculator);
+document.getElementById("subnet-ip")?.addEventListener("input", updateSubnetCalculator);
+document.getElementById("subnet-prefix")?.addEventListener("input", updateSubnetCalculator);
+window.addEventListener("fieldkit:language-change", updateSubnetCalculator);
 if (document.getElementById("serial-sessions") || document.getElementById("settings-form") || document.getElementById("serial-settings-form")) {
   loadStatus();
+}
+if (document.getElementById("subnet-form")) {
+  updateSubnetCalculator();
 }
 loadMeta();

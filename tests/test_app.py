@@ -135,6 +135,20 @@ def test_readme_route():
     assert "Fieldkit" in response.text
 
 
+def test_dashboard_links_to_tools():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'href="/tools"' in response.text
+
+
+def test_tools_page_includes_subnet_calculator():
+    response = client.get("/tools")
+    assert response.status_code == 200
+    assert "Subnet Calculator" in response.text
+    assert 'id="subnet-form"' in response.text
+    assert "/static/app.js?v=tools-20260709" in response.text
+
+
 def test_settings_page_route():
     response = client.get("/settings")
     assert response.status_code == 200

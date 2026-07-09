@@ -10,8 +10,9 @@ The currently deployed web UI includes:
 - popup console windows at `/serial-console/0` and `/serial-console/1`
 - a files page at `/files`
 - a raw export browser at `/fieldkit`
+- a tools page at `/tools`
 
-Fieldkit is served over plain HTTP by default. The raw export browser remains available at `/fieldkit/...` on the same HTTP endpoint.
+Fieldkit is served over plain HTTP. The raw export browser remains available at `/fieldkit/...` on the same HTTP endpoint.
 
 ## Pull the latest repo state
 
@@ -26,11 +27,10 @@ git pull --ff-only
 
 ```bash
 cd /opt/fieldkit
-python3 -m venv .venv
-. .venv/bin/activate
-pip install --upgrade pip
-pip install -e .
+sudo bash scripts/install_fieldkit.sh
 ```
+
+That single installer refreshes OS package prerequisites, runtime layout, the Python virtualenv, systemd units, transfer/AP support, nginx plain HTTP mode, and the running services.
 
 ## Reload the web service
 
@@ -73,14 +73,10 @@ sudo bash scripts/install_wifi_ap_support.sh
 ```bash
 cd /opt/fieldkit
 git pull --ff-only
-python3 -m venv .venv
-. .venv/bin/activate
-pip install --upgrade pip
-pip install -e .
-sudo systemctl restart fieldkit-web.service
-sudo nginx -t
-sudo systemctl reload nginx
+sudo bash scripts/install_fieldkit.sh
 ```
+
+If `/opt/fieldkit` is a copied tree rather than a Git checkout, copy the changed files into `/opt/fieldkit` and restart `fieldkit-web.service` instead of running `git pull`.
 
 ## Health checks
 
@@ -92,6 +88,7 @@ curl -fsS http://127.0.0.1/settings
 curl -fsS http://127.0.0.1/pi-shell
 curl -fsS http://127.0.0.1/files
 curl -fsS http://127.0.0.1/readme
+curl -fsS http://127.0.0.1/tools
 curl -fsS http://127.0.0.1/fieldkit/
 systemctl is-active fieldkit-web.service
 systemctl is-active nginx
@@ -122,6 +119,6 @@ This uploads a temporary file to `personal` and verifies:
 - Local operator notes such as `TODO.local.md` and `HANDOFF.md` should stay out of git and off the appliance.
 - The shared export tree is only for `data`, `personal`, and `usb`; `serial-logs` remain GUI-only.
 - TFTP and FTP are toggle-controlled from the UI; SCP remains available through the normal SSH service without a separate toggle.
-- Plain HTTP is the default appliance access path.
+- Plain HTTP is the appliance access path.
 - Fieldkit AP mode now uses dedicated `hostapd` and AP-only `dnsmasq` units instead of a NetworkManager hotspot profile.
 - Keep a wired path available when testing AP mode changes.

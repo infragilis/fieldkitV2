@@ -13,3 +13,6 @@ obsidian/
 
 # Project Bedrock memory stays local/vault-only; do not publish it with app source.
 bedrock/
+
+# Local operator/session notes
+SESSION_START.md

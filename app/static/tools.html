@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fieldkit</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <title>Fieldkit Tools</title>
+    <link rel="stylesheet" href="/static/styles.css?v=tools-20260709" />
   </head>
   <body>
     <main class="app-shell">
@@ -16,9 +16,9 @@
         <div class="topbar-right">
           <div class="topbar-links">
             <a href="/" data-i18n="nav_home">Home</a>
-            <a href="#serial" data-i18n="nav_console">Console</a>
+            <a href="/#serial" data-i18n="nav_console">Console</a>
             <a href="/files" data-i18n="nav_files">Files</a>
-            <a href="#docs" data-i18n="nav_docs">Docs</a>
+            <a href="/#docs" data-i18n="nav_docs">Docs</a>
             <a href="/tools" data-i18n="nav_tools">Tools</a>
             <a href="/settings" data-i18n="nav_settings">Settings</a>
             <a href="/readme" data-i18n="nav_readme">README</a>
@@ -43,65 +43,46 @@
       </nav>
 
       <section class="hero">
-        <article class="panel hero-card hero-card-main" id="serial">
-          <h2 data-i18n="serial_consoles">Serial Consoles</h2>
-          <ul id="serial-sessions" class="list"></ul>
-          <p id="serial-quick-result" class="muted"></p>
-          <p id="serial-reset-result" class="muted"></p>
-          <div class="console-controls">
-            <button id="open-console-0" type="button" data-i18n="open_console_1">Open Console 1</button>
-            <button id="open-console-1" type="button" data-i18n="open_console_2">Open Console 2</button>
-          </div>
-          <p class="muted" data-i18n="popup_note">Each console opens in its own movable popup window for field use.</p>
-        </article>
+        <div class="hero-card hero-card-main tools-hero">
+          <p class="hero-kicker" data-i18n="nav_tools">Tools</p>
+          <h1 data-i18n="subnet_calculator">Subnet Calculator</h1>
+          <p class="subhead" data-i18n="subnet_note">Calculate IPv4 network details for field addressing and handoff notes.</p>
+        </div>
         <div class="hero-card hero-card-side">
           <p class="hero-kicker" data-i18n="quick_access">Quick Access</p>
           <div class="hero-shortcuts">
-            <a href="#serial" data-i18n="jump_console">Jump to Console</a>
-            <a href="/tools" data-i18n="subnet_calculator">Subnet Calculator</a>
-            <a href="/files" data-i18n="browse_files">Browse Files</a>
-            <a href="/fieldkit" data-i18n="raw_exports">Raw Exports</a>
+            <a href="/" data-i18n="back_to_console">Back to Console</a>
             <a href="/settings" data-i18n="open_settings">Open Settings</a>
+            <a href="/files" data-i18n="browse_files">Browse Files</a>
           </div>
         </div>
       </section>
 
-      <section class="grid">
-        <article class="panel" id="docs">
-          <h2 data-i18n="reference_docs">Reference Docs</h2>
-          <p class="muted" data-i18n="docs_note">Vendor quick-reference topics stored locally on the kit.</p>
-          <ul class="list">
-            <li><a href="/kit-docs/netapp" target="_blank" rel="noopener noreferrer">NetApp</a></li>
-            <li><a href="/kit-docs/cisco" target="_blank" rel="noopener noreferrer">Cisco</a></li>
-            <li><a href="/kit-docs/nvidia" target="_blank" rel="noopener noreferrer">NVIDIA</a></li>
-            <li><a href="/kit-docs/brocade-fabric-os" target="_blank" rel="noopener noreferrer">Brocade Fabric OS</a></li>
-            <li><a href="/kit-docs/broadcom-ethernet-switching" target="_blank" rel="noopener noreferrer">Broadcom Ethernet Switching</a></li>
-          </ul>
-          <p class="docs-index-link"><a href="/kit-docs" target="_blank" rel="noopener noreferrer" data-i18n="docs_index">Open docs index</a></p>
-        </article>
-
-        <article class="panel">
-          <h2 data-i18n="upload_title">Upload</h2>
-          <form id="upload-form">
+      <section class="grid tools-grid">
+        <article class="panel subnet-panel" id="subnet">
+          <h2 data-i18n="subnet_calculator">Subnet Calculator</h2>
+          <form id="subnet-form" class="subnet-form">
             <label>
-              <span data-i18n="destination">Destination</span>
-              <select name="upload_library">
-                <option value="personal">personal</option>
-                <option value="usb">usb</option>
-              </select>
+              <span data-i18n="ip_address">IP Address</span>
+              <input id="subnet-ip" name="ip_address" type="text" inputmode="decimal" autocomplete="off" value="192.168.200.120" placeholder="192.168.200.120 or 192.168.200.120/24" />
             </label>
-            <input type="file" name="file" required />
-            <button type="submit" data-i18n="upload_file">Upload File</button>
+            <label>
+              <span data-i18n="cidr_prefix">CIDR Prefix</span>
+              <input id="subnet-prefix" name="cidr_prefix" type="number" min="0" max="32" value="24" />
+            </label>
+            <button type="submit" data-i18n="calculate">Calculate</button>
           </form>
-          <p id="upload-result" class="muted"></p>
+          <p id="subnet-error" class="muted subnet-error" role="status"></p>
+          <dl id="subnet-results" class="subnet-results"></dl>
         </article>
       </section>
+
       <footer class="app-footer">
         <span id="footer-power-status" class="footer-status-badge footer-status-unknown">Input voltage unavailable</span>
         <span>Fieldkit by <a href="https://www.infragilis.org" target="_blank" rel="noopener noreferrer">Infragilis</a>, 2026, git repo is <a href="https://github.com/infragilis/fieldkitV2" target="_blank" rel="noopener noreferrer">here</a>.</span>
       </footer>
     </main>
 
-    <script src="/static/app.js" defer></script>
+    <script src="/static/app.js?v=tools-20260709" defer></script>
   </body>
 </html>
