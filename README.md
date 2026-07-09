@@ -85,6 +85,27 @@ Change this immediately on any real deployment.
 - NetworkManager
 - OpenSSH server
 
+## Install On A Raspberry Pi
+
+Start from a clean Debian 13 64-bit Raspberry Pi install with SSH enabled and wired Ethernet available.
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git
+sudo git clone https://github.com/infragilis/fieldkitV2.git /opt/fieldkit
+cd /opt/fieldkit
+sudo bash scripts/install_fieldkit.sh
+```
+
+The installer configures the `service` user, Python environment, systemd units, nginx plain HTTP dashboard, transfer services, Wi-Fi AP support, and runtime directories.
+
+Default access after setup:
+
+- `http://fieldkit.local/`
+- `http://10.42.0.1/` when AP mode is enabled
+
+Default bootstrap credentials are `service` / `service`; change them immediately on real deployments.
+
 ## Documentation
 
 - Fresh install after cloning: `sudo bash scripts/install_fieldkit.sh`
