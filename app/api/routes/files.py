@@ -14,8 +14,10 @@ storage_service = StorageService(get_settings())
 async def list_files(library: str = Query("data"), path: str = Query("")):
     try:
         return storage_service.list_library(library, path)
-    except (FileNotFoundError, NotADirectoryError, ValueError) as exc:
+    except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (NotADirectoryError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/upload")

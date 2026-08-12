@@ -87,24 +87,32 @@ Change this immediately on any real deployment.
 
 ## Install On A Raspberry Pi
 
-Start from a clean Debian 13 64-bit Raspberry Pi install with SSH enabled and wired Ethernet available.
+Start from a clean Debian 13 64-bit Raspberry Pi install with SSH enabled, internet access, and wired Ethernet available for recovery. Run these commands from the initial account created during OS setup.
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git
-sudo git clone https://github.com/infragilis/fieldkitV2.git /opt/fieldkit
+sudo git clone --branch main --depth 1 https://github.com/infragilis/fieldkitV2.git /opt/fieldkit
 cd /opt/fieldkit
 sudo bash scripts/install_fieldkit.sh
 ```
 
-The installer configures the `service` user, Python environment, systemd units, nginx plain HTTP dashboard, transfer services, Wi-Fi AP support, and runtime directories.
+The clone command explicitly installs the current `main` branch. The installer configures the `service` user, Python environment, systemd units, nginx plain HTTP dashboard, transfer services, Wi-Fi AP support, and runtime directories.
+
+Verify the appliance locally before disconnecting the wired connection:
+
+```bash
+systemctl is-active fieldkit-web.service
+systemctl is-active nginx
+curl -fsS http://127.0.0.1/ >/dev/null && echo "Fieldkit web UI is available"
+```
 
 Default access after setup:
 
 - `http://fieldkit.local/`
 - `http://10.42.0.1/` when AP mode is enabled
 
-Default bootstrap credentials are `service` / `service`; change them immediately on real deployments.
+Default bootstrap credentials are `service` / `service`. The Fieldkit Wi-Fi AP starts automatically with SSID `fieldkit` and password `fieldkit`.
 
 ## Documentation
 

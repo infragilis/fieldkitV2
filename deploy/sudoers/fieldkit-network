@@ -5,3 +5,6 @@ service ALL=(root) NOPASSWD: /bin/systemctl is-active fieldkit-ap-hostapd
 service ALL=(root) NOPASSWD: /bin/systemctl is-active fieldkit-ap-dnsmasq
 service ALL=(root) NOPASSWD: /bin/systemctl is-enabled fieldkit-ap-hostapd
 service ALL=(root) NOPASSWD: /bin/systemctl is-enabled fieldkit-ap-dnsmasq
+service ALL=(root) NOPASSWD: /usr/bin/nmcli connection modify *
+service ALL=(root) NOPASSWD: /usr/bin/nmcli connection up *
+service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/change_password.sh *

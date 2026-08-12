@@ -10,7 +10,9 @@ if [[ ${EUID} -ne 0 ]]; then
 fi
 
 if ! dpkg -s hostapd >/dev/null 2>&1 || ! dpkg -s dnsmasq >/dev/null 2>&1; then
-  apt-get update
+  if [[ "${FIELDKIT_SKIP_APT_UPDATE:-0}" != "1" ]]; then
+    apt-get update
+  fi
 fi
 
 if ! dpkg -s hostapd >/dev/null 2>&1; then

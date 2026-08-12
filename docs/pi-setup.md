@@ -13,19 +13,27 @@ Reference baseline details are in [platform-baseline.md](platform-baseline.md).
 
 ## Standard install after cloning
 
-Start from a clean Debian 13 64-bit Raspberry Pi install with SSH enabled and wired Ethernet available.
+Start from a clean Debian 13 64-bit Raspberry Pi install with SSH enabled, internet access, and wired Ethernet available for recovery. Run these commands from the initial account created during OS setup.
 
 Install only what is needed to fetch the repo, then clone Fieldkit directly to the intended appliance root:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git
-sudo git clone https://github.com/infragilis/fieldkitV2.git /opt/fieldkit
+sudo git clone --branch main --depth 1 https://github.com/infragilis/fieldkitV2.git /opt/fieldkit
 cd /opt/fieldkit
 sudo bash scripts/install_fieldkit.sh
 ```
 
-The installer script installs OS packages, creates or updates the `service` user, configures NetworkManager, creates the Python virtualenv, installs Fieldkit, installs systemd/nginx/transfer/AP support, and starts the web service.
+The clone command explicitly installs the current `main` branch. The installer script installs OS packages, creates or updates the `service` user, configures NetworkManager, creates the Python virtualenv, installs Fieldkit, installs systemd/nginx/transfer/AP support, and starts the web service.
+
+Verify the appliance locally before disconnecting wired Ethernet:
+
+```bash
+systemctl is-active fieldkit-web.service
+systemctl is-active nginx
+curl -fsS http://127.0.0.1/ >/dev/null && echo "Fieldkit web UI is available"
+```
 
 Fieldkit serves the dashboard over plain HTTP only.
 
@@ -34,12 +42,12 @@ Fieldkit serves the dashboard over plain HTTP only.
 If you are starting from a minimal shell and want the script to install bootstrap prerequisites and clone/update `/opt/fieldkit` for you, use:
 
 ```bash
-git clone https://github.com/infragilis/fieldkitV2.git
+git clone --branch main --depth 1 https://github.com/infragilis/fieldkitV2.git
 cd fieldkitV2
 sudo bash scripts/bootstrap_fresh_pi.sh
 ```
 
-The bootstrap helper installs `git`, clones or updates `/opt/fieldkit`, then runs `scripts/install_fieldkit.sh` from that checkout.
+The bootstrap helper installs `git`, clones or updates `/opt/fieldkit` from `main`, then runs `scripts/install_fieldkit.sh` from that checkout.
 
 Default access after setup:
 
@@ -53,7 +61,7 @@ Default credentials:
 - Wi-Fi AP SSID: `fieldkit`
 - Wi-Fi AP password: `fieldkit`
 
-Change the default password immediately on any real deployment.
+The Fieldkit Wi-Fi AP starts automatically with SSID `fieldkit` and password `fieldkit`.
 
 ## Install options
 

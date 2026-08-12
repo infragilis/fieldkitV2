@@ -17,12 +17,14 @@ class LocalShellService:
     async def stream_shell(self, websocket) -> None:
         master_fd, slave_fd = pty.openpty()
         self._set_window_size(master_fd, cols=120, rows=32)
+        shell_user = os.environ.get("USER") or "service"
+        hostname = os.environ.get("HOSTNAME") or "fieldkit"
         env = {
             **os.environ,
             "TERM": "xterm-256color",
             "HOME": str(Path.home()),
             "SHELL": os.environ.get("SHELL", "/bin/bash"),
-            "PS1": "service@fieldkit:$ ",
+            "PS1": f"{shell_user}@{hostname}:$ ",
             "PROMPT_COMMAND": "bind 'set enable-bracketed-paste off' >/dev/null 2>&1",
             "INPUTRC": "/dev/null",
         }

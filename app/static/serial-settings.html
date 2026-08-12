@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Serial Profiles</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      * { box-sizing: border-box; }
+      main { width: min(1040px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
+      .profiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+      .profile { min-width: 0; border: 1px solid var(--line); border-radius: 16px; padding: 18px; background: rgba(255, 255, 255, 0.55); }
+      input, select, button { font: inherit; }
+      @media (max-width: 820px) {
+        .profiles { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div data-topbar></div>
+      <article class="panel">
+        <h1 data-i18n="serial_profiles_title">Serial Profiles</h1>
+        <p class="muted" data-i18n="serial_profiles_note">Serial adapters are auto-detected by default. Only set a device preference when you need to pin a console to a specific adapter.</p>
+        <form id="serial-profiles-form">
+          <div class="profiles">
+            <section class="profile">
+              <h2 data-i18n="console_1">Console 1</h2>
+              <label>
+                <span data-i18n="label">Label</span>
+                <input type="text" name="console1_label" />
+              </label>
+              <label>
+                <span data-i18n="device_preference">Device Preference</span>
+                <input type="text" name="console1_device_hint" placeholder="Optional: /dev/ttyUSB0" data-i18n-placeholder="device_optional_0" />
+              </label>
+              <label>
+                <span data-i18n="baud_rate">Baud Rate</span>
+                <input type="number" name="console1_baud_rate" min="50" step="1" />
+              </label>
+              <label>
+                <span data-i18n="data_bits">Data Bits</span>
+                <select name="console1_data_bits">
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="parity">Parity</span>
+                <select name="console1_parity">
+                  <option value="none" data-i18n="none">None</option>
+                  <option value="even" data-i18n="even">Even</option>
+                  <option value="odd" data-i18n="odd">Odd</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="stop_bits">Stop Bits</span>
+                <select name="console1_stop_bits">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+              </label>
+            </section>
+            <section class="profile">
+              <h2 data-i18n="console_2">Console 2</h2>
+              <label>
+                <span data-i18n="label">Label</span>
+                <input type="text" name="console2_label" />
+              </label>
+              <label>
+                <span data-i18n="device_preference">Device Preference</span>
+                <input type="text" name="console2_device_hint" placeholder="Optional: /dev/ttyUSB1" data-i18n-placeholder="device_optional_1" />
+              </label>
+              <label>
+                <span data-i18n="baud_rate">Baud Rate</span>
+                <input type="number" name="console2_baud_rate" min="50" step="1" />
+              </label>
+              <label>
+                <span data-i18n="data_bits">Data Bits</span>
+                <select name="console2_data_bits">
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="parity">Parity</span>
+                <select name="console2_parity">
+                  <option value="none" data-i18n="none">None</option>
+                  <option value="even" data-i18n="even">Even</option>
+                  <option value="odd" data-i18n="odd">Odd</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="stop_bits">Stop Bits</span>
+                <select name="console2_stop_bits">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+              </label>
+            </section>
+          </div>
+          <p>
+            <button type="submit" data-i18n="save_serial_profiles">Save Serial Profiles</button>
+          </p>
+          <p id="save-result" class="muted"></p>
+        </form>
+      </article>
+    </main>
+    <script src="/static/app.js"></script>
+    <script>
+      function defaultProfiles() {
+        return [
+          { label: "Console 1", device_hint: "", baud_rate: 9600, data_bits: 8, parity: "none", stop_bits: 1 },
+          { label: "Console 2", device_hint: "", baud_rate: 9600, data_bits: 8, parity: "none", stop_bits: 1 }
+        ];
+      }
+
+      function fieldValue(form, name) {
+        const control = form.elements.namedItem(name);
+        return control ? control.value : "";
+      }
+
+      function setFieldValue(form, name, value) {
+        const control = form.elements.namedItem(name);
+        if (control) {
+          control.value = value;
+        }
+      }
+
+      function writeProfile(form, prefix, profile) {
+        setFieldValue(form, `${prefix}_label`, profile.label);
+        setFieldValue(form, `${prefix}_device_hint`, profile.device_hint || "");
+        setFieldValue(form, `${prefix}_baud_rate`, profile.baud_rate);
+        setFieldValue(form, `${prefix}_data_bits`, String(profile.data_bits));
+        setFieldValue(form, `${prefix}_parity`, profile.parity);
+        setFieldValue(form, `${prefix}_stop_bits`, String(profile.stop_bits));
+      }
+
+      function readProfile(form, prefix, fallback) {
+        return {
+          label: fieldValue(form, `${prefix}_label`) || fallback.label,
+          device_hint: fieldValue(form, `${prefix}_device_hint`).trim(),
+          baud_rate: Number(fieldValue(form, `${prefix}_baud_rate`) || fallback.baud_rate),
+          data_bits: Number(fieldValue(form, `${prefix}_data_bits`) || fallback.data_bits),
+          parity: fieldValue(form, `${prefix}_parity`) || fallback.parity,
+          stop_bits: Number(fieldValue(form, `${prefix}_stop_bits`) || fallback.stop_bits),
+        };
+      }
+
+      async function loadProfiles() {
+        const target = document.getElementById("save-result");
+        try {
+          const response = await fetch("/api/settings");
+          const settings = await response.json();
+          const form = document.getElementById("serial-profiles-form");
+          const defaults = defaultProfiles();
+          const profiles = settings.serial_ports?.length ? settings.serial_ports : defaults;
+          writeProfile(form, "console1", profiles[0] || defaults[0]);
+          writeProfile(form, "console2", profiles[1] || defaults[1]);
+          target.textContent = "";
+        } catch (error) {
+          target.textContent = window.fieldkitUi ? window.fieldkitUi.t("failed_load_profiles", { message: error.message }) : `Failed to load serial profiles: ${error.message}`;
+        }
+      }
+
+      async function saveProfiles(event) {
+        event.preventDefault();
+        const target = document.getElementById("save-result");
+        try {
+          const settingsResponse = await fetch("/api/settings");
+          const settings = await settingsResponse.json();
+          const form = event.currentTarget;
+          const defaults = defaultProfiles();
+          const payload = {
+            ...settings,
+            serial_ports: [
+              readProfile(form, "console1", settings.serial_ports?.[0] || defaults[0]),
+              readProfile(form, "console2", settings.serial_ports?.[1] || defaults[1]),
+            ],
+          };
+          const response = await fetch("/api/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          target.textContent = response.ok ? (window.fieldkitUi ? window.fieldkitUi.t("serial_profiles_saved") : "Serial profiles saved.") : (window.fieldkitUi ? window.fieldkitUi.t("serial_profile_save_failed") : "Serial profile save failed.");
+        } catch (error) {
+          target.textContent = window.fieldkitUi ? window.fieldkitUi.t("serial_profile_save_failed", { message: error.message }) : `Serial profile save failed: ${error.message}`;
+        }
+      }
+
+      document.getElementById("serial-profiles-form").addEventListener("submit", saveProfiles);
+      loadProfiles();
+    </script>
+  </body>
+</html>

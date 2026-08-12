@@ -21,7 +21,6 @@ class StorageService:
     def __init__(self, settings: RuntimeSettings) -> None:
         self.settings = settings
         ensure_runtime_layout(settings)
-        self.sync_export_tree()
 
     def library_paths(self) -> dict[str, Path]:
         usb_path = self._detect_usb_mount() or (self.settings.content_root / self.settings.usb_dir_name)
@@ -74,7 +73,6 @@ class StorageService:
         return target
 
     def list_export_path(self, relative_path: str = "") -> dict:
-        self.sync_export_tree()
         base = self.resolve_export_path(relative_path)
         if not base.exists():
             raise FileNotFoundError(relative_path)
@@ -98,8 +96,6 @@ class StorageService:
         return {"path": current_path, "items": items}
 
     def list_library(self, library: str, relative_path: str = "") -> dict:
-        if library in self.export_library_paths():
-            self.sync_export_tree()
         base = self.resolve_download(library, relative_path) if relative_path else self._library_root(library)
         if not base.exists():
             raise FileNotFoundError(relative_path)

@@ -8,39 +8,7 @@
   </head>
   <body>
     <main class="app-shell">
-      <nav class="topbar">
-        <div class="brand-mark">
-          <span>Fieldkit</span>
-          <span id="app-version" class="brand-version">v0.1.4</span>
-        </div>
-        <div class="topbar-right">
-          <div class="topbar-links">
-            <a href="/" data-i18n="nav_home">Home</a>
-            <a href="/" data-i18n="nav_console">Console</a>
-            <a href="/files" data-i18n="nav_files">Files</a>
-            <a href="/#docs" data-i18n="nav_docs">Docs</a>
-            <a href="/tools" data-i18n="nav_tools">Tools</a>
-            <a href="/settings" data-i18n="nav_settings">Settings</a>
-            <a href="/readme" data-i18n="nav_readme">README</a>
-          </div>
-          <div class="shell-tools">
-            <button id="theme-toggle" type="button" class="shell-tool-button theme-icon-button" aria-label="Toggle theme" title="Toggle theme"><span id="theme-toggle-icon" aria-hidden="true">◐</span></button>
-            <div class="language-picker">
-              <button id="language-toggle" type="button" class="language-button" aria-haspopup="true" aria-expanded="false">
-                <span id="language-flag" class="language-flag">🇬🇧</span>
-                <span id="language-label">English</span>
-              </button>
-              <div class="language-options">
-                <button type="button" data-language="en"><span class="language-flag">🇬🇧</span><span>English</span></button>
-                <button type="button" data-language="es"><span class="language-flag">🇪🇸</span><span>Espanol</span></button>
-                <button type="button" data-language="de"><span class="language-flag">🇩🇪</span><span>Deutsch</span></button>
-                <button type="button" data-language="nl"><span class="language-flag">🇳🇱</span><span>Nederlands</span></button>
-                <button type="button" data-language="fr"><span class="language-flag">🇫🇷</span><span>Francais</span></button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <div data-topbar></div>
 
       <section class="hero">
         <div class="hero-card hero-card-main">

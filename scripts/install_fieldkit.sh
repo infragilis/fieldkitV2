@@ -72,10 +72,16 @@ systemctl restart avahi-daemon >/dev/null 2>&1 || true
 
 log "Provisioning runtime layout"
 chown -R "${FIELDKIT_USER}:${FIELDKIT_USER}" "${FIELDKIT_ROOT}"
+if [[ "${INSTALL_AP_SUPPORT}" == "1" ]]; then
+  FIELDKIT_DEFAULT_WIFI_MODE=ap
+else
+  FIELDKIT_DEFAULT_WIFI_MODE=disabled
+fi
 FIELDKIT_ROOT="${FIELDKIT_ROOT}" \
 FIELDKIT_USER="${FIELDKIT_USER}" \
 FIELDKIT_PASS="${FIELDKIT_PASS}" \
 FIELDKIT_HOSTNAME="${FIELDKIT_HOSTNAME}" \
+FIELDKIT_DEFAULT_WIFI_MODE="${FIELDKIT_DEFAULT_WIFI_MODE}" \
 bash "${FIELDKIT_ROOT}/scripts/provision_pi.sh"
 
 log "Installing Python environment"
@@ -89,12 +95,12 @@ FIELDKIT_ROOT="${FIELDKIT_ROOT}" SERVICE_USER="${FIELDKIT_USER}" bash scripts/in
 
 if [[ "${INSTALL_TRANSFER_SUPPORT}" == "1" ]]; then
   log "Installing transfer service support"
-  FIELDKIT_ROOT="${FIELDKIT_ROOT}" SERVICE_USER="${FIELDKIT_USER}" bash scripts/install_transfer_services.sh
+  FIELDKIT_ROOT="${FIELDKIT_ROOT}" SERVICE_USER="${FIELDKIT_USER}" FIELDKIT_SKIP_APT_UPDATE=1 bash scripts/install_transfer_services.sh
 fi
 
 if [[ "${INSTALL_AP_SUPPORT}" == "1" ]]; then
   log "Installing Wi-Fi AP support"
-  FIELDKIT_ROOT="${FIELDKIT_ROOT}" bash scripts/install_wifi_ap_support.sh
+  FIELDKIT_ROOT="${FIELDKIT_ROOT}" FIELDKIT_SKIP_APT_UPDATE=1 bash scripts/install_wifi_ap_support.sh
 fi
 
 log "Installing nginx plain HTTP mode"
@@ -102,6 +108,7 @@ bash scripts/install_export_http_mode.sh
 
 if [[ "${START_SERVICES}" == "1" ]]; then
   log "Starting Fieldkit services"
+  systemctl restart fieldkit-startup-network.service
   systemctl restart fieldkit-web.service
   systemctl reload nginx || systemctl restart nginx
 fi

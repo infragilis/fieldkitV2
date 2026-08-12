@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit README</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
+      pre { white-space: pre-wrap; font-family: 'IBM Plex Mono', monospace; line-height: 1.5; }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div data-topbar></div>
+      <article class="panel">
+        <pre id="readme-body">Loading...</pre>
+      </article>
+    </main>
+    <script src="/static/app.js" defer></script>
+    <script>
+      async function loadReadmeContent(language) {
+        const response = await fetch(`/api/readme-content?lang=${encodeURIComponent(language)}`);
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        document.getElementById("readme-body").textContent = payload.content;
+      }
+
+      window.addEventListener("fieldkit:language-change", (event) => loadReadmeContent(event.detail.language));
+      window.addEventListener("DOMContentLoaded", () => {
+        const language = window.fieldkitUi ? window.localStorage.getItem("fieldkit-language") || "en" : "en";
+        loadReadmeContent(language);
+      });
+    </script>
+  </body>
+</html>

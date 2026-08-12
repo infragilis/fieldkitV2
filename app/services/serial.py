@@ -112,36 +112,38 @@ class SerialService:
                 return
 
             log_path = self._create_session_log_path(profile, resolved_device)
-            reader = asyncio.create_task(self._reader_loop(serial_handle, websocket, log_path))
-            writer = asyncio.create_task(self._writer_loop(serial_handle, websocket, log_path))
+            log_handle = log_path.open("a", encoding="utf-8")
+            reader = asyncio.create_task(self._reader_loop(serial_handle, websocket, log_handle))
+            writer = asyncio.create_task(self._writer_loop(serial_handle, websocket, log_handle))
             done, pending = await asyncio.wait({reader, writer}, return_when=asyncio.FIRST_COMPLETED)
             for task in pending:
                 task.cancel()
             serial_handle.close()
             self._active_websockets.pop(resolved_device, None)
             self._append_log_entry(
-                log_path,
+                log_handle,
                 "system",
                 f"session closed for {profile.label} on {resolved_device}",
             )
+            log_handle.close()
             for task in done:
                 exc = task.exception()
                 if exc:
                     raise exc
 
-    async def _reader_loop(self, serial_handle, websocket, log_path: Path) -> None:
+    async def _reader_loop(self, serial_handle, websocket, log_handle) -> None:
         while True:
             data = await asyncio.to_thread(serial_handle.read, 1024)
             if data:
                 decoded = data.decode(errors="replace")
-                self._append_log_entry(log_path, "rx", decoded)
+                self._append_log_entry(log_handle, "rx", decoded)
                 await websocket.send_text(decoded)
             await asyncio.sleep(0.02)
 
-    async def _writer_loop(self, serial_handle, websocket, log_path: Path) -> None:
+    async def _writer_loop(self, serial_handle, websocket, log_handle) -> None:
         while True:
             message = await websocket.receive_text()
-            self._append_log_entry(log_path, "tx", message)
+            self._append_log_entry(log_handle, "tx", message)
             await asyncio.to_thread(self._write_serial_payload, serial_handle, message)
 
     def _write_serial_payload(self, serial_handle, message: str) -> None:
@@ -164,19 +166,19 @@ class SerialService:
         device_name = active_device or profile.device_hint
         safe_device = self._sanitize_path_part(Path(device_name).name or device_name)
         log_path = self._log_root / f"{timestamp}-{safe_label}-{safe_device}.log"
-        self._append_log_entry(
-            log_path,
-            "system",
-            f"session opened for {profile.label} on {device_name}",
-        )
+        with log_path.open("a", encoding="utf-8") as handle:
+            self._append_log_entry(
+                handle,
+                "system",
+                f"session opened for {profile.label} on {device_name}",
+            )
         return log_path
 
-    def _append_log_entry(self, log_path: Path, direction: str, payload: str) -> None:
+    def _append_log_entry(self, handle, direction: str, payload: str) -> None:
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         lines = payload.splitlines() or [payload]
-        with log_path.open("a", encoding="utf-8") as handle:
-            for line in lines:
-                handle.write(f"[{timestamp}] {direction.upper()} {line}\n")
+        for line in lines:
+            handle.write(f"[{timestamp}] {direction.upper()} {line}\n")
 
     def _sanitize_path_part(self, value: str) -> str:
         cleaned = "".join(char if char.isalnum() else "-" for char in value.strip().lower())

@@ -34,13 +34,24 @@ class TransferService:
         settings = self._store.load()
         configured = settings.transfer_services
         export_root = self._storage.sync_export_tree()
-        commands = [
-            f"export root {export_root}",
-            "sudo -n /bin/bash /opt/fieldkit/scripts/install_transfer_services.sh",
-            self._http_export_preview(configured.http_export_enabled),
-            self._command_preview("tftpd-hpa", configured.tftp_enabled),
-            self._command_preview("vsftpd", configured.ftp_enabled),
-        ]
+        current = self.get_status()
+
+        tftp_change = current["tftp"]["enabled"] != configured.tftp_enabled
+        ftp_change = current["ftp"]["enabled"] != configured.ftp_enabled
+        http_change = current["http_export"]["active"] != configured.http_export_enabled
+
+        commands = [f"export root {export_root}"]
+        if tftp_change or ftp_change or http_change:
+            commands.append("sudo -n /bin/bash /opt/fieldkit/scripts/install_transfer_services.sh")
+        if http_change:
+            commands.append(self._http_export_preview(configured.http_export_enabled))
+        if tftp_change:
+            commands.append(self._command_preview("tftpd-hpa", configured.tftp_enabled))
+        if ftp_change:
+            commands.append(self._command_preview("vsftpd", configured.ftp_enabled))
+        if not (tftp_change or ftp_change or http_change):
+            commands.append("(no transfer service changes to apply)")
+
         if self._runtime.dry_run_transfer_changes:
             return ApplyResult(
                 applied=False,
@@ -51,26 +62,34 @@ class TransferService:
 
         notes = [f"Export root synced at {export_root}."]
         failures: list[str] = []
-        install_result = self._runner.run(
-            ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/install_transfer_services.sh"]
-        )
-        if not install_result.ok:
-            failures.append(
-                "transfer support: "
-                + (install_result.stderr.strip() or install_result.stdout.strip() or "command failed")
+
+        if tftp_change or ftp_change or http_change:
+            install_result = self._runner.run(
+                ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/install_transfer_services.sh"]
             )
-        http_export_result = self._apply_http_export(configured.http_export_enabled)
-        if http_export_result.ok:
-            notes.append(f"http export {'enabled' if configured.http_export_enabled else 'disabled'} on port 80.")
-        else:
-            failures.append(f"http export: {http_export_result.stderr.strip() or http_export_result.stdout.strip() or 'command failed'}")
-        if not failures:
-            for unit, enabled in (("tftpd-hpa", configured.tftp_enabled), ("vsftpd", configured.ftp_enabled)):
-                result = self._apply_unit(unit, enabled)
-                if result.ok:
-                    notes.append(f"{unit} {'enabled' if enabled else 'disabled'}.")
-                else:
-                    failures.append(f"{unit}: {result.stderr.strip() or result.stdout.strip() or 'command failed'}")
+            if not install_result.ok:
+                failures.append(
+                    "transfer support: "
+                    + (install_result.stderr.strip() or install_result.stdout.strip() or "command failed")
+                )
+        if http_change:
+            http_export_result = self._apply_http_export(configured.http_export_enabled)
+            if http_export_result.ok:
+                notes.append(f"http export {'enabled' if configured.http_export_enabled else 'disabled'} on port 80.")
+            else:
+                failures.append(f"http export: {http_export_result.stderr.strip() or http_export_result.stdout.strip() or 'command failed'}")
+        for unit, change in (("tftpd-hpa", tftp_change), ("vsftpd", ftp_change)):
+            if not change:
+                continue
+            enabled = unit == "tftpd-hpa" and configured.tftp_enabled or unit == "vsftpd" and configured.ftp_enabled
+            result = self._apply_unit(unit, enabled)
+            if result.ok:
+                notes.append(f"{unit} {'enabled' if enabled else 'disabled'}.")
+            else:
+                failures.append(f"{unit}: {result.stderr.strip() or result.stdout.strip() or 'command failed'}")
+
+        if not (tftp_change or ftp_change or http_change):
+            notes.append("No transfer service state changes detected; nothing to apply.")
 
         return ApplyResult(
             applied=not failures,
@@ -80,27 +99,8 @@ class TransferService:
         )
 
     def _service_status(self, unit: str, configured_enabled: bool) -> dict:
-        if self._runtime.dry_run_transfer_changes:
-            return {
-                "configured_enabled": configured_enabled,
-                "active": False,
-                "enabled": configured_enabled,
-                "manageable": False,
-                "note": "Dry-run mode enabled.",
-            }
-
-        active = self._runner.run(["sudo", "-n", "systemctl", "is-active", unit])
-        enabled = self._runner.run(["sudo", "-n", "systemctl", "is-enabled", unit])
-        active_state = active.stdout.strip()
-        enabled_state = enabled.stdout.strip()
-        manageable = active.ok or enabled.ok or active_state in {"active", "inactive"} or enabled_state in {"enabled", "disabled"}
-        return {
-            "configured_enabled": configured_enabled,
-            "active": active_state == "active",
-            "enabled": enabled_state == "enabled",
-            "manageable": manageable,
-            "note": "" if manageable else (active.stderr.strip() or enabled.stderr.strip() or "Service status unavailable."),
-        }
+        state = self._readonly_service_status(unit)
+        return {"configured_enabled": configured_enabled, **state}
 
     def _apply_unit(self, unit: str, enabled: bool):
         if enabled:

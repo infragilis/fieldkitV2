@@ -12,9 +12,9 @@ class EthernetConfig(BaseModel):
 
 
 class WifiConfig(BaseModel):
-    mode: Literal["ap", "client", "disabled"] = "disabled"
-    ssid: str = ""
-    password: str = ""
+    mode: Literal["ap", "client", "disabled"] = "ap"
+    ssid: str = "fieldkit"
+    password: str = "fieldkit"
     country_code: str = "US"
 
 

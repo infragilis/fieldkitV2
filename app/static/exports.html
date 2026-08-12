@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Export __HEADER_PATH_HTML__</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      main { width: min(980px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
+      ul { list-style: none; padding: 0; margin: 18px 0 0; }
+      li { display: flex; justify-content: space-between; gap: 16px; align-items: center; border-bottom: 1px solid var(--line); padding: 10px 0; }
+      li:last-child { border-bottom: 0; }
+      .item-meta strong, .item-meta span { display: block; }
+      .path-note { font-family: 'IBM Plex Mono', monospace; }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div data-topbar data-docs-href="/kit-docs" data-exports-href="/fieldkit"></div>
+      <article class="panel">
+        <h1 data-i18n="exports_title">Fieldkit Exports</h1>
+        <p id="export-path-note" class="path-note"></p>
+        <p id="export-root-note" class="muted"></p>
+        <p><a href="__PARENT_PATH__" data-i18n="up_one_level">Up one level</a></p>
+        <ul id="export-items"></ul>
+      </article>
+    </main>
+    <script src="/static/app.js" defer></script>
+    <script>
+      const exportListing = __LISTING_JSON__;
+      const exportHeaderPath = __HEADER_PATH_JSON__;
+      const exportRootPath = __ROOT_PATH_JSON__;
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[char]));
+      }
+
+      function renderExportItems() {
+        const i18n = window.fieldkitUi;
+        document.getElementById("export-path-note").textContent = i18n
+          ? i18n.t("export_path", { path: exportHeaderPath })
+          : `HTTP: /fieldkit${exportHeaderPath}`;
+        document.getElementById("export-root-note").textContent = i18n
+          ? i18n.t("export_root_note", { root: exportRootPath })
+          : `TFTP, FTP, and SCP use the same library structure rooted at ${exportRootPath}.`;
+        document.getElementById("export-items").innerHTML = exportListing.map((item) => `
+          <li>
+            <div class="item-meta">
+              <strong><a href="/fieldkit/${encodeURIComponent(item.path)}${item.is_dir ? "/" : ""}">${escapeHtml(item.name)}</a></strong>
+              <span class="muted">${item.is_dir ? (i18n ? i18n.t("directory") : "Directory") : (i18n ? i18n.t("bytes", { size: item.size }) : `${item.size} bytes`)}</span>
+            </div>
+            ${item.is_dir ? "" : `<a href="/fieldkit/${encodeURIComponent(item.path)}" download>${i18n ? i18n.t("download") : "Download"}</a>`}
+          </li>
+        `).join("") || `<li><span class="muted">${i18n ? i18n.t("no_files") : "No files"}</span></li>`;
+      }
+
+      window.addEventListener("fieldkit:language-change", renderExportItems);
+      window.addEventListener("DOMContentLoaded", renderExportItems);
+    </script>
+  </body>
+</html>

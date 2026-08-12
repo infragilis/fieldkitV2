@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from app.main import app, serial_console_window
 from app.api.routes.connectivity import network_service
 from app.core.config import RuntimeSettings
+from app.core.models import AppSettingsPayload
 from app.services.serial import SerialService
 from app.services.storage import StorageService
 from app.services.transfers import TransferService
@@ -14,6 +15,23 @@ client = TestClient(app)
 
 
 TEST_FILE_NAMES = {"delete-me.txt", "usb-test.txt", "duplicate.txt", "download-check.txt"}
+
+
+def test_default_settings_enable_fieldkit_access_point():
+    wifi = AppSettingsPayload().wifi
+    assert wifi.mode == "ap"
+    assert wifi.ssid == "fieldkit"
+    assert wifi.password == "fieldkit"
+
+
+def test_static_ethernet_apply_sets_address_and_mode_together(monkeypatch):
+    monkeypatch.setattr(network_service, "_resolve_ethernet_connection", lambda settings: "netplan-eth0")
+    commands = network_service._ethernet_commands(AppSettingsPayload())
+
+    assert len(commands) == 1
+    command = commands[0]
+    assert command[command.index("ipv4.method") + 1] == "manual"
+    assert command[command.index("ipv4.addresses") + 1] == "192.168.200.120/24"
 
 
 @pytest.fixture(autouse=True)
@@ -368,8 +386,9 @@ def test_serial_log_entries_include_direction_and_timestamp(tmp_path):
     service = SerialService()
     log_path = Path(tmp_path) / "session.log"
 
-    service._append_log_entry(log_path, "rx", "line 1\nline 2")
-    service._append_log_entry(log_path, "tx", "show version\n")
+    with log_path.open("a", encoding="utf-8") as handle:
+        service._append_log_entry(handle, "rx", "line 1\nline 2")
+        service._append_log_entry(handle, "tx", "show version\n")
 
     content = log_path.read_text(encoding="utf-8")
     assert "[20" in content
@@ -504,37 +523,70 @@ def test_transfer_status_does_not_sync_export_tree(monkeypatch):
     assert status["root"].endswith("fieldkit")
 
 
-def test_transfer_service_refuses_to_disable_ssh_with_active_sessions(monkeypatch):
+def test_transfer_apply_skips_when_nothing_changed(monkeypatch):
     service = TransferService()
     settings = service._store.load()
+    settings.transfer_services.http_export_enabled = False
     settings.transfer_services.ftp_enabled = False
     settings.transfer_services.tftp_enabled = False
     monkeypatch.setattr(service._store, "load", lambda: settings)
     monkeypatch.setattr(service._runtime, "dry_run_transfer_changes", False)
     monkeypatch.setattr(service._storage, "sync_export_tree", lambda: Path("/tmp/fieldkit"))
-    monkeypatch.setattr(
-        service._runner,
-        "run",
-        lambda *args, **kwargs: type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})(),
-    )
+
+    def fake_run(command, env=None):
+        unit = command[-1]
+        if command[-2] == "is-active":
+            return type("Result", (), {"ok": True, "stderr": "", "stdout": "inactive", "returncode": 0})()
+        if command[-2] == "is-enabled":
+            return type("Result", (), {"ok": True, "stderr": "", "stdout": "disabled" if unit in {"tftpd-hpa", "vsftpd"} else "enabled", "returncode": 0})()
+        return type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})()
+
+    monkeypatch.setattr(service._runner, "run", fake_run)
     monkeypatch.setattr(
         service,
         "_apply_http_export",
         lambda enabled: type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})(),
     )
-    monkeypatch.setattr(
-        service,
-        "_apply_unit",
-        lambda unit, enabled: type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})()
-        if unit == "tftpd-hpa"
-        else type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})(),
-    )
 
     result = service.apply_settings()
 
     assert result.applied is True
-    assert any("install_transfer_services.sh" in command for command in result.commands)
-    assert any("vsftpd disabled." in note for note in result.notes)
+    assert any("No transfer service state changes detected" in note for note in result.notes)
+    assert "install_transfer_services.sh" not in "\n".join(result.commands)
+
+
+def test_transfer_apply_applies_http_export_change(monkeypatch):
+    service = TransferService()
+    settings = service._store.load()
+    settings.transfer_services.http_export_enabled = True
+    settings.transfer_services.ftp_enabled = False
+    settings.transfer_services.tftp_enabled = False
+    monkeypatch.setattr(service._store, "load", lambda: settings)
+    monkeypatch.setattr(service._runtime, "dry_run_transfer_changes", False)
+    monkeypatch.setattr(service._storage, "sync_export_tree", lambda: Path("/tmp/fieldkit"))
+
+    def fake_run(command, env=None):
+        unit = command[-1]
+        if command[-2] == "is-active":
+            return type("Result", (), {"ok": True, "stderr": "", "stdout": "inactive", "returncode": 0})()
+        if command[-2] == "is-enabled":
+            return type("Result", (), {"ok": True, "stderr": "", "stdout": "disabled" if unit in {"tftpd-hpa", "vsftpd"} else "enabled", "returncode": 0})()
+        return type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})()
+
+    monkeypatch.setattr(service._runner, "run", fake_run)
+
+    apply_http_calls = []
+    def fake_apply_http(enabled):
+        apply_http_calls.append(enabled)
+        return type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})()
+
+    monkeypatch.setattr(service, "_apply_http_export", fake_apply_http)
+
+    result = service.apply_settings()
+
+    assert result.applied is True
+    assert apply_http_calls == [True]
+    assert any("http export enabled" in note for note in result.notes)
 
 
 def test_usb_gadget_status_reports_unsupported_when_no_udc(monkeypatch):

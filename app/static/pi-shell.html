@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Local Shell</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/vendor/xterm.css" />
+    <style>
+      main { width: min(1100px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
+      .shell-note { margin-bottom: 12px; }
+      .shell-output {
+        min-height: 520px;
+        margin: 0 0 12px;
+        overflow: auto;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: #1e2326;
+        outline: none;
+      }
+      .shell-output .xterm { padding: 14px; }
+      .shell-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div data-topbar></div>
+      <article class="panel">
+        <h1 data-i18n="local_shell_title">Local Pi Shell</h1>
+        <p class="muted shell-note" data-i18n="local_shell_note">This terminal runs directly on the Fieldkit appliance as the local service account.</p>
+        <div class="shell-toolbar">
+          <button id="shell-reconnect-button" type="button" data-i18n="reconnect">Reconnect</button>
+          <span id="shell-status" class="muted" data-i18n="opening_session">Opening session...</span>
+        </div>
+        <div id="shell-output" class="shell-output"></div>
+      </article>
+    </main>
+    <script src="/static/vendor/xterm.js"></script>
+    <script src="/static/vendor/xterm-addon-fit.js"></script>
+    <script src="/static/app.js"></script>
+    <script>
+      let shellSocket = null;
+      let suppressNextClose = false;
+      const output = document.getElementById("shell-output");
+      const terminal = new Terminal({
+        cursorBlink: true,
+        fontFamily: "'IBM Plex Mono', monospace",
+        fontSize: 15,
+        theme: {
+          background: "#1e2326",
+          foreground: "#d6ead9",
+          cursor: "#d6ead9",
+        },
+      });
+      const fitAddon = new FitAddon.FitAddon();
+      terminal.loadAddon(fitAddon);
+      terminal.open(output);
+      if (terminal.textarea) {
+        terminal.textarea.setAttribute("autocapitalize", "off");
+        terminal.textarea.setAttribute("autocomplete", "off");
+        terminal.textarea.setAttribute("autocorrect", "off");
+        terminal.textarea.setAttribute("spellcheck", "false");
+        terminal.textarea.setAttribute("inputmode", "text");
+      }
+
+      function sendShellMessage(payload) {
+        if (!shellSocket || shellSocket.readyState !== WebSocket.OPEN) {
+          return;
+        }
+        shellSocket.send(JSON.stringify(payload));
+      }
+
+      function resizeShell() {
+        fitAddon.fit();
+        sendShellMessage({ type: "resize", cols: terminal.cols, rows: terminal.rows });
+      }
+
+      function connectShell() {
+        if (shellSocket && (shellSocket.readyState === WebSocket.OPEN || shellSocket.readyState === WebSocket.CONNECTING)) {
+          suppressNextClose = true;
+          shellSocket.close();
+        }
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        shellSocket = new WebSocket(`${protocol}//${window.location.host}/api/shell/ws`);
+        const status = document.getElementById("shell-status");
+        status.textContent = window.fieldkitUi ? window.fieldkitUi.t("connecting") : "Connecting...";
+        if (terminal.buffer.active.length) {
+          terminal.writeln(`[${window.fieldkitUi ? window.fieldkitUi.t("reconnecting").toLowerCase() : "reconnecting"}]`);
+        }
+        shellSocket.onopen = () => {
+          status.textContent = window.fieldkitUi ? window.fieldkitUi.t("connected") : "Connected";
+          resizeShell();
+          terminal.focus();
+          if (terminal.textarea) {
+            terminal.textarea.focus();
+          }
+        };
+        shellSocket.onmessage = (event) => {
+          terminal.write(event.data);
+        };
+        shellSocket.onerror = () => {
+          status.textContent = window.fieldkitUi ? window.fieldkitUi.t("disconnected") : "Disconnected";
+        };
+        shellSocket.onclose = () => {
+          if (suppressNextClose) {
+            suppressNextClose = false;
+            return;
+          }
+          status.textContent = window.fieldkitUi ? window.fieldkitUi.t("disconnected") : "Disconnected";
+          terminal.writeln("");
+          terminal.writeln(`[${window.fieldkitUi ? window.fieldkitUi.t("console_disconnected").toLowerCase() : "disconnected"}]`);
+        };
+      }
+
+      window.addEventListener("beforeunload", () => {
+        if (shellSocket) {
+          shellSocket.close();
+        }
+      });
+      terminal.onData((data) => sendShellMessage({ type: "input", data }));
+      window.addEventListener("resize", resizeShell);
+      document.getElementById("shell-reconnect-button").addEventListener("click", () => {
+        connectShell();
+      });
+      output.addEventListener("click", () => {
+        terminal.focus();
+        if (terminal.textarea) {
+          terminal.textarea.focus();
+        }
+      });
+      output.addEventListener("touchstart", () => {
+        terminal.focus();
+        if (terminal.textarea) {
+          terminal.textarea.focus();
+        }
+      }, { passive: true });
+      connectShell();
+    </script>
+  </body>
+</html>

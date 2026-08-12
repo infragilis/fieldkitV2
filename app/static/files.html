@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Files</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
+      .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+      .upload-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap; }
+      .upload-row label { display: flex; flex-direction: column; gap: 6px; min-width: 240px; margin-bottom: 0; }
+      .upload-row input { max-width: 100%; margin-top: 0; }
+      .upload-row button { align-self: flex-end; margin-bottom: 1px; }
+      ul { list-style: none; padding: 0; margin: 0; }
+      li { padding: 10px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+      li:last-child { border-bottom: 0; }
+      .item-meta { display: flex; flex-direction: column; gap: 4px; }
+      .item-actions { display: flex; gap: 8px; align-items: center; }
+      .delete-button { background: #8d2f1f; }
+      .delete-button:hover { background: #732515; }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div data-topbar data-exports-href="/fieldkit"></div>
+      <article class="panel">
+        <h1 data-i18n="files_title">Files</h1>
+        <p class="muted" data-i18n="files_note">Browse the local file libraries available on the kit.</p>
+        <div class="tabs">
+          <button data-library="data">data</button>
+          <button data-library="personal">personal</button>
+          <button data-library="usb">usb</button>
+          <button data-library="serial-logs">serial-logs</button>
+        </div>
+        <form id="library-upload-form" class="upload-row">
+          <label>
+            <span data-i18n="upload_from_desktop">Upload From Local Desktop</span>
+            <input type="file" name="file" required />
+          </label>
+          <button type="submit" data-i18n="upload_current_library">Upload To Current Library</button>
+        </form>
+        <p id="upload-result" class="muted"></p>
+        <p class="muted" id="library-path"></p>
+        <ul id="library-items"></ul>
+      </article>
+    </main>
+    <script src="/static/app.js"></script>
+    <script>
+      let currentLibrary = "data";
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[char]));
+      }
+
+      async function deleteEntry(library, path) {
+        const confirmed = window.confirm(window.fieldkitUi ? window.fieldkitUi.t("delete_confirm", { path, library }) : `Delete ${path} from ${library}?`);
+        if (!confirmed) return;
+        const response = await fetch(`/api/files?library=${encodeURIComponent(library)}&path=${encodeURIComponent(path)}`, {
+          method: "DELETE"
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          window.alert(payload.detail || (window.fieldkitUi ? window.fieldkitUi.t("delete_failed") : "Delete failed"));
+          return;
+        }
+        await loadLibrary(library);
+      }
+
+      function updateUploadState(library) {
+        const form = document.getElementById("library-upload-form");
+        const button = form.querySelector("button");
+        const allowed = library === "personal" || library === "usb";
+        form.style.display = allowed ? "flex" : "none";
+        button.textContent = window.fieldkitUi ? window.fieldkitUi.t("upload_current_library") : `Upload To ${library}`;
+        document.getElementById("upload-result").textContent = allowed
+          ? ""
+          : (window.fieldkitUi ? window.fieldkitUi.t("uploads_not_allowed", { library }) : `Uploads are not allowed to ${library}.`);
+      }
+
+      async function uploadToCurrentLibrary(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const data = new FormData(form);
+        const response = await fetch(`/api/files/upload?library=${encodeURIComponent(currentLibrary)}`, {
+          method: "POST",
+          body: data
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          document.getElementById("upload-result").textContent = payload.detail || (window.fieldkitUi ? window.fieldkitUi.t("upload_failed") : "Upload failed");
+          return;
+        }
+        document.getElementById("upload-result").textContent = window.fieldkitUi ? window.fieldkitUi.t("saved_to", { name: payload.saved, library: payload.library }) : `Saved ${payload.saved} to ${payload.library}`;
+        form.reset();
+        await loadLibrary(currentLibrary);
+      }
+
+      async function loadLibrary(name) {
+        currentLibrary = name;
+        updateUploadState(name);
+        const response = await fetch(`/api/files?library=${encodeURIComponent(name)}`);
+        const payload = await response.json();
+        document.getElementById("library-path").textContent = `/${payload.library}/${payload.path || ""}`;
+        const i18n = window.fieldkitUi;
+        document.getElementById("library-items").innerHTML =
+          payload.items.map((item) =>
+            `<li>
+              <div class="item-meta">
+                ${item.is_dir
+                  ? `<span>${escapeHtml(item.name)}</span>`
+                  : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${escapeHtml(item.name)}</a>`
+                }
+                <span class="muted">${item.is_dir ? (i18n ? i18n.t("directory_path", { path: escapeHtml(item.path) }) : `directory: ${escapeHtml(item.path)}`) : (i18n ? i18n.t("bytes", { size: item.size }) : `${item.size} bytes`)}</span>
+              </div>
+              <div class="item-actions">
+                ${item.is_dir ? "" : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${i18n ? i18n.t("download") : "Download"}</a>`}
+                ${item.deletable ? `<button class="delete-button" type="button" data-delete-path="${escapeHtml(item.path)}">${i18n ? i18n.t("delete") : "Delete"}</button>` : ""}
+              </div>
+            </li>`
+          ).join("") || `<li>${i18n ? i18n.t("no_entries") : "No entries"}</li>`;
+        document.querySelectorAll("[data-delete-path]").forEach((button) => {
+          button.addEventListener("click", () => deleteEntry(currentLibrary, button.dataset.deletePath));
+        });
+      }
+      document.querySelectorAll("[data-library]").forEach((button) => {
+        button.addEventListener("click", () => loadLibrary(button.dataset.library));
+      });
+      document.getElementById("library-upload-form").addEventListener("submit", uploadToCurrentLibrary);
+      loadLibrary("data");
+    </script>
+  </body>
+</html>

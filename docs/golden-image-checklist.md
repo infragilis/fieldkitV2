@@ -13,6 +13,7 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 
 - [ ] `sudo apt-get update && sudo apt-get upgrade -y`
 - [ ] Repo cloned to `/opt/fieldkit`
+- [ ] Clone used `--branch main` so the current release branch was installed
 - [ ] `sudo bash scripts/install_fieldkit.sh` completed successfully from `/opt/fieldkit`
 - [ ] `network-manager` installed and enabled
 - [ ] `openssh-server` installed and reachable
@@ -39,7 +40,9 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 - [ ] `fieldkit-web.service` installed, enabled, and active
 - [ ] `nginx` installed, enabled, and active
 - [ ] dedicated Fieldkit Wi-Fi AP support installed if the kit will offer direct wireless access later
+- [ ] Fieldkit AP is active on `wlan0` with SSID `fieldkit`
 - [ ] HTTP path validated locally on the Pi
+- [ ] `curl -fsS http://127.0.0.1/` succeeds before disconnecting wired Ethernet
 
 ## Validation
 

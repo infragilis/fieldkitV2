@@ -17,13 +17,24 @@ class SystemService:
 
     def get_status(self) -> dict:
         settings = self._store.load()
+        shell_user = "service"
+        try:
+            import getpass
+
+            shell_user = getpass.getuser() or shell_user
+        except (ImportError, OSError):
+            pass
         return {
             "hostname": settings.hostname,
-            "default_user": "service",
-            "local_shell_user": "service",
+            "default_user": shell_user,
+            "local_shell_user": shell_user,
             "password_change_supported": not self._settings.dry_run_system_changes,
             "dry_run": self._settings.dry_run_system_changes,
-            "note": "System changes are dry-run by default.",
+            "note": (
+                "System changes are dry-run by default."
+                if self._settings.dry_run_system_changes
+                else "Live system changes are enabled."
+            ),
             "power": self._power_status(),
         }
 
@@ -32,23 +43,32 @@ class SystemService:
             return False
         if self._settings.dry_run_system_changes:
             return bool(current_password)
-        if not self._runner.available("chpasswd") or not self._runner.available("sudo") or not self._runner.available("su"):
+        if not self._runner.available("sudo"):
             return False
-        verified = self._runner.run_with_input(
-            ["sudo", "-u", "nobody", "su", "service", "-c", "true"],
-            f"{current_password}\n",
+        result = self._runner.run_with_input(
+            ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/change_password.sh", "service", current_password, new_password],
+            None,
         )
-        if not verified.ok:
-            return False
-        result = self._runner.run_with_input(["sudo", "chpasswd"], f"service:{new_password}\n")
         return result.ok
 
     def apply_hostname(self) -> ApplyResult:
         hostname = self._store.load().hostname
-        command = f"hostnamectl set-hostname {hostname}"
+        command = f"sudo -n /bin/bash /opt/fieldkit/scripts/set_appliance_hostname.sh {hostname}"
         if self._settings.dry_run_system_changes:
             return ApplyResult(applied=False, dry_run=True, commands=[command], notes=["Dry-run mode enabled."])
-        return ApplyResult(applied=False, dry_run=False, commands=[command], notes=["Execution path not enabled yet."])
+        if not self._runner.available("sudo"):
+            return ApplyResult(applied=False, dry_run=False, commands=[command], notes=["sudo is not available on this host."])
+        result = self._runner.run(
+            ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/set_appliance_hostname.sh", hostname]
+        )
+        if not result.ok:
+            return ApplyResult(
+                applied=False,
+                dry_run=False,
+                commands=[command],
+                notes=[result.stderr.strip() or result.stdout.strip() or "Failed to set hostname."],
+            )
+        return ApplyResult(applied=True, dry_run=False, commands=[command], notes=["Hostname applied."])
 
     def _power_status(self) -> dict:
         if not self._runner.available("vcgencmd"):
