@@ -1,6 +1,6 @@
 # Update And Reload
 
-This document describes how to update a deployed Fieldkit appliance from git and reload the running services.
+This document describes how to update a deployed Fieldkit appliance and reload the running services.
 
 The currently deployed web UI includes:
 
@@ -12,11 +12,32 @@ The currently deployed web UI includes:
 - a raw export browser at `/fieldkit`
 - a tools page at `/tools`
 
+All page HTML lives in `app/static/*.html` templates. `app/main.py` only serves files and fills in small placeholders (export listing, docs topics, console index). The topbar is rendered once by `renderTopbar()` in `app/static/app.js`; the version badge is fetched from `/openapi.json`, so bump the version only in `pyproject.toml` and `app/main.py`.
+
 Fieldkit is served over plain HTTP. The raw export browser remains available at `/fieldkit/...` on the same HTTP endpoint.
 
-## Pull the latest repo state
+## Copy-deploy method (used for this appliance)
 
-On the Raspberry Pi:
+The current appliance Pi at `/opt/fieldkit` has **no GitHub credentials**, so `git pull` against the private repo fails. The supported path is copy-based:
+
+1. From a checkout on a dev machine, copy changed/new files into `/opt/fieldkit`, preserving `app/`, `scripts/`, and `deploy/` paths.
+2. Install/refresh the sudoers file if it changed:
+   ```bash
+   sudo install -o root -g root -m 0440 /opt/fieldkit/deploy/sudoers/fieldkit-network /etc/sudoers.d/fieldkit-network
+   sudo visudo -c
+   ```
+3. Fix ownership if the copy landed under the wrong UID:
+   ```bash
+   sudo chown -R service:service /opt/fieldkit/app /opt/fieldkit/scripts /opt/fieldkit/deploy
+   ```
+4. Make sure `scripts/change_password.sh` is executable (root-owned `0755`).
+5. Restart the web service (below).
+
+Verify the running files match the source checkout with `sha256sum` on the key files before relying on a deploy.
+
+## Pull the latest repo state (git-capable installs)
+
+On a Raspberry Pi where `/opt/fieldkit` is a git checkout with credentials:
 
 ```bash
 cd /opt/fieldkit
@@ -70,6 +91,24 @@ sudo bash scripts/install_wifi_ap_support.sh
 
 ## Full update sequence
 
+Copy-based (current appliance):
+
+```bash
+# dev machine
+cd <checkout>
+tar czf /tmp/fieldkit-deploy.tgz \
+  app/main.py app/api/routes/*.py app/services/*.py app/static/*.html app/static/*.js \
+  scripts/*.sh deploy/sudoers/fieldkit-network
+# Pi
+scp /tmp/fieldkit-deploy.tgz service@<pi>:/tmp/
+ssh service@<pi> 'sudo tar xzf /tmp/fieldkit-deploy.tgz -C /opt/fieldkit && \
+  sudo install -o root -g root -m 0440 /opt/fieldkit/deploy/sudoers/fieldkit-network /etc/sudoers.d/fieldkit-network && \
+  sudo chown -R service:service /opt/fieldkit/app /opt/fieldkit/scripts /opt/fieldkit/deploy && \
+  sudo visudo -c'
+```
+
+Git-based installs:
+
 ```bash
 cd /opt/fieldkit
 git pull --ff-only
@@ -112,7 +151,7 @@ This uploads a temporary file to `personal` and verifies:
 ## Notes
 
 - Short `502` responses from nginx can happen during app restarts if the proxy comes up before uvicorn is ready.
-- Browser hard refreshes may be needed after frontend changes because `app.js` and `styles.css` are cached by the browser.
+- Browser hard refreshes may be needed after frontend changes because `app.js` and `styles.css` are cached by the browser. Use a cache-busted URL (`?v=...`) on `app.js` when shipping frontend changes.
 - `/pi-shell` also depends on vendored terminal assets under `app/static/vendor`, so a hard refresh is especially important after shell UI changes.
 - If `git pull --ff-only` fails, inspect local changes before forcing anything.
 - Keep the repo and deployed app rooted at `/opt/fieldkit` for consistency with the current systemd and nginx assets.
@@ -122,3 +161,5 @@ This uploads a temporary file to `personal` and verifies:
 - Plain HTTP is the appliance access path.
 - Fieldkit AP mode now uses dedicated `hostapd` and AP-only `dnsmasq` units instead of a NetworkManager hotspot profile.
 - Keep a wired path available when testing AP mode changes.
+- The export tree is synced once at startup and on file mutations; it is no longer rescanned on every directory listing.
+- `service` needs NOPASSWD sudo only for the allowlisted commands in `deploy/sudoers/fieldkit-network`. Ethernet apply requires the `nmcli connection modify/up` rules; password change requires `scripts/change_password.sh`.
