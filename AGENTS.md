@@ -1,114 +1,54 @@
-# Agent Knowledge: <project-name>
+# Fieldkit — Agent Startup
 
-This project uses **Project Bedrock** for persistent project memory.
-All knowledge is accessed through `./bedrock/` (symlink to external vault).
+Fieldkit is a Raspberry Pi field-service appliance for network-equipment work:
+a local web UI for serial consoles, file handling, transfer services, a browser
+shell, appliance settings, and field reference docs.
 
-## First-Time Onboarding
+## Operating Rules (non-negotiable)
 
-Check `./bedrock/STATUS.md`. If `onboarding: pending`:
+- Stay inside the Fieldkit repo. Do not modify Legati, Tradify, Home Assistant,
+  or any other project, repository, or infrastructure.
+- Trust live code and current runtime behavior over older notes. Verify current
+  state before acting.
+- Check for an existing working solution before creating anything. Reuse proven
+  scripts, procedures, libraries, and configs.
+- Prefer the smallest reversible change. Do not overengineer. No temporary hacks
+  or weird workarounds as permanent solutions.
+- No blind trial-and-error. Diagnose from evidence, test the smallest change,
+  and stop if it does not produce useful evidence.
+- Do not fake, guess, or hide uncertainty. Ask focused questions when essential
+  facts are unclear.
+- Never expose credentials, tokens, or private keys. See `HANDOFF.md` for the
+  security-sensitive rules (public email, default credentials, secret location).
 
-1. Inspect project structure: manifests, package files, CI/CD config, docs
-2. Inspect project-local tool config: `.cursor/`, `.claude/`, `.codex/` if present
-3. Review recent git history (last ~50 commits, key branches)
-4. Import findings into `Evidence/raw/` using `bedrock import`
-5. Infer the project ontology from the actual repo -- use the project's own
-   functional domains as branch names (e.g., perception, navigation, localization),
-   not generic categories (e.g., architecture, conventions)
-6. Create one branch note per functional domain. Each note should be focused
-   and under ~150 lines. Do NOT put the whole system description in one file.
-7. Link related notes to each other with relative markdown links
-8. Update `Memory/MEMORY.md` with links to all new branches
-9. Update `./bedrock/STATUS.md`: set `onboarding: complete`
+## Where Things Live (canonical)
 
-## Branch Convention
+| Subject | Location |
+|---|---|
+| Infrastructure index | `docs/infrastructure.md` |
+| Architecture | `docs/architecture.md` |
+| Platform/hardware baseline | `docs/platform-baseline.md` |
+| Install/deploy runbooks | `docs/{pi-setup,update-and-reload,golden-image-checklist}.md` |
+| Per-domain facts | `bedrock/Memory/*.md` (start at `Memory/MEMORY.md`) |
+| Decisions | `bedrock/Memory/decisions/decisions.md` |
+| Current live state, access, priorities | `HANDOFF.md` (local-only) |
+| History (diary) | `bedrock/History/` |
+| Bedrock onboarding/maintenance | `docs/onboarding.md` |
 
-Use the same-name branch-note pattern:
+## Load On Demand Only
 
-```
-Memory/
-  MEMORY.md                    # root -- always read first
-  stack.md                     # flat note when no subtopics needed
-  perception/
-    perception.md              # entry note = same name as folder
-    fusion.md                  # subtopic note
-    lane-detection.md
-  navigation/
-    navigation.md
-    path-following.md
-  localization/
-    localization.md
-  decisions/
-    decisions.md               # decision log
-    2025-01-15-use-raw-sql.md  # individual decision
-```
-
-Rules:
-- Each branch = one focused functional domain from the project
-- Use the project's own terminology, not generic templates
-- Each note stays under ~150 lines. If a topic is too big, split it.
-- Link between related notes with relative markdown links (e.g.,
-  `See [perception](perception/perception.md) for sensor details`)
-- Small topic with no subtopics: one flat note (`stack.md`)
-- Bigger topic: folder + same-name entry note (`perception/perception.md`)
-- Do not create deep trees automatically -- grow only when justified
-- Do NOT lump unrelated subsystems into a single "architecture" note.
-  Split by functional domain instead.
-- Use emojis in section headers to improve scannability. Pick an emoji that
-  matches the section's purpose (e.g. `## 🔄 Recent Changes`, `## 🔗 See Also`,
-  `## ⚠️ Gotchas`, `## 📦 Build`, `## 🔍 Detection`, `## 🧩 Patterns`).
-
-## Onboarding Rules
-
-- Only write confirmed facts to `Memory/` -- never speculate
-- Keep raw/extracted material in `Evidence/`, not `Memory/`
-- Keep generated views in `Outputs/` -- never treat as canonical truth
-- Do NOT redo onboarding if STATUS.md already shows `onboarding: complete`
+Read a document only when the task matches it. Do not preload branch notes,
+`History/`, `Evidence/`, or `Outputs/` at startup.
 
 ## Session Start
 
-If you support shell commands, run at session start:
+1. This file is already loaded.
+2. Read `HANDOFF.md` if the task touches the live appliance or current work.
+3. Read only the docs/branch notes the task actually needs.
+4. If shell is available: `bedrock sync --project .`
 
-```bash
-bedrock sync --project .
-```
+## After Meaningful Work
 
-## Memory Maintenance
-
-After meaningful work, update `./bedrock/Memory/` directly:
-
-1. Edit the relevant branch note (`Memory/cli.md`, `Memory/architecture.md`, etc.)
-   - Update `Current State` with confirmed facts (replace stale entries, no duplicates)
-   - Add a `YYYY-MM-DD -- what changed` line to `Recent Changes`
-2. If any architectural, design, or tooling decisions were made, add them to `Memory/decisions/decisions.md` using the existing numbered format
-3. Update `Memory/MEMORY.md` if branch one-line summaries changed
-4. Run `bedrock sync --project .` to propagate and refresh indexes
-
-Write to memory when:
-- A new feature, command, or module was completed
-- An architectural decision was made or changed
-- A gotcha, constraint, or pattern was confirmed
-- Test coverage or CI configuration changed
-
-Skip writeback for read-only sessions, speculative changes, or session-specific context.
-
-## Ongoing Maintenance
-
-After onboarding is complete, during normal work:
-- Keep `Evidence/` and `Outputs/` separate from `Memory/` (never promote)
-- Do NOT rebuild the knowledge tree every session
-- Record architectural decisions in `Memory/decisions/`
-
-## Knowledge Structure
-
-- `Memory/` -- Curated, durable project knowledge (source of truth)
-- `Evidence/` -- Imported/extracted material (not curated truth)
-- `Outputs/` -- Generated helper views (never canonical)
-- `STATUS.md` -- Onboarding and maintenance state
-- `.agent-project.yaml` -- Project configuration
-
-## Reading Order
-
-1. `Memory/MEMORY.md` -- always read first
-2. Relevant branch entry notes (e.g., `perception/perception.md`)
-3. Leaf notes only if the specific detail is needed
-4. Keep context lean -- do not read branches unrelated to the current task
+Record newly verified, reusable facts in the correct canonical document (see
+table). Follow the write-back procedure in `docs/onboarding.md`. Do not store
+transient logs, guesses, or full session history as memory.
