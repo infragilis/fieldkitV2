@@ -6,6 +6,10 @@ shell, appliance settings, and field reference docs.
 
 ## Operating Rules (non-negotiable)
 
+- The `service` and `fieldkit` default accounts documented in this repo are
+  intentional, low-sensitivity defaults for easy setup and quick deploy. Users
+  are expected to change them after first boot. Fieldkit's code carries no
+  secrets that require heavy security.
 - Stay inside the Fieldkit repo. Do not modify Legati, Tradify, Home Assistant,
   or any other project, repository, or infrastructure.
 - Trust live code and current runtime behavior over older notes. Verify current
@@ -20,6 +24,15 @@ shell, appliance settings, and field reference docs.
   facts are unclear.
 - Never expose credentials, tokens, or private keys. See `HANDOFF.md` for the
   security-sensitive rules (public email, default credentials, secret location).
+- Genuine secrets — the server VM address, Cloudflare identifiers, deployment
+  inventory, and non-default credentials — belong only in the private server
+  repository and must never be committed to either repository. The private
+  repository is an access-control boundary for operations, not for the
+  `service`/`fieldkit` default accounts.
+- Build, test, and run against the actual Fieldkit appliance, not the dev host.
+  The dev host holds only the source checkout; deploy changed files to the
+  appliance (see `docs/update-and-reload.md`) and never serve the app from the
+  dev host.
 
 ## Where Things Live (canonical)
 

@@ -11,6 +11,8 @@ here or in any tracked file.
 - License: MIT (`LICENSE`)
 - Owner: Infragilis. Public Fieldkit email: `info@infragilis.org`.
 - CI/CD: none — deployment is manual (scripts + copy).
+- Two repositories: this **public** Fieldkit repo (app/UI/tool) and a separate **private** server repo (VM/server code — never public). See `## Secrets` for the split.
+- Production hostname: `https://fieldkit.infragilis.org` (public; the server base URL is configurable, not hard-coded).
 
 ## Environments
 
@@ -22,7 +24,7 @@ here or in any tracked file.
 ## Hosts & Services (appliance)
 
 - `fieldkit-web.service` — FastAPI/uvicorn on `127.0.0.1:8000`, user `service`
-- `nginx` — plain-HTTP front end on port 80 (no TLS)
+- `nginx` — front end on port 80 (HTTP) and 443 (HTTPS, self-signed cert at `/etc/nginx/ssl/fieldkit.{crt,key}`); no HTTP→HTTPS redirect, so both work
 - OpenSSH — SCP + the local-shell account
 - NetworkManager — primary network control plane
 - `fieldkit-ap-hostapd` + `fieldkit-ap-dnsmasq` — dedicated AP mode (SSID `fieldkit`)
@@ -55,6 +57,7 @@ here or in any tracked file.
 
 ## Secrets
 
-- Machine access lives in the Bitwarden Secrets Manager project `fieldkit`.
-- Default credentials are documented only in `HANDOFF.md`; never copy them into public docs or commits.
-- Do not store secret values anywhere in this repository.
+- The `service` / `fieldkit` default accounts are intentional, low-sensitivity defaults for easy setup and quick deploy; users change them after first boot. They are documented on purpose and are not secrets.
+- There is no Bitwarden Secrets Manager (BSM) for this project — do not reference or rely on it.
+- Genuine secrets — the server VM address, Cloudflare identifiers, deployment inventory, and non-default credentials — belong only in the private server repository and must never be committed to either repository. The private repo is an access-control boundary for operations, not for the `service`/`fieldkit` accounts.
+- Do not store genuine secret values anywhere in this repository.
