@@ -9,12 +9,16 @@ The currently deployed web UI includes:
 - a local shell page at `/pi-shell` backed by an in-browser terminal emulator
 - popup console windows at `/serial-console/0` and `/serial-console/1`
 - a files page at `/files`
+- a cluster-import page at `/cluster-import` (NetApp workbook → Ansible)
 - a raw export browser at `/fieldkit`
 - a tools page at `/tools`
 
 All page HTML lives in `app/static/*.html` templates. `app/main.py` only serves files and fills in small placeholders (export listing, docs topics, console index). The topbar is rendered once by `renderTopbar()` in `app/static/app.js`; the version badge is fetched from `/openapi.json`, so bump the version only in `pyproject.toml` and `app/main.py`.
 
-Fieldkit is served over plain HTTP. The raw export browser remains available at `/fieldkit/...` on the same HTTP endpoint.
+Fieldkit is served over HTTP (port 80) and HTTPS (port 443) using a self-signed
+certificate at `/etc/nginx/ssl/fieldkit.{crt,key}`. There is no HTTP→HTTPS
+redirect, so both endpoints work. The raw export browser remains available at
+`/fieldkit/...` on the same endpoints.
 
 ## Copy-deploy method (used for this appliance)
 

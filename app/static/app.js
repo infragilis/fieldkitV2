@@ -16,6 +16,7 @@ const TRANSLATIONS = {
     nav_home: "Home",
     nav_console: "Console",
     nav_files: "Files",
+    nav_cluster: "Cluster Import",
     nav_docs: "Docs",
     nav_tools: "Tools",
     nav_settings: "Settings",
@@ -533,6 +534,7 @@ function renderTopbar() {
             <a href="/" data-i18n="nav_home">Home</a>
             <a href="/#serial" data-i18n="nav_console">Console</a>
             <a href="/files" data-i18n="nav_files">Files</a>
+            <a href="/cluster-import" data-i18n="nav_cluster">Cluster Import</a>
             ${exportsLink}
             <a href="${docsHref}" data-i18n="nav_docs">Docs</a>
             <a href="/tools" data-i18n="nav_tools">Tools</a>

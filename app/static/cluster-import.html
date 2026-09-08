@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Cluster Import</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      main { width: min(980px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
+      .dropzone {
+        border: 2px dashed var(--line, #888); border-radius: 8px; padding: 32px;
+        text-align: center; color: var(--muted, #666); cursor: pointer;
+      }
+      .dropzone.dragover { border-color: var(--accent, #2f6fd0); background: var(--panel-2, #f4f6f8); }
+      .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      @media (max-width: 720px) { .field-grid { grid-template-columns: 1fr; } }
+      .field-block label { display: block; font-weight: 600; margin-bottom: 6px; }
+      .source-hint { font-size: 0.8rem; color: var(--muted, #888); margin-left: 8px; font-weight: normal; }
+      .value-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+      .value-row input { flex: 1; }
+      .value-row button { flex: 0 0 auto; }
+      .issues { border-left: 3px solid var(--warn, #b7791f); padding-left: 12px; }
+      .issues .missing { color: #8d2f1f; }
+      .issues .ambiguous, .issues .duplicate, .issues .invalid_hostname, .issues .invalid_address { color: #8a6d00; }
+      .issues .ok { color: #2f6d3a; }
+      pre { background: var(--panel-2, #f4f6f8); padding: 12px; border-radius: 6px; overflow: auto; white-space: pre-wrap; }
+      .actions { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+      .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: var(--panel-2, #eee); }
+      .badge.draft { background: #fbe9c8; color: #8a6d00; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div data-topbar></div>
+      <article class="panel">
+        <h1>Cluster Import</h1>
+        <p class="muted">Upload a customer-completed NetApp workbook to extract cluster name, node names, DNS and NTP servers, review them, and generate Ansible inputs.</p>
+
+        <div id="dropzone" class="dropzone" tabindex="0">
+          <p>Drop an <code>.xlsx</code> / <code>.xlsm</code> workbook here, or click to browse.</p>
+          <p class="muted">Workbooks are parsed on the appliance and never stored permanently.</p>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xlsm" class="hidden" />
+        <p id="upload-status" class="muted"></p>
+
+        <section id="review" class="hidden">
+          <h2>Review extracted configuration</h2>
+          <div class="field-grid">
+            <div class="field-block">
+              <label for="f-cluster">Cluster name<span id="cluster-src" class="source-hint"></span></label>
+              <input id="f-cluster" type="text" />
+            </div>
+            <div class="field-block">
+              <label>Node names</label>
+              <div id="node-list"></div>
+              <button type="button" id="add-node">+ Add node</button>
+            </div>
+            <div class="field-block">
+              <label>DNS servers</label>
+              <div id="dns-list"></div>
+              <button type="button" id="add-dns">+ Add DNS</button>
+            </div>
+            <div class="field-block">
+              <label>NTP servers</label>
+              <div id="ntp-list"></div>
+              <button type="button" id="add-ntp">+ Add NTP</button>
+            </div>
+          </div>
+
+          <h3>Validation</h3>
+          <div id="issues" class="issues"></div>
+
+          <h3>Extraction sources</h3>
+          <div id="sources" class="muted"></div>
+
+          <div class="actions">
+            <button type="button" id="generate-btn">Generate Ansible inputs</button>
+          </div>
+        </section>
+
+        <section id="generated" class="hidden">
+          <h2>Generated Ansible inputs <span class="badge draft">DRAFT</span></h2>
+          <p class="muted" id="required-inputs"></p>
+          <div id="warnings" class="issues"></div>
+          <div class="actions">
+            <button type="button" id="download-vars">Download cluster_vars.yml</button>
+            <button type="button" id="download-playbook">Download deploy_cluster.yml</button>
+          </div>
+          <h3>cluster_vars.yml</h3>
+          <pre id="vars-preview"></pre>
+          <h3>deploy_cluster.yml</h3>
+          <pre id="playbook-preview"></pre>
+        </section>
+      </article>
+    </main>
+    <script src="/static/app.js"></script>
+    <script>
+      const state = { config: null, matches: [], issues: [], generated: null };
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[char]));
+      }
+
+      function setStatus(message, isError) {
+        const el = document.getElementById("upload-status");
+        el.textContent = message;
+        el.style.color = isError ? "#8d2f1f" : "";
+      }
+
+      async function parseFile(file) {
+        if (!file) return;
+        if (!/\.(xlsx|xlsm)$/i.test(file.name)) {
+          setStatus("Unsupported file type. Upload a .xlsx or .xlsm workbook.", true);
+          return;
+        }
+        setStatus("Parsing " + escapeHtml(file.name) + "…");
+        const form = new FormData();
+        form.append("file", file);
+        const response = await fetch("/api/cluster/parse", { method: "POST", body: form });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          setStatus(payload.detail || "Workbook parsing failed.", true);
+          return;
+        }
+        state.config = payload.config;
+        state.matches = payload.matches || [];
+        state.issues = payload.issues || [];
+        state.generated = null;
+        setStatus("");
+        renderReview();
+      }
+
+      function sourceHint(field) {
+        const cells = state.matches.filter((m) => m.field === field)
+          .map((m) => m.location.sheet + "!" + m.location.cell);
+        return cells.length ? "from " + cells.join(", ") : "";
+      }
+
+      function renderReview() {
+        document.getElementById("review").classList.remove("hidden");
+        document.getElementById("generated").classList.add("hidden");
+        const config = state.config;
+        document.getElementById("f-cluster").value = config.cluster_name || "";
+        document.getElementById("cluster-src").textContent = sourceHint("cluster_name");
+
+        renderList("node-list", config.nodes.map((n) => n.name), "nodes");
+        renderList("dns-list", config.dns_servers, "dns_servers");
+        renderList("ntp-list", config.ntp_servers, "ntp_servers");
+
+        const issuesEl = document.getElementById("issues");
+        if (!state.issues.length) {
+          issuesEl.innerHTML = '<div class="ok">No issues detected.</div>';
+        } else {
+          issuesEl.innerHTML = state.issues.map((issue) =>
+            `<div class="${escapeHtml(issue.code)}">${escapeHtml(issue.field)}: ${escapeHtml(issue.message)}</div>`
+          ).join("");
+        }
+
+        const sourcesEl = document.getElementById("sources");
+        if (!state.matches.length) {
+          sourcesEl.textContent = "No raw values matched.";
+        } else {
+          sourcesEl.innerHTML = state.matches.map((m) =>
+            `<div>${escapeHtml(m.field)} = "${escapeHtml(m.value)}" @ ${escapeHtml(m.location.sheet)}!${escapeHtml(m.location.cell)}</div>`
+          ).join("");
+        }
+      }
+
+      function valueRow(field, value, listId) {
+        const row = document.createElement("div");
+        row.className = "value-row";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = value || "";
+        input.dataset.field = field;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.addEventListener("click", () => row.remove());
+        row.append(input, remove);
+        document.getElementById(listId).appendChild(row);
+      }
+
+      function renderList(listId, values, field) {
+        const container = document.getElementById(listId);
+        container.innerHTML = "";
+        if (!values.length) {
+          valueRow(field, "", listId);
+          return;
+        }
+        values.forEach((value) => valueRow(field, value, listId));
+      }
+
+      function listValues(listId) {
+        return Array.from(document.querySelectorAll("#" + listId + " input"))
+          .map((input) => input.value.trim())
+          .filter((value) => value !== "");
+      }
+
+      function collectConfig() {
+        const config = state.config;
+        return {
+          cluster_name: document.getElementById("f-cluster").value.trim() || null,
+          nodes: listValues("node-list").map((name) => ({ name, location: null })),
+          dns_servers: listValues("dns-list"),
+          ntp_servers: listValues("ntp-list"),
+          source: config.source,
+        };
+      }
+
+      async function generate() {
+        const response = await fetch("/api/cluster/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(collectConfig()),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          setStatus(payload.detail || "Generation failed.", true);
+          return;
+        }
+        state.generated = payload;
+        document.getElementById("generated").classList.remove("hidden");
+        document.getElementById("vars-preview").textContent = payload.variables.content;
+        document.getElementById("playbook-preview").textContent = payload.playbook.content;
+        document.getElementById("required-inputs").textContent =
+          "Required inputs not yet collected: " + (payload.required_inputs.join(", ") || "none");
+        const warningsEl = document.getElementById("warnings");
+        warningsEl.innerHTML = (payload.warnings || []).map((w) => `<div>${escapeHtml(w)}</div>`).join("");
+        document.getElementById("generated").scrollIntoView({ behavior: "smooth" });
+      }
+
+      function download(name, content) {
+        const blob = new Blob([content], { type: "text/yaml" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = name;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }
+
+      const dropzone = document.getElementById("dropzone");
+      const fileInput = document.getElementById("file-input");
+
+      dropzone.addEventListener("click", () => fileInput.click());
+      dropzone.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); fileInput.click(); }
+      });
+      dropzone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropzone.classList.add("dragover");
+      });
+      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+      dropzone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("dragover");
+        if (event.dataTransfer.files.length) parseFile(event.dataTransfer.files[0]);
+      });
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files.length) parseFile(fileInput.files[0]);
+      });
+
+      document.getElementById("add-node").addEventListener("click", () => valueRow("nodes", "", "node-list"));
+      document.getElementById("add-dns").addEventListener("click", () => valueRow("dns_servers", "", "dns-list"));
+      document.getElementById("add-ntp").addEventListener("click", () => valueRow("ntp_servers", "", "ntp-list"));
+      document.getElementById("generate-btn").addEventListener("click", generate);
+      document.getElementById("download-vars").addEventListener("click", () => {
+        if (state.generated) download(state.generated.variables.name, state.generated.variables.content);
+      });
+      document.getElementById("download-playbook").addEventListener("click", () => {
+        if (state.generated) download(state.generated.playbook.name, state.generated.playbook.content);
+      });
+    </script>
+  </body>
+</html>

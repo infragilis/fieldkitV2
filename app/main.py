@@ -106,6 +106,11 @@ async def files_page() -> FileResponse:
     return FileResponse("app/static/files.html")
 
 
+@app.get("/cluster-import", include_in_schema=False)
+async def cluster_import_page() -> FileResponse:
+    return FileResponse("app/static/cluster-import.html")
+
+
 @app.get("/serial-settings", include_in_schema=False)
 async def serial_settings_page() -> FileResponse:
     return FileResponse("app/static/serial-settings.html")

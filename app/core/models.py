@@ -51,3 +51,61 @@ class ApplyResult(BaseModel):
     dry_run: bool
     commands: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+
+
+class CellLocation(BaseModel):
+    sheet: str
+    cell: str
+
+
+class NodeConfig(BaseModel):
+    name: str
+    location: CellLocation | None = None
+
+
+class ClusterSource(BaseModel):
+    filename: str
+    parser_version: int = 1
+    template: str = "unknown"
+
+
+class ClusterConfig(BaseModel):
+    schema_version: int = 1
+    cluster_name: str | None = None
+    nodes: list[NodeConfig] = Field(default_factory=list)
+    dns_servers: list[str] = Field(default_factory=list)
+    ntp_servers: list[str] = Field(default_factory=list)
+    source: ClusterSource
+
+
+class FieldMatch(BaseModel):
+    field: str
+    value: str
+    label: str
+    alias: str
+    location: CellLocation
+
+
+class FieldIssue(BaseModel):
+    field: str
+    code: str
+    message: str
+
+
+class ParseResult(BaseModel):
+    config: ClusterConfig
+    matches: list[FieldMatch] = Field(default_factory=list)
+    issues: list[FieldIssue] = Field(default_factory=list)
+
+
+class GeneratedAnsibleFile(BaseModel):
+    name: str
+    content: str
+
+
+class AnsibleGeneration(BaseModel):
+    draft: bool
+    variables: GeneratedAnsibleFile
+    playbook: GeneratedAnsibleFile
+    required_inputs: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
