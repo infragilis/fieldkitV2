@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: Fieldkit Device API
+  description: |
+    Versioned device API served from `https://fieldkit.infragilis.org`.
+    This is the public contract the Fieldkit appliance sync client implements;
+    it contains no server internals or secrets. Device access is authenticated
+    with a per-device token.
+  version: 1.0.0
+servers:
+  - url: https://fieldkit.infragilis.org/api/v1
+    description: Production (configurable at runtime)
+security:
+  - bearerAuth: []
+paths:
+  /device/manifest:
+    get:
+      operationId: getDeviceManifest
+      summary: List files available to this device
+      responses:
+        "200":
+          description: Manifest of files the device may download.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Manifest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /device/files/{file_id}:
+    get:
+      operationId: getDeviceFile
+      summary: Download one file from the manifest
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: File id not found in the device manifest.
+  /device/sync-results:
+    post:
+      operationId: reportSyncResults
+      summary: Report the outcome of a sync back to the server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncResults"
+      responses:
+        "202":
+          description: Results accepted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    Unauthorized:
+      description: Missing or invalid device token.
+  schemas:
+    Manifest:
+      type: object
+      required: [manifest_version, files]
+      properties:
+        manifest_version:
+          type: integer
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManifestEntry"
+    ManifestEntry:
+      type: object
+      required: [id, name, size, sha256]
+      properties:
+        id:
+          type: string
+          description: Stable opaque identifier for the file version.
+        name:
+          type: string
+          description: Relative path/name the file is stored under on the device.
+        size:
+          type: integer
+        sha256:
+          type: string
+          description: Lowercase hex digest of the file content.
+        version:
+          type: integer
+          description: Monotonic content version; higher replaces lower.
+    SyncResults:
+      type: object
+      required: [device_id, files]
+      properties:
+        device_id:
+          type: string
+        files:
+          type: array
+          items:
+            type: object
+            required: [id, status]
+            properties:
+              id:
+                type: string
+              status:
+                type: string
+                enum: [ok, failed, skipped]
+              error:
+                type: string
+                description: Optional failure detail.

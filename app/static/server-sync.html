@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fieldkit Server Sync</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      article { padding: 24px; }
+      .status-row { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+      .status-row dt { width: 140px; color: var(--muted, #888); }
+      .result { font-family: monospace; white-space: pre-wrap; background: var(--panel-2, #f4f6f8); padding: 12px; border-radius: 6px; }
+      .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: var(--panel-2, #eee); }
+      .badge.ok { background: #dff0d8; color: #2f6d3a; }
+      .badge.missing { background: #fbe9c8; color: #8a6d00; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div data-topbar></div>
+      <article class="panel">
+        <h1>Server Sync</h1>
+        <p class="muted">Download content (manifests and files) from the Fieldkit server into the local <code>data</code> library.</p>
+
+        <h2>Status</h2>
+        <dl>
+          <div class="status-row"><dt>Configured</dt><dd><span id="configured" class="badge missing">…</span></dd></div>
+          <div class="status-row"><dt>Server URL</dt><dd id="base-url">…</dd></div>
+          <div class="status-row"><dt>Device ID</dt><dd id="device-id">…</dd></div>
+        </dl>
+
+        <div class="actions" style="display:flex; gap:12px; margin:16px 0;">
+          <button type="button" id="sync-btn">Sync now</button>
+        </div>
+
+        <p id="sync-status" class="muted"></p>
+        <h3 class="hidden" id="result-heading">Result</h3>
+        <pre id="result" class="result hidden"></pre>
+      </article>
+    </main>
+    <script src="/static/app.js"></script>
+    <script>
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[char]));
+      }
+
+      async function loadStatus() {
+        const response = await fetch("/api/server-sync/status");
+        const payload = await response.json();
+        const configured = document.getElementById("configured");
+        configured.textContent = payload.configured ? "configured" : "not configured";
+        configured.className = "badge " + (payload.configured ? "ok" : "missing");
+        document.getElementById("base-url").textContent = payload.base_url;
+        document.getElementById("device-id").textContent = payload.device_id;
+      }
+
+      async function sync() {
+        const button = document.getElementById("sync-btn");
+        const status = document.getElementById("sync-status");
+        button.disabled = true;
+        status.textContent = "Syncing…";
+        try {
+          const response = await fetch("/api/server-sync/sync", { method: "POST" });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            status.textContent = payload.detail || "Sync failed.";
+            return;
+          }
+          status.textContent = "Sync complete.";
+          document.getElementById("result-heading").classList.remove("hidden");
+          const result = document.getElementById("result");
+          result.classList.remove("hidden");
+          result.textContent = (payload.files || []).map((f) =>
+            `${f.status}\t${f.name || f.id}${f.error ? "\t(" + f.error + ")" : ""}`
+          ).join("\n") || "No files in manifest.";
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      document.getElementById("sync-btn").addEventListener("click", sync);
+      loadStatus();
+    </script>
+  </body>
+</html>

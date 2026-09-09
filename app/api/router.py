@@ -5,6 +5,7 @@ from app.api.routes import (
     connectivity,
     files,
     serial,
+    server_sync,
     settings,
     shell,
     system,
@@ -20,3 +21,4 @@ api_router.include_router(shell.router, prefix="/shell", tags=["shell"])
 api_router.include_router(system.router, prefix="/system", tags=["system"])
 api_router.include_router(transfers.router, prefix="/transfers", tags=["transfers"])
 api_router.include_router(cluster_import.router, prefix="/cluster", tags=["cluster-import"])
+api_router.include_router(server_sync.router, prefix="/server-sync", tags=["server-sync"])

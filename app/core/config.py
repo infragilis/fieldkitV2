@@ -16,6 +16,7 @@ class RuntimeSettings(BaseModel):
     settings_file: str = "settings.json"
     command_timeout_seconds: float = 30.0
     cluster_max_upload_bytes: int = 20 * 1024 * 1024
+    server_base_url: str = "https://fieldkit.infragilis.org"
     dry_run_system_changes: bool = False
     dry_run_transfer_changes: bool = False
 

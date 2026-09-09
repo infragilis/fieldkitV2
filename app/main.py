@@ -111,6 +111,11 @@ async def cluster_import_page() -> FileResponse:
     return FileResponse("app/static/cluster-import.html")
 
 
+@app.get("/server-sync", include_in_schema=False)
+async def server_sync_page() -> FileResponse:
+    return FileResponse("app/static/server-sync.html")
+
+
 @app.get("/serial-settings", include_in_schema=False)
 async def serial_settings_page() -> FileResponse:
     return FileResponse("app/static/serial-settings.html")
