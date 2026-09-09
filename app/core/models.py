@@ -33,6 +33,11 @@ class TransferServicesConfig(BaseModel):
     ftp_enabled: bool = False
 
 
+class ServerSyncConfig(BaseModel):
+    base_url: str = "https://fieldkit.infragilis.org"
+    device_token: str = ""
+
+
 class AppSettingsPayload(BaseModel):
     hostname: str = "fieldkit"
     ethernet: EthernetConfig = Field(default_factory=EthernetConfig)
@@ -44,6 +49,7 @@ class AppSettingsPayload(BaseModel):
         ]
     )
     transfer_services: TransferServicesConfig = Field(default_factory=TransferServicesConfig)
+    server_sync: ServerSyncConfig = Field(default_factory=ServerSyncConfig)
 
 
 class ApplyResult(BaseModel):

@@ -86,3 +86,41 @@ def test_sync_skips_unchanged_file(monkeypatch, tmp_path):
     result = service.sync()
 
     assert result["files"][0]["status"] == "skipped"
+
+
+def test_sync_maps_library_from_manifest(monkeypatch, tmp_path):
+    content = b"personal note\n"
+    sha = hashlib.sha256(content).hexdigest()
+    manifest = {
+        "manifest_version": 1,
+        "files": [
+            {"id": sha, "name": "personal/example/note.txt", "path": "note.txt", "library": "personal", "size": len(content), "sha256": sha},
+        ],
+    }
+    service = _service(monkeypatch, tmp_path, manifest, content)
+
+    result = service.sync()
+
+    assert result["files"][0]["status"] == "ok"
+    personal_root = service._storage.library_paths()["personal"]
+    assert (personal_root / "note.txt").read_bytes() == content
+    data_root = service._storage.library_paths()["data"]
+    assert not (data_root / "note.txt").exists()
+
+
+def test_sync_maps_data_path_to_data_library(monkeypatch, tmp_path):
+    content = b"shared\n"
+    sha = hashlib.sha256(content).hexdigest()
+    manifest = {
+        "manifest_version": 1,
+        "files": [
+            {"id": sha, "name": "data/kits/x.txt", "path": "kits/x.txt", "library": "data", "size": len(content), "sha256": sha},
+        ],
+    }
+    service = _service(monkeypatch, tmp_path, manifest, content)
+
+    result = service.sync()
+
+    assert result["files"][0]["status"] == "ok"
+    data_root = service._storage.library_paths()["data"]
+    assert (data_root / "kits" / "x.txt").read_bytes() == content

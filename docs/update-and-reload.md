@@ -10,6 +10,7 @@ The currently deployed web UI includes:
 - popup console windows at `/serial-console/0` and `/serial-console/1`
 - a files page at `/files`
 - a cluster-import page at `/cluster-import` (NetApp workbook → Ansible)
+- a server-sync page at `/server-sync` (download from the Fieldkit server)
 - a raw export browser at `/fieldkit`
 - a tools page at `/tools`
 

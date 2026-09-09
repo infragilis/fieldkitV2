@@ -15,6 +15,10 @@
       .badge.ok { background: #dff0d8; color: #2f6d3a; }
       .badge.missing { background: #fbe9c8; color: #8a6d00; }
       .hidden { display: none; }
+      .field { margin-bottom: 12px; }
+      .field label { display: block; font-weight: 600; margin-bottom: 4px; }
+      .field input { width: 100%; padding: 8px 10px; border: 1px solid var(--border, #ccc); border-radius: 6px; }
+      .hint { color: var(--muted, #888); font-size: 0.85rem; }
     </style>
   </head>
   <body>
@@ -22,12 +26,24 @@
       <div data-topbar></div>
       <article class="panel">
         <h1>Server Sync</h1>
-        <p class="muted">Download content (manifests and files) from the Fieldkit server into the local <code>data</code> library.</p>
+        <p class="muted">Download content from the Fieldkit server into the local <code>data</code> and <code>personal</code> libraries.</p>
+
+        <h2>Configuration</h2>
+        <div class="field">
+          <label for="base-url">Server URL</label>
+          <input type="text" id="base-url" value="https://fieldkit.infragilis.org" />
+        </div>
+        <div class="field">
+          <label for="device-token">Device token</label>
+          <input type="password" id="device-token" placeholder="Paste the token from the Fieldkit server" autocomplete="off" />
+          <p class="hint">Get this from the Fieldkit server web UI (Dashboard → Device token).</p>
+        </div>
+        <button type="button" id="save-btn">Save configuration</button>
+        <p id="save-status" class="muted"></p>
 
         <h2>Status</h2>
         <dl>
           <div class="status-row"><dt>Configured</dt><dd><span id="configured" class="badge missing">…</span></dd></div>
-          <div class="status-row"><dt>Server URL</dt><dd id="base-url">…</dd></div>
           <div class="status-row"><dt>Device ID</dt><dd id="device-id">…</dd></div>
         </dl>
 
@@ -54,8 +70,36 @@
         const configured = document.getElementById("configured");
         configured.textContent = payload.configured ? "configured" : "not configured";
         configured.className = "badge " + (payload.configured ? "ok" : "missing");
-        document.getElementById("base-url").textContent = payload.base_url;
         document.getElementById("device-id").textContent = payload.device_id;
+        if (payload.base_url) {
+          document.getElementById("base-url").value = payload.base_url;
+        }
+      }
+
+      async function saveConfig() {
+        const button = document.getElementById("save-btn");
+        const status = document.getElementById("save-status");
+        button.disabled = true;
+        status.textContent = "Saving…";
+        try {
+          const response = await fetch("/api/server-sync/config", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              base_url: document.getElementById("base-url").value.trim(),
+              device_token: document.getElementById("device-token").value.trim(),
+            }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            status.textContent = payload.detail || "Save failed.";
+            return;
+          }
+          status.textContent = "Saved.";
+          loadStatus();
+        } finally {
+          button.disabled = false;
+        }
       }
 
       async function sync() {
@@ -82,6 +126,7 @@
         }
       }
 
+      document.getElementById("save-btn").addEventListener("click", saveConfig);
       document.getElementById("sync-btn").addEventListener("click", sync);
       loadStatus();
     </script>

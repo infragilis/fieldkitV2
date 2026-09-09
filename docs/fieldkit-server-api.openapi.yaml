@@ -84,14 +84,17 @@ components:
             $ref: "#/components/schemas/ManifestEntry"
     ManifestEntry:
       type: object
-      required: [id, name, size, sha256]
+      required: [id, name, path, size, sha256, library]
       properties:
         id:
           type: string
           description: Stable opaque identifier for the file version.
         name:
           type: string
-          description: Relative path/name the file is stored under on the device.
+          description: Full relative path on the server (e.g. `data/kits/x.txt` or `personal/<user>/y.txt`).
+        path:
+          type: string
+          description: Path relative to the target library (e.g. `kits/x.txt` or `y.txt`).
         size:
           type: integer
         sha256:
@@ -100,6 +103,10 @@ components:
         version:
           type: integer
           description: Monotonic content version; higher replaces lower.
+        library:
+          type: string
+          enum: [data, personal]
+          description: Which appliance library the file belongs in.
     SyncResults:
       type: object
       required: [device_id, files]

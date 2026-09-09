@@ -1,9 +1,9 @@
 """Synchronize content from the Fieldkit server down to the appliance.
 
 Implements the public device API contract (`docs/fieldkit-server-api.openapi.yaml`):
-manifest -> files -> sync-results. The server base URL is configurable and the
-device token is read from the environment at runtime (never committed or
-persisted in settings).
+manifest -> files -> sync-results. The server base URL and device token are read
+from the persisted appliance settings (with the token also overridable via the
+``FIELDKIT_DEVICE_TOKEN`` environment variable); neither is committed.
 """
 
 import hashlib
@@ -13,33 +13,48 @@ import socket
 import httpx
 
 from app.core.config import get_settings
+from app.services.settings_store import SettingsStore
 from app.services.storage import StorageService
 
 DEVICE_TOKEN_ENV = "FIELDKIT_DEVICE_TOKEN"
+SYNC_LIBRARIES = {"data", "personal"}
 
 
 class ServerSyncService:
     def __init__(self) -> None:
-        self._settings = get_settings()
-        self._storage = StorageService(self._settings)
-        self._token = os.environ.get(DEVICE_TOKEN_ENV, "")
+        self._runtime = get_settings()
+        self._storage = StorageService(self._runtime)
+        self._store = SettingsStore()
+
+    def _config(self):
+        return self._store.load().server_sync
+
+    def _token(self) -> str:
+        env_token = os.environ.get(DEVICE_TOKEN_ENV, "")
+        if env_token:
+            return env_token
+        return self._config().device_token
+
+    def _base_url(self) -> str:
+        url = self._config().base_url or self._runtime.server_base_url
+        return url.rstrip("/")
 
     @property
     def configured(self) -> bool:
-        return bool(self._settings.server_base_url and self._token)
+        return bool(self._base_url() and self._token())
 
     def base_url(self) -> str:
-        return self._settings.server_base_url.rstrip("/")
+        return self._base_url()
 
     def device_id(self) -> str:
         return socket.gethostname()
 
     def _headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self._token}"}
+        return {"Authorization": f"Bearer {self._token()}"}
 
     def get_manifest(self) -> dict:
         with httpx.Client(timeout=30.0) as client:
-            response = client.get(f"{self.base_url()}/api/v1/device/manifest", headers=self._headers())
+            response = client.get(f"{self._base_url()}/api/v1/device/manifest", headers=self._headers())
             response.raise_for_status()
             return response.json()
 
@@ -53,19 +68,23 @@ class ServerSyncService:
         return {"manifest_version": manifest.get("manifest_version"), "files": results}
 
     def _sync_file(self, entry: dict) -> tuple[str, str | None]:
-        name = self._safe_name(entry.get("name", ""))
-        if name is None:
+        library = entry.get("library") or "data"
+        if library not in SYNC_LIBRARIES:
+            return "failed", f"unexpected library: {library}"
+        name = entry.get("path") or entry.get("name") or ""
+        safe = self._safe_name(name)
+        if safe is None:
             return "failed", "manifest entry has an unsafe or missing name"
-        data_root = self._storage.library_paths()["data"].resolve()
-        target = (data_root / name).resolve()
-        if data_root not in target.parents:
-            return "failed", "path escapes the data library"
+        root = self._storage.library_paths()[library].resolve()
+        target = (root / safe).resolve()
+        if root not in target.parents and target != root:
+            return "failed", "path escapes the target library"
         if target.is_file() and self._sha256(target) == entry.get("sha256"):
             return "skipped", None
         try:
             with httpx.Client(timeout=120.0) as client:
                 response = client.get(
-                    f"{self.base_url()}/api/v1/device/files/{entry['id']}", headers=self._headers()
+                    f"{self._base_url()}/api/v1/device/files/{entry['id']}", headers=self._headers()
                 )
                 response.raise_for_status()
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -80,7 +99,7 @@ class ServerSyncService:
         try:
             with httpx.Client(timeout=30.0) as client:
                 client.post(
-                    f"{self.base_url()}/api/v1/device/sync-results",
+                    f"{self._base_url()}/api/v1/device/sync-results",
                     headers=self._headers(),
                     json={"device_id": self.device_id(), "files": results},
                 )

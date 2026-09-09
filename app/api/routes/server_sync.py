@@ -1,14 +1,29 @@
 import httpx
 from fastapi import APIRouter, HTTPException
 
+from app.core.models import ServerSyncConfig
 from app.services.server_sync import ServerSyncService
+from app.services.settings_store import SettingsStore
 
 router = APIRouter()
 service = ServerSyncService()
+store = SettingsStore()
 
 
 @router.get("/status")
 async def status():
+    return {
+        "configured": service.configured,
+        "base_url": service.base_url(),
+        "device_id": service.device_id(),
+    }
+
+
+@router.put("/config")
+async def set_config(payload: ServerSyncConfig):
+    settings = store.load()
+    settings.server_sync = payload
+    store.save(settings)
     return {
         "configured": service.configured,
         "base_url": service.base_url(),
