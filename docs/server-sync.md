@@ -5,6 +5,12 @@ libraries. Configure the server URL and a device token on **Server Sync**
 (`/server-sync`). Leaving the token field blank when saving keeps the saved
 token. `FIELDKIT_DEVICE_TOKEN` can override it for managed installations.
 
+The main shared vendor structure is **`data/{fos,bes,cisco,ontap,nvidia}`**, for
+software, firmware and reference files. **`personal`** is for configuration files
+and other user-specific content. Select **Shared data** when uploading vendor
+files to the server; it is the default for users with shared-data upload permission.
+The selected library and folder determine where files appear on the kit.
+
 ## Automatic and manual checks
 
 - `fieldkit-server-sync.timer` starts a check **10 minutes after boot**, then
@@ -40,6 +46,11 @@ from a manifest.
 
 ## Data folders
 
+On the **server webfront**, open **Data**, then choose a folder from the picker
+to view its contents and download files. This server page also contains **My sync
+subscriptions**. On the appliance, use **Files → data** or **Files → personal**
+to browse downloaded files; folder links and **Up one level** handle navigation.
+
 The runtime creates these folders without moving existing content:
 
 ```text
@@ -57,6 +68,44 @@ Files still published with a root-level path stay at the root; the kit does not
 guess a vendor from filenames. Server upload placement is configured separately
 in the server project. The Files page supports opening folders and moving up a
 level, including links such as `/files?library=data&path=ontap`.
+
+## Subscribe to the server folders you need
+
+In the server webfront's **Data → My sync subscriptions**, turn off **Sync all
+current and future data folders** to choose individual folders, then click
+**Save subscriptions**. The next scheduled check or **Sync now** uses that selection.
+
+- Choices apply to all kits using that server user's device token.
+- Personal files always sync. Selected top-level data folders include their
+  descendants. Root data files have a separate checkbox.
+- Select none for personal-only sync. The all-folder option includes future data
+  folders too.
+- Existing users retain all-folder behavior until they change it. New accounts
+  start with no data subscriptions and choose their folders explicitly.
+- Uploading a shared file does not subscribe a user automatically.
+- Already-downloaded files remain on the kit after unsubscribing. Changing a
+  selection during a running sync takes full effect at the next manifest check.
+
+Subscriptions are implemented by the server's per-user manifest filtering. No
+appliance token change or new client configuration is required. Server browsing
+and manual downloads remain available independently of automatic sync choices.
+
+## Uploading large files to the server
+
+The server dashboard supports resumable uploads in 8 MiB chunks, with upload
+progress, transferred bytes, speed/ETA, retry/cancel, and an explicit verified
+completion result. Choose the library and optional relative folder (for example,
+`ontap`) before uploading. Shared-data upload requires the server account's
+permission.
+
+After an interruption, use **Retry / resume**. If the page was reopened, reselect
+the original file first. Pending uploads are retained for seven days; the browser
+remembers one pending upload per signed-in user. Files become visible to kit sync
+only after the server verifies all uploaded bytes and publishes the complete file.
+Server-upload progress and the kit's subsequent download progress are separate.
+
+The server implementation and upload API are documented in the private server
+repository's `UPLOADS.md`. The kit continues to use the same device API contract.
 
 ## API
 

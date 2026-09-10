@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit README</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
     <style>
       main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
       article { padding: 24px; }
@@ -18,7 +18,7 @@
         <pre id="readme-body">Loading...</pre>
       </article>
     </main>
-    <script src="/static/app.js" defer></script>
+    <script src="/static/app.js?v=ui-0.1.5-20260910" defer></script>
     <script>
       async function loadReadmeContent(language) {
         const response = await fetch(`/api/readme-content?lang=${encodeURIComponent(language)}`);

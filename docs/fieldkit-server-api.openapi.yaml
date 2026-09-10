@@ -5,7 +5,9 @@ info:
     Versioned device API served from `https://fieldkit.infragilis.org`.
     This is the public contract the Fieldkit appliance sync client implements;
     it contains no server internals or secrets. Device access is authenticated
-    with a per-device token.
+    with a device token linked to a server user. The manifest includes that user's
+    personal files and subscribed shared data folders. Missing manifest entries
+    do not instruct the appliance to delete previously downloaded files.
   version: 1.0.0
 servers:
   - url: https://fieldkit.infragilis.org/api/v1
@@ -19,7 +21,7 @@ paths:
       summary: List files available to this device
       responses:
         "200":
-          description: Manifest of files the device may download.
+          description: Manifest of the user's personal files and currently subscribed data files.
           content:
             application/json:
               schema:
@@ -70,7 +72,7 @@ components:
       scheme: bearer
   responses:
     Unauthorized:
-      description: Missing or invalid device token.
+      description: Missing or invalid device token, or the token's user no longer exists.
   schemas:
     Manifest:
       type: object
@@ -88,7 +90,7 @@ components:
       properties:
         id:
           type: string
-          description: Stable opaque identifier for the file version.
+          description: Stable opaque identifier for the file version. Identical bytes at different paths may share an identifier.
         name:
           type: string
           description: Full relative path on the server (e.g. `data/kits/x.txt` or `personal/<user>/y.txt`).

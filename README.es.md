@@ -2,6 +2,31 @@
 
 Fieldkit es una herramienta basada en Raspberry Pi para trabajo de campo sobre equipos de red. Ofrece una interfaz web local para consola, archivos, servicios de transferencia y gestion del appliance.
 
+Version actual del appliance: **v0.1.5**. Cluster Import y Server Sync muestran
+etiquetas **beta** azules en el menu.
+
+## Sincronizacion Del Servidor Y Archivos
+
+- Configure la URL del servidor y su token en **Server Sync** del appliance.
+  La comprobacion comienza 10 minutos despues del arranque y luego cada hora;
+  **Sync now** la inicia inmediatamente. Se verifican el tamano y la suma de comprobacion.
+- **`data/{fos,bes,cisco,ontap,nvidia}`** contiene archivos compartidos de fabricantes;
+  **`personal`** es para configuraciones y archivos propios del usuario.
+- En la **interfaz web del servidor**, **Data** ofrece un selector de carpetas,
+  descargas y **My sync subscriptions**. Seleccione las carpetas y guarde. Todos
+  los kits con su token siguen esa seleccion; los archivos personales siempre se sincronizan.
+- Las cuentas existentes conservan todas las carpetas hasta modificarlas. Las
+  cuentas nuevas empiezan solo con archivos personales. Cancelar una suscripcion
+  no elimina archivos ya descargados en el kit.
+- El servidor permite cargas reanudables en bloques de 8 MiB, con progreso,
+  velocidad, tiempo restante y reintento/cancelacion. Subir un archivo no activa
+  automaticamente la suscripcion a su carpeta.
+- En el **appliance**, use **Files → data** o **Files → personal** para los archivos
+  locales. Las suscripciones se administran en el servidor.
+
+Mas informacion: [Server Sync](docs/server-sync.md) y
+[Cluster Import](docs/cluster-import.md) (ingles).
+
 ## Que Hace Fieldkit
 
 - Ofrece dos sesiones de consola serie USB con ventanas emergentes

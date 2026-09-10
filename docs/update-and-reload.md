@@ -161,7 +161,7 @@ This uploads a temporary file to `personal` and verifies:
 ## Notes
 
 - Short `502` responses from nginx can happen during app restarts if the proxy comes up before uvicorn is ready.
-- Browser hard refreshes may be needed after frontend changes because `app.js` and `styles.css` are cached by the browser. Use a cache-busted URL (`?v=...`) on `app.js` when shipping frontend changes.
+- Browser hard refreshes may be needed after frontend changes because `app.js` and `styles.css` are cached by the browser. Use a fresh shared cache revision (`?v=...`) on **both assets across all HTML templates** when shipping shared UI changes. Keep those revisions when reverting unrelated page markup, so a rollback does not reuse an older cached stylesheet/script URL.
 - `/pi-shell` also depends on vendored terminal assets under `app/static/vendor`, so a hard refresh is especially important after shell UI changes.
 - If `git pull --ff-only` fails, inspect local changes before forcing anything.
 - Keep the repo and deployed app rooted at `/opt/fieldkit` for consistency with the current systemd and nginx assets.

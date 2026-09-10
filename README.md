@@ -3,6 +3,9 @@
 Fieldkit is a Raspberry Pi toolkit for field work on network equipment. It gives you a local web interface for console access, file handling, transfer services, and appliance management.
 Apple devices can reach the GUI at http://fieldkit.local/ while connected to the Fieldkit AP. Direct fallback: http://10.42.0.1/
 
+Current appliance version: **v0.1.5**. Cluster Import and Server Sync are marked
+with blue **beta** badges in the menu.
+
 ## What Fieldkit Does
 
 - Provides two USB serial console sessions with popup console windows
@@ -36,10 +39,34 @@ Fieldkit stores uploaded files, exported files, and serial session logs on the a
 - Dashboard for quick access to consoles, files, docs, and settings
 - Settings page for connectivity, transfer-service toggles, password change, and serial presets
 - Files page for browsing `data`, `personal`, `usb`, and `serial-logs`
+- Cluster workbook import and draft Ansible output at `/cluster-import` (beta)
+- Background server sync, progress and last-result history at `/server-sync` (beta)
 - Raw export browser at `/fieldkit` for direct file access
 - Browser shell at `/pi-shell`
 - Local documentation index at `/kit-docs`
 - Localized README page at `/readme`
+
+## Server Sync And File Libraries
+
+Configure the server URL and your device token on the appliance's **Server Sync**
+page. Checks run 10 minutes after boot and hourly, with **Sync now** for an immediate
+check. Downloaded files are size/checksum verified before publication.
+
+- **`data/{fos,bes,cisco,ontap,nvidia}`** is the shared vendor library for software,
+  firmware and reference files. **`personal`** holds your configs and user-specific files.
+- On the **server webfront**, **Data** provides folder browsing, Download buttons
+  and **My sync subscriptions**. Choose folders and save; every kit using your
+  token follows those choices on its next sync. Personal files always sync.
+- Existing accounts keep all-folder sync until edited; new accounts start with
+  personal files only. Unsubscribing leaves already-downloaded files on the kit.
+- The server uploader supports resumable 8 MiB chunks, progress/speed/ETA,
+  retry/cancel and verified completion. Uploading a shared file does not
+  automatically subscribe you to its folder.
+- On the **appliance**, use **Files → data** or **Files → personal** to browse and
+  download local content. The Data picker and subscriptions belong to the server.
+
+See [Server Sync](docs/server-sync.md) for setup and behavior, and
+[Cluster Import](docs/cluster-import.md) for workbook import.
 
 ## Transfer Options
 
@@ -121,6 +148,9 @@ Default bootstrap credentials are `service` / `service`. The Fieldkit Wi-Fi AP s
 - [docs/update-and-reload.md](docs/update-and-reload.md)
 - [docs/golden-image-checklist.md](docs/golden-image-checklist.md)
 - [docs/architecture.md](docs/architecture.md)
+- [docs/server-sync.md](docs/server-sync.md)
+- [docs/cluster-import.md](docs/cluster-import.md)
+- [Device API contract](docs/fieldkit-server-api.openapi.yaml)
 
 ## Open Source
 
