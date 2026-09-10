@@ -56,11 +56,45 @@ Rules:
 
 ## Session Start
 
+Read `AGENTS.md`, then task-relevant local handoff/docs and the needed memory
+branches. Explicitly requested work may span the appliance and private server
+repositories; before entering either, read its own startup/deployment rules.
+Appliance tests/builds run on an isolated appliance copy; server testing follows
+the server repository's runbook. Do not merge the two projects' operational
+secrets, source, or memory stores.
+
 If the shell is available, run at session start:
 
 ```bash
 bedrock sync --project .
 ```
+
+Run sync with the intended repository as the project root. A changed `AGENTS.md`
+is loaded by new sessions; long-running sessions may retain startup instructions,
+so start a fresh session when a changed scope has not taken effect.
+
+## Obsidian
+
+The actual Fieldkit vault is `bedrock/`. The convenience link
+`obsidian/_bedrock-projects/fieldkit -> ../../bedrock` points to the same files;
+there is no second copy to update. Open `bedrock/` as an Obsidian vault and start
+with `Memory/MEMORY.md`. Generated `Outputs/` and archived `History/` material are
+reference views, not canonical current state. Keep the private server's vault
+separate.
+
+## Validation and Known Tooling Limits
+
+After a knowledge update, run `bedrock sync --project .`, then
+`bedrock validate --project .`. Use `bedrock doctor --project .` for integration
+diagnostics. These check layout/integration; they do not establish that every
+stored fact agrees with current code or live behavior.
+
+The 2026-09-10 check of Bedrock 0.4.10 found that `bedrock import --dry-run --json`
+exits 1 without diagnostics, while regular sync works. Until fixed in the
+tooling's own project, maintain curated Memory directly and distinguish any
+failed import from a successful sync. The local Cursor hook schema/unsupported
+CLI option also needs separate repair. Missing optional Claude integration
+files are not a reason to regenerate project instructions automatically.
 
 ## Memory Maintenance
 
