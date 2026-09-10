@@ -1,3 +1,4 @@
+import asyncio
 import json
 from contextlib import asynccontextmanager
 from html import escape
@@ -9,6 +10,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
+from app.api.routes.server_sync import job as server_sync_job
 from app.core.config import get_settings
 from app.services.docs_catalog import list_topics, topic_path
 from app.services.storage import StorageService, ensure_runtime_layout
@@ -18,7 +20,10 @@ from app.services.storage import StorageService, ensure_runtime_layout
 async def lifespan(_: FastAPI):
     ensure_runtime_layout(get_settings())
     storage_service.sync_export_tree()
-    yield
+    try:
+        yield
+    finally:
+        await asyncio.to_thread(server_sync_job.stop)
 
 
 app = FastAPI(title="Fieldkit", version="0.1.4", lifespan=lifespan)

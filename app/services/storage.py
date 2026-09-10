@@ -4,6 +4,8 @@ from typing import BinaryIO
 
 from app.core.config import RuntimeSettings
 
+DATA_SUBDIRECTORIES = ("ontap", "bes", "cisco", "nvidia", "fos")
+
 
 def ensure_runtime_layout(settings: RuntimeSettings) -> None:
     for path in (
@@ -15,6 +17,8 @@ def ensure_runtime_layout(settings: RuntimeSettings) -> None:
         settings.state_root / settings.serial_log_dir_name,
     ):
         path.mkdir(parents=True, exist_ok=True)
+    for name in DATA_SUBDIRECTORIES:
+        (settings.content_root / settings.data_dir_name / name).mkdir(parents=True, exist_ok=True)
 
 
 class StorageService:
@@ -96,7 +100,8 @@ class StorageService:
         return {"path": current_path, "items": items}
 
     def list_library(self, library: str, relative_path: str = "") -> dict:
-        base = self.resolve_download(library, relative_path) if relative_path else self._library_root(library)
+        root = self._library_root(library).resolve()
+        base = self.resolve_download(library, relative_path) if relative_path else root
         if not base.exists():
             raise FileNotFoundError(relative_path)
         if not base.is_dir():
@@ -106,7 +111,7 @@ class StorageService:
         for entry in sorted(base.iterdir(), key=lambda path: (not path.is_dir(), path.name.lower())):
             if entry.name.startswith("."):
                 continue
-            relative_entry_path = str(entry.relative_to(self._library_root(library)))
+            relative_entry_path = str(entry.relative_to(root))
             dedupe_key = str(entry.resolve(strict=False))
             if dedupe_key in seen_paths or relative_entry_path in seen_paths:
                 continue
@@ -121,7 +126,7 @@ class StorageService:
                     "deletable": self._is_deletable_library(library) and entry.is_file(),
                 }
             )
-        return {"library": library, "path": str(base.relative_to(self._library_root(library))), "items": items}
+        return {"library": library, "path": str(base.relative_to(root)), "items": items}
 
     def save_personal_upload(self, filename: str, stream: BinaryIO) -> Path:
         return self.save_upload("personal", filename, stream)

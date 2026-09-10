@@ -1,0 +1,12 @@
+[Unit]
+Description=Start a Fieldkit server content sync
+After=network-online.target fieldkit-web.service
+Wants=network-online.target
+Requires=fieldkit-web.service
+
+[Service]
+Type=oneshot
+User=service
+ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 15 --request POST http://127.0.0.1:8000/api/server-sync/sync?trigger=scheduled
+StandardOutput=null
+TimeoutStartSec=20

@@ -14,6 +14,11 @@ The currently deployed web UI includes:
 - a raw export browser at `/fieldkit`
 - a tools page at `/tools`
 
+Server sync runs in the background, automatically 10 minutes after boot and
+hourly thereafter, with manual **Sync now**, live progress/ETA, and persisted
+last results. See [Server Sync](server-sync.md) for its timer installation,
+asynchronous API, and the `data/{ontap,bes,cisco,nvidia,fos}` directory layout.
+
 All page HTML lives in `app/static/*.html` templates. `app/main.py` only serves files and fills in small placeholders (export listing, docs topics, console index). The topbar is rendered once by `renderTopbar()` in `app/static/app.js`; the version badge is fetched from `/openapi.json`, so bump the version only in `pyproject.toml` and `app/main.py`.
 
 Fieldkit is served over HTTP (port 80) and HTTPS (port 443) using a self-signed

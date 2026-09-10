@@ -110,6 +110,7 @@ if [[ "${START_SERVICES}" == "1" ]]; then
   log "Starting Fieldkit services"
   systemctl restart fieldkit-startup-network.service
   systemctl restart fieldkit-web.service
+  systemctl restart fieldkit-server-sync.timer
   systemctl reload nginx || systemctl restart nginx
 fi
 

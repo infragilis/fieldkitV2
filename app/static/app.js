@@ -987,6 +987,7 @@ function buildSettingsPayload() {
   const ethernet = currentSettings?.ethernet || {};
   const wifi = currentSettings?.wifi || {};
   return {
+    ...currentSettings,
     hostname: networkForm.hostname.value,
     ethernet: {
       mode: networkForm.ethernet_mode.value,

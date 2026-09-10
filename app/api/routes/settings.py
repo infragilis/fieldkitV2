@@ -14,5 +14,7 @@ async def get_settings():
 
 @router.put("")
 async def update_settings(payload: AppSettingsPayload):
+    if "server_sync" not in payload.model_fields_set:
+        payload.server_sync = store.load().server_sync
     saved = store.save(payload)
     return saved.model_dump()

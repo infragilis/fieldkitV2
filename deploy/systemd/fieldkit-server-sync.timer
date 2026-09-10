@@ -1,0 +1,11 @@
+[Unit]
+Description=Sync Fieldkit content ten minutes after boot, then hourly
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=1h
+AccuracySec=1s
+Unit=fieldkit-server-sync.service
+
+[Install]
+WantedBy=timers.target

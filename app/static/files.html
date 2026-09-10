@@ -43,12 +43,16 @@
         </form>
         <p id="upload-result" class="muted"></p>
         <p class="muted" id="library-path"></p>
+        <p><button id="library-up" type="button" hidden>Up one level</button></p>
+        <p id="library-error" role="status"></p>
         <ul id="library-items"></ul>
       </article>
     </main>
     <script src="/static/app.js"></script>
     <script>
       let currentLibrary = "data";
+      let currentPath = "";
+      let libraryRequest = 0;
 
       function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, (char) => ({
@@ -71,7 +75,7 @@
           window.alert(payload.detail || (window.fieldkitUi ? window.fieldkitUi.t("delete_failed") : "Delete failed"));
           return;
         }
-        await loadLibrary(library);
+        await loadLibrary(library, currentPath);
       }
 
       function updateUploadState(library) {
@@ -81,7 +85,7 @@
         form.style.display = allowed ? "flex" : "none";
         button.textContent = window.fieldkitUi ? window.fieldkitUi.t("upload_current_library") : `Upload To ${library}`;
         document.getElementById("upload-result").textContent = allowed
-          ? ""
+          ? (currentPath ? `Uploads are saved in /${library}/.` : "")
           : (window.fieldkitUi ? window.fieldkitUi.t("uploads_not_allowed", { library }) : `Uploads are not allowed to ${library}.`);
       }
 
@@ -100,22 +104,35 @@
         }
         document.getElementById("upload-result").textContent = window.fieldkitUi ? window.fieldkitUi.t("saved_to", { name: payload.saved, library: payload.library }) : `Saved ${payload.saved} to ${payload.library}`;
         form.reset();
-        await loadLibrary(currentLibrary);
+        await loadLibrary(currentLibrary, currentPath);
       }
 
-      async function loadLibrary(name) {
+      async function loadLibrary(name, path = "") {
+        const requestId = ++libraryRequest;
+        document.getElementById("library-error").textContent = "";
+        let payload;
+        try {
+          const response = await fetch(`/api/files?library=${encodeURIComponent(name)}&path=${encodeURIComponent(path)}`);
+          payload = await response.json();
+          if (!response.ok) throw new Error(payload.detail || "Could not open folder.");
+        } catch (error) {
+          if (requestId === libraryRequest) document.getElementById("library-error").textContent = error.message;
+          return;
+        }
+        if (requestId !== libraryRequest) return;
         currentLibrary = name;
+        currentPath = payload.path === "." ? "" : payload.path;
         updateUploadState(name);
-        const response = await fetch(`/api/files?library=${encodeURIComponent(name)}`);
-        const payload = await response.json();
-        document.getElementById("library-path").textContent = `/${payload.library}/${payload.path || ""}`;
+        document.getElementById("library-up").hidden = !currentPath;
+        window.history.replaceState(null, "", `/files?library=${encodeURIComponent(name)}&path=${encodeURIComponent(currentPath)}`);
+        document.getElementById("library-path").textContent = `/${payload.library}/${currentPath}`;
         const i18n = window.fieldkitUi;
         document.getElementById("library-items").innerHTML =
           payload.items.map((item) =>
             `<li>
               <div class="item-meta">
                 ${item.is_dir
-                  ? `<span>${escapeHtml(item.name)}</span>`
+                  ? `<a href="/files?library=${encodeURIComponent(name)}&path=${encodeURIComponent(item.path)}" data-directory-path="${escapeHtml(item.path)}">${escapeHtml(item.name)}/</a>`
                   : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${escapeHtml(item.name)}</a>`
                 }
                 <span class="muted">${item.is_dir ? (i18n ? i18n.t("directory_path", { path: escapeHtml(item.path) }) : `directory: ${escapeHtml(item.path)}`) : (i18n ? i18n.t("bytes", { size: item.size }) : `${item.size} bytes`)}</span>
@@ -129,12 +146,20 @@
         document.querySelectorAll("[data-delete-path]").forEach((button) => {
           button.addEventListener("click", () => deleteEntry(currentLibrary, button.dataset.deletePath));
         });
+        document.querySelectorAll("[data-directory-path]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            loadLibrary(currentLibrary, link.dataset.directoryPath);
+          });
+        });
       }
       document.querySelectorAll("[data-library]").forEach((button) => {
         button.addEventListener("click", () => loadLibrary(button.dataset.library));
       });
       document.getElementById("library-upload-form").addEventListener("submit", uploadToCurrentLibrary);
-      loadLibrary("data");
+      document.getElementById("library-up").addEventListener("click", () => loadLibrary(currentLibrary, currentPath.split("/").slice(0, -1).join("/")));
+      const initialFolder = new URLSearchParams(window.location.search);
+      loadLibrary(initialFolder.get("library") || "data", initialFolder.get("path") || "");
     </script>
   </body>
 </html>

@@ -19,6 +19,12 @@
       .field label { display: block; font-weight: 600; margin-bottom: 4px; }
       .field input { width: 100%; padding: 8px 10px; border: 1px solid var(--border, #ccc); border-radius: 6px; }
       .hint { color: var(--muted, #888); font-size: 0.85rem; }
+      progress { width: 100%; height: 20px; }
+      .sync-details { display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 8px 16px; }
+      .sync-details dt { color: var(--muted, #888); }
+      .sync-details dd { margin: 0; overflow-wrap: anywhere; }
+      .sync-details.hidden { display: none; }
+      .sync-section { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 24px; }
     </style>
   </head>
   <body>
@@ -27,6 +33,15 @@
       <article class="panel">
         <h1>Server Sync</h1>
         <p class="muted">Download content from the Fieldkit server into the local <code>data</code> and <code>personal</code> libraries.</p>
+        <p>Automatic checks run <strong>10 minutes after the kit boots, then every hour</strong>. The page does not need to stay open.</p>
+        <p class="hint">Data folders:
+          <a href="/files?library=data&amp;path=ontap">ontap</a> ·
+          <a href="/files?library=data&amp;path=bes">bes</a> ·
+          <a href="/files?library=data&amp;path=cisco">cisco</a> ·
+          <a href="/files?library=data&amp;path=nvidia">nvidia</a> ·
+          <a href="/files?library=data&amp;path=fos">fos</a>.
+          Server file paths determine which folder receives each download.
+        </p>
 
         <h2>Configuration</h2>
         <div class="field">
@@ -36,7 +51,7 @@
         <div class="field">
           <label for="device-token">Device token</label>
           <input type="password" id="device-token" placeholder="Paste the token from the Fieldkit server" autocomplete="off" />
-          <p class="hint">Get this from the Fieldkit server web UI (Dashboard → Device token).</p>
+          <p class="hint">Get this from the Fieldkit server web UI (Dashboard → Device token). Leave blank to keep the saved token.</p>
         </div>
         <button type="button" id="save-btn">Save configuration</button>
         <p id="save-status" class="muted"></p>
@@ -51,84 +66,40 @@
           <button type="button" id="sync-btn">Sync now</button>
         </div>
 
-        <p id="sync-status" class="muted"></p>
-        <h3 class="hidden" id="result-heading">Result</h3>
-        <pre id="result" class="result hidden"></pre>
+        <p id="sync-status" class="muted" role="status" aria-live="polite"></p>
+        <section class="sync-section" aria-labelledby="current-heading">
+          <h2 id="current-heading">Current sync</h2>
+          <p id="current-phase">No sync running.</p>
+          <div id="current-details" class="hidden">
+            <progress id="sync-progress" max="100" aria-label="Sync progress"></progress>
+            <dl class="sync-details">
+              <dt>File</dt><dd id="current-file">—</dd>
+              <dt>Files checked</dt><dd id="current-files">—</dd>
+              <dt>Downloaded</dt><dd id="current-bytes">—</dd>
+              <dt>Elapsed</dt><dd id="current-elapsed">—</dd>
+              <dt>Time remaining</dt><dd id="current-eta">Calculating…</dd>
+            </dl>
+            <p class="hint">Remaining time is an estimate based on download speed. Checking existing files and publishing exports can take additional time.</p>
+          </div>
+        </section>
+        <section class="sync-section" aria-labelledby="last-heading">
+          <h2 id="last-heading">Last sync</h2>
+          <p id="last-empty">No sync recorded yet.</p>
+          <dl id="last-details" class="sync-details hidden">
+            <dt>Result</dt><dd id="last-outcome">—</dd>
+            <dt>Started</dt><dd id="last-started">—</dd>
+            <dt>Finished</dt><dd id="last-finished">—</dd>
+            <dt>Duration</dt><dd id="last-duration">—</dd>
+            <dt>Started by</dt><dd id="last-trigger">—</dd>
+            <dt>Files</dt><dd id="last-counts">—</dd>
+            <dt>Last successful sync</dt><dd id="last-success">—</dd>
+          </dl>
+          <p id="last-error" role="status"></p>
+          <pre id="result" class="result hidden"></pre>
+        </section>
       </article>
     </main>
-    <script src="/static/app.js"></script>
-    <script>
-      function escapeHtml(value) {
-        return String(value).replace(/[&<>"']/g, (char) => ({
-          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[char]));
-      }
-
-      async function loadStatus() {
-        const response = await fetch("/api/server-sync/status");
-        const payload = await response.json();
-        const configured = document.getElementById("configured");
-        configured.textContent = payload.configured ? "configured" : "not configured";
-        configured.className = "badge " + (payload.configured ? "ok" : "missing");
-        document.getElementById("device-id").textContent = payload.device_id;
-        if (payload.base_url) {
-          document.getElementById("base-url").value = payload.base_url;
-        }
-      }
-
-      async function saveConfig() {
-        const button = document.getElementById("save-btn");
-        const status = document.getElementById("save-status");
-        button.disabled = true;
-        status.textContent = "Saving…";
-        try {
-          const response = await fetch("/api/server-sync/config", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              base_url: document.getElementById("base-url").value.trim(),
-              device_token: document.getElementById("device-token").value.trim(),
-            }),
-          });
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            status.textContent = payload.detail || "Save failed.";
-            return;
-          }
-          status.textContent = "Saved.";
-          loadStatus();
-        } finally {
-          button.disabled = false;
-        }
-      }
-
-      async function sync() {
-        const button = document.getElementById("sync-btn");
-        const status = document.getElementById("sync-status");
-        button.disabled = true;
-        status.textContent = "Syncing…";
-        try {
-          const response = await fetch("/api/server-sync/sync", { method: "POST" });
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            status.textContent = payload.detail || "Sync failed.";
-            return;
-          }
-          status.textContent = "Sync complete.";
-          document.getElementById("result-heading").classList.remove("hidden");
-          const result = document.getElementById("result");
-          result.classList.remove("hidden");
-          result.textContent = (payload.files || []).map((f) =>
-            `${f.status}\t${f.name || f.id}${f.error ? "\t(" + f.error + ")" : ""}`
-          ).join("\n") || "No files in manifest.";
-        } finally {
-          button.disabled = false;
-        }
-      }
-
-      document.getElementById("save-btn").addEventListener("click", saveConfig);
-      document.getElementById("sync-btn").addEventListener("click", sync);
-      loadStatus();
-    </script>
+    <script src="/static/app.js?v=sync-20260910"></script>
+    <script src="/static/server-sync.js?v=sync-20260910"></script>
   </body>
 </html>
