@@ -72,7 +72,7 @@ class ServerSyncService:
 
     @staticmethod
     def _get_manifest(client) -> dict:
-        response = client.get("api/v1/device/manifest", timeout=30.0)
+        response = client.get("api/v1/device/manifest", timeout=120.0)
         response.raise_for_status()
         try:
             manifest = response.json()
