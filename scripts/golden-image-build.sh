@@ -66,7 +66,12 @@ cp /usr/bin/qemu-aarch64-static mnt/usr/bin/
 
 log "Cloning the Fieldkit release into the image"
 rm -rf mnt/opt/fieldkit
-git clone --branch "${FIELDKIT_BRANCH:-main}" "${FIELDKIT_REPO_URL:-https://github.com/infragilis/fieldkitV2.git}" mnt/opt/fieldkit
+LOCAL_CHECKOUT=${LOCAL_CHECKOUT:-/opt/fieldkit-golden-builder}
+if [[ -d "${LOCAL_CHECKOUT}/.git" ]]; then
+  git clone --branch "${FIELDKIT_BRANCH:-main}" "file://${LOCAL_CHECKOUT}" mnt/opt/fieldkit
+else
+  git clone --branch "${FIELDKIT_BRANCH:-main}" "${FIELDKIT_REPO_URL:-https://github.com/infragilis/fieldkitV2.git}" mnt/opt/fieldkit
+fi
 
 log "Running installer inside the chroot (this is the slow part)"
 mount -t proc proc mnt/proc
