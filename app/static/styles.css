@@ -537,6 +537,14 @@ a.chip:hover {
   margin-bottom: 14px;
 }
 
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .panel-title {
   margin: 0;
   font-family: var(--font-display);
