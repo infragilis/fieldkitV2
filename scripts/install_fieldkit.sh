@@ -70,6 +70,10 @@ systemctl restart NetworkManager
 systemctl enable avahi-daemon >/dev/null 2>&1 || true
 systemctl restart avahi-daemon >/dev/null 2>&1 || true
 
+# Advertise the appliance for companion-app discovery (_fieldkit._tcp).
+install -D -m 0644 "${FIELDKIT_ROOT}/deploy/avahi/fieldkit.service" /etc/avahi/services/fieldkit.service
+systemctl reload avahi-daemon >/dev/null 2>&1 || true
+
 log "Provisioning runtime layout"
 chown -R "${FIELDKIT_USER}:${FIELDKIT_USER}" "${FIELDKIT_ROOT}"
 if [[ "${INSTALL_AP_SUPPORT}" == "1" ]]; then
