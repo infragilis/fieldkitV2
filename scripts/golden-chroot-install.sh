@@ -43,6 +43,15 @@ systemctl() {
 }
 export -f systemctl
 
+# hostnamectl shim: no systemd bus inside the chroot.
+hostnamectl() {
+  if [[ "$1" == "set-hostname" ]]; then
+    printf '%s\n' "$2" > /etc/hostname
+  fi
+  return 0
+}
+export -f hostnamectl
+
 log "OS packages"
 apt-get update
 apt-get install -y --no-install-recommends \
