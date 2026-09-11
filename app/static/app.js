@@ -584,7 +584,6 @@ function renderTopbar() {
             <a href="/" data-i18n="nav_home" class="${active("/")}">Home</a>
             <a href="/#serial" data-i18n="nav_console">Console</a>
             <a href="/files" data-i18n="nav_files" class="${active("/files")}">Files</a>
-            <a href="/cluster-import" class="${active("/cluster-import")}"><span data-i18n="nav_cluster">Cluster Import</span> <small class="nav-beta">beta</small></a>
             <a href="/server-sync" class="${active("/server-sync")}"><span data-i18n="nav_server_sync">Server Sync</span> <small class="nav-beta">beta</small></a>
             ${exportsLink}
             <a href="${docsHref}" data-i18n="nav_docs" class="${active(docsHref)}">Docs</a>

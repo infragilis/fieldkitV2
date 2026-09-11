@@ -80,9 +80,11 @@ def test_cluster_import_page_route_and_nav():
     assert "Cluster Import" in response.text
     assert 'id="dropzone"' in response.text
 
+    tools_html = __import__("pathlib").Path("app/static/tools.html").read_text(encoding="utf-8")
+    assert 'href="/cluster-import"' in tools_html
     app_js = __import__("pathlib").Path("app/static/app.js").read_text(encoding="utf-8")
-    assert 'href="/cluster-import"' in app_js
     assert "nav_cluster" in app_js
+    assert 'href="/cluster-import"' not in app_js
 
 
 # --- label alias matching ---------------------------------------------------
