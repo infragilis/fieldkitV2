@@ -4,7 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Tools</title>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem("fieldkit-theme") || "dark";
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.6-20260911" />
   </head>
   <body>
     <main class="app-shell">
@@ -28,17 +37,22 @@
 
       <section class="grid tools-grid">
         <article class="panel subnet-panel" id="subnet">
-          <h2 data-i18n="subnet_calculator">Subnet Calculator</h2>
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="nav_tools">Tools</span>
+              <h2 class="panel-title" data-i18n="subnet_calculator">Subnet Calculator</h2>
+            </div>
+          </div>
           <form id="subnet-form" class="subnet-form">
-            <label>
-              <span data-i18n="ip_address">IP Address</span>
+            <div class="field">
+              <span class="field-label" data-i18n="ip_address">IP Address</span>
               <input id="subnet-ip" name="ip_address" type="text" inputmode="decimal" autocomplete="off" value="192.168.200.120" placeholder="192.168.200.120 or 192.168.200.120/24" />
-            </label>
-            <label>
-              <span data-i18n="cidr_prefix">CIDR Prefix</span>
+            </div>
+            <div class="field">
+              <span class="field-label" data-i18n="cidr_prefix">CIDR Prefix</span>
               <input id="subnet-prefix" name="cidr_prefix" type="number" min="0" max="32" value="24" />
-            </label>
-            <button type="submit" data-i18n="calculate">Calculate</button>
+            </div>
+            <button type="submit" class="btn btn-primary" data-i18n="calculate">Calculate</button>
           </form>
           <p id="subnet-error" class="muted subnet-error" role="status"></p>
           <dl id="subnet-results" class="subnet-results"></dl>
@@ -51,6 +65,6 @@
       </footer>
     </main>
 
-    <script src="/static/app.js?v=ui-0.1.5-20260910" defer></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911" defer></script>
   </body>
 </html>

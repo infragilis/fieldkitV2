@@ -4,38 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Cluster Import</title>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem("fieldkit-theme") || "dark";
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.6-20260911" />
     <style>
       main { width: min(980px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
-      article { padding: 24px; }
-      .dropzone {
-        border: 2px dashed var(--line, #888); border-radius: 8px; padding: 32px;
-        text-align: center; color: var(--muted, #666); cursor: pointer;
-      }
-      .dropzone.dragover { border-color: var(--accent, #2f6fd0); background: var(--panel-2, #f4f6f8); }
-      .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-      @media (max-width: 720px) { .field-grid { grid-template-columns: 1fr; } }
-      .field-block label { display: block; font-weight: 600; margin-bottom: 6px; }
-      .source-hint { font-size: 0.8rem; color: var(--muted, #888); margin-left: 8px; font-weight: normal; }
-      .value-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
-      .value-row input { flex: 1; }
-      .value-row button { flex: 0 0 auto; }
-      .issues { border-left: 3px solid var(--warn, #b7791f); padding-left: 12px; }
-      .issues .missing { color: #8d2f1f; }
-      .issues .ambiguous, .issues .duplicate, .issues .invalid_hostname, .issues .invalid_address { color: #8a6d00; }
-      .issues .ok { color: #2f6d3a; }
-      pre { background: var(--panel-2, #f4f6f8); padding: 12px; border-radius: 6px; overflow: auto; white-space: pre-wrap; }
-      .actions { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
-      .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: var(--panel-2, #eee); }
-      .badge.draft { background: #fbe9c8; color: #8a6d00; }
-      .hidden { display: none; }
     </style>
   </head>
   <body>
     <main class="app-shell">
       <div data-topbar></div>
       <article class="panel">
-        <h1>Cluster Import</h1>
+        <div class="panel-head">
+          <div>
+            <span class="panel-kicker" data-i18n="nav_cluster">Cluster Import</span>
+            <h1 class="panel-title">Cluster Import <span class="badge draft">beta</span></h1>
+          </div>
+        </div>
         <p class="muted">Upload a customer-completed NetApp workbook to extract cluster name, node names, DNS and NTP servers, review them, and generate Ansible inputs.</p>
 
         <div id="dropzone" class="dropzone" tabindex="0">
@@ -55,17 +47,17 @@
             <div class="field-block">
               <label>Node names</label>
               <div id="node-list"></div>
-              <button type="button" id="add-node">+ Add node</button>
+              <button type="button" id="add-node" class="btn btn-ghost btn-small">+ Add node</button>
             </div>
             <div class="field-block">
               <label>DNS servers</label>
               <div id="dns-list"></div>
-              <button type="button" id="add-dns">+ Add DNS</button>
+              <button type="button" id="add-dns" class="btn btn-ghost btn-small">+ Add DNS</button>
             </div>
             <div class="field-block">
               <label>NTP servers</label>
               <div id="ntp-list"></div>
-              <button type="button" id="add-ntp">+ Add NTP</button>
+              <button type="button" id="add-ntp" class="btn btn-ghost btn-small">+ Add NTP</button>
             </div>
           </div>
 
@@ -76,7 +68,7 @@
           <div id="sources" class="muted"></div>
 
           <div class="actions">
-            <button type="button" id="generate-btn">Generate Ansible inputs</button>
+            <button type="button" id="generate-btn" class="btn btn-primary">Generate Ansible inputs</button>
           </div>
         </section>
 
@@ -85,8 +77,8 @@
           <p class="muted" id="required-inputs"></p>
           <div id="warnings" class="issues"></div>
           <div class="actions">
-            <button type="button" id="download-vars">Download cluster_vars.yml</button>
-            <button type="button" id="download-playbook">Download deploy_cluster.yml</button>
+            <button type="button" id="download-vars" class="btn btn-ghost">Download cluster_vars.yml</button>
+            <button type="button" id="download-playbook" class="btn btn-ghost">Download deploy_cluster.yml</button>
           </div>
           <h3>cluster_vars.yml</h3>
           <pre id="vars-preview"></pre>
@@ -95,7 +87,7 @@
         </section>
       </article>
     </main>
-    <script src="/static/app.js?v=ui-0.1.5-20260910"></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911"></script>
     <script>
       const state = { config: null, matches: [], issues: [], generated: null };
 
@@ -108,7 +100,7 @@
       function setStatus(message, isError) {
         const el = document.getElementById("upload-status");
         el.textContent = message;
-        el.style.color = isError ? "#8d2f1f" : "";
+        el.style.color = isError ? "var(--bad)" : "";
       }
 
       async function parseFile(file) {
@@ -179,6 +171,7 @@
         input.dataset.field = field;
         const remove = document.createElement("button");
         remove.type = "button";
+        remove.className = "btn btn-danger btn-small";
         remove.textContent = "×";
         remove.addEventListener("click", () => row.remove());
         row.append(input, remove);

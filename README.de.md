@@ -2,8 +2,8 @@
 
 Fieldkit ist ein Raspberry-Pi-Werkzeug fuer den Feldeinsatz an Netzwerkgeraeten. Es bietet eine lokale Weboberflaeche fuer Konsole, Dateien, Transferdienste und Appliance-Verwaltung.
 
-Aktuelle Appliance-Version: **v0.1.5**. Cluster Import und Server Sync tragen
-blaue **beta**-Markierungen im Menue.
+Aktuelle Appliance-Version: **v0.1.6**. Cluster Import und Server Sync tragen
+bernsteinfarbene **beta**-Markierungen im Menue.
 
 ## Serversynchronisierung Und Dateien
 

@@ -4,33 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Local Shell</title>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem("fieldkit-theme") || "dark";
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.6-20260911" />
     <link rel="stylesheet" href="/static/vendor/xterm.css" />
     <style>
       main { width: min(1100px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
-      article { padding: 24px; }
-      .shell-note { margin-bottom: 12px; }
-      .shell-output {
-        min-height: 520px;
-        margin: 0 0 12px;
-        overflow: auto;
-        border-radius: 12px;
-        border: 1px solid var(--line);
-        background: #1e2326;
-        outline: none;
-      }
-      .shell-output .xterm { padding: 14px; }
-      .shell-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
     </style>
   </head>
   <body>
     <main class="app-shell">
       <div data-topbar></div>
       <article class="panel">
-        <h1 data-i18n="local_shell_title">Local Pi Shell</h1>
+        <div class="panel-head">
+          <div>
+            <span class="panel-kicker" data-i18n="open_local_shell">Open Local Shell</span>
+            <h1 class="panel-title" data-i18n="local_shell_title">Local Pi Shell</h1>
+          </div>
+        </div>
         <p class="muted shell-note" data-i18n="local_shell_note">This terminal runs directly on the Fieldkit appliance as the local service account.</p>
         <div class="shell-toolbar">
-          <button id="shell-reconnect-button" type="button" data-i18n="reconnect">Reconnect</button>
+          <button id="shell-reconnect-button" type="button" class="btn btn-ghost btn-small" data-i18n="reconnect">Reconnect</button>
           <span id="shell-status" class="muted" data-i18n="opening_session">Opening session...</span>
         </div>
         <div id="shell-output" class="shell-output"></div>
@@ -38,19 +39,19 @@
     </main>
     <script src="/static/vendor/xterm.js"></script>
     <script src="/static/vendor/xterm-addon-fit.js"></script>
-    <script src="/static/app.js?v=ui-0.1.5-20260910"></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911"></script>
     <script>
       let shellSocket = null;
       let suppressNextClose = false;
       const output = document.getElementById("shell-output");
       const terminal = new Terminal({
         cursorBlink: true,
-        fontFamily: "'IBM Plex Mono', monospace",
+        fontFamily: "'JetBrains Mono', 'IBM Plex Mono', monospace",
         fontSize: 15,
         theme: {
-          background: "#1e2326",
-          foreground: "#d6ead9",
-          cursor: "#d6ead9",
+          background: "#050b14",
+          foreground: "#7ee2a8",
+          cursor: "#f59e0b",
         },
       });
       const fitAddon = new FitAddon.FitAddon();

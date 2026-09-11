@@ -22,6 +22,9 @@ const TRANSLATIONS = {
     nav_tools: "Tools",
     nav_settings: "Settings",
     nav_readme: "README",
+    hero_kicker: "Field service appliance",
+    hero_subhead: "Serial consoles, file libraries, transfer services and field reference notes - for network equipment work anywhere.",
+    kicker_live: "Live",
     theme_dark: "Dark",
     theme_light: "Light",
     serial_consoles: "Serial Consoles",
@@ -338,6 +341,18 @@ TRANSLATIONS.fr.subnet_host_range = "Plage utilisable";
 TRANSLATIONS.fr.subnet_hosts = "Hosts utilisables";
 TRANSLATIONS.fr.subnet_single_host = "Route host unique";
 TRANSLATIONS.fr.subnet_point_to_point = "Plage point a point";
+TRANSLATIONS.es.hero_kicker = "Aparato de servicio de campo";
+TRANSLATIONS.es.hero_subhead = "Consolas serie, bibliotecas de archivos, servicios de transferencia y notas de referencia - para trabajo en equipos de red en cualquier lugar.";
+TRANSLATIONS.es.kicker_live = "En vivo";
+TRANSLATIONS.de.hero_kicker = "Feldservice-Geraet";
+TRANSLATIONS.de.hero_subhead = "Serielle Konsolen, Dateibibliotheken, Transferdienste und Referenznotizen - fuer Netzwerkgeraete-Arbeit an jedem Ort.";
+TRANSLATIONS.de.kicker_live = "Live";
+TRANSLATIONS.nl.hero_kicker = "Veldservice-apparaat";
+TRANSLATIONS.nl.hero_subhead = "Seriele consoles, bestandsbibliotheken, overdrachtsdiensten en referentienotities - voor netwerkapparatuurwerk op elke locatie.";
+TRANSLATIONS.nl.kicker_live = "Live";
+TRANSLATIONS.fr.hero_kicker = "Appareil de service terrain";
+TRANSLATIONS.fr.hero_subhead = "Consoles serie, bibliotheques de fichiers, services de transfert et notes de reference - pour travailler sur des equipements reseau partout.";
+TRANSLATIONS.fr.kicker_live = "En direct";
 
 function flagEmoji(countryCode) {
   return countryCode
@@ -524,24 +539,33 @@ function renderTopbar() {
     const exportsLink = exportsHref
       ? `<a href="${exportsHref}" data-i18n="raw_exports">Exports</a>`
       : "";
+    const path = window.location.pathname;
+    const active = (href) => {
+      if (href.startsWith("/#")) {
+        return "";
+      }
+      const linkPath = href.split("#")[0];
+      return linkPath === path || (linkPath !== "/" && path.startsWith(linkPath)) ? " active" : "";
+    };
     target.innerHTML = `
       <nav class="topbar">
         <div class="brand-mark">
           <span>Fieldkit</span>
           <span id="app-version" class="brand-version"></span>
         </div>
+        <button id="nav-burger" type="button" class="nav-burger" aria-label="Menu" aria-expanded="false">☰</button>
         <div class="topbar-right">
           <div class="topbar-links">
-            <a href="/" data-i18n="nav_home">Home</a>
+            <a href="/" data-i18n="nav_home" class="${active("/")}">Home</a>
             <a href="/#serial" data-i18n="nav_console">Console</a>
-            <a href="/files" data-i18n="nav_files">Files</a>
-            <a href="/cluster-import"><span data-i18n="nav_cluster">Cluster Import</span> <small class="nav-beta">beta</small></a>
-            <a href="/server-sync"><span data-i18n="nav_server_sync">Server Sync</span> <small class="nav-beta">beta</small></a>
+            <a href="/files" data-i18n="nav_files" class="${active("/files")}">Files</a>
+            <a href="/cluster-import" class="${active("/cluster-import")}"><span data-i18n="nav_cluster">Cluster Import</span> <small class="nav-beta">beta</small></a>
+            <a href="/server-sync" class="${active("/server-sync")}"><span data-i18n="nav_server_sync">Server Sync</span> <small class="nav-beta">beta</small></a>
             ${exportsLink}
-            <a href="${docsHref}" data-i18n="nav_docs">Docs</a>
-            <a href="/tools" data-i18n="nav_tools">Tools</a>
-            <a href="/settings" data-i18n="nav_settings">Settings</a>
-            <a href="/readme" data-i18n="nav_readme">README</a>
+            <a href="${docsHref}" data-i18n="nav_docs" class="${active(docsHref)}">Docs</a>
+            <a href="/tools" data-i18n="nav_tools" class="${active("/tools")}">Tools</a>
+            <a href="/settings" data-i18n="nav_settings" class="${active("/settings")}">Settings</a>
+            <a href="/readme" data-i18n="nav_readme" class="${active("/readme")}">README</a>
           </div>
           <div class="shell-tools">
             <button id="theme-toggle" type="button" class="shell-tool-button theme-icon-button" aria-label="Toggle theme" title="Toggle theme"><span id="theme-toggle-icon" aria-hidden="true">◐</span></button>
@@ -564,9 +588,40 @@ function renderTopbar() {
   });
 }
 
+function bindTopbarBurger() {
+  const topbar = document.querySelector(".topbar");
+  const burger = document.getElementById("nav-burger");
+  if (!topbar || !burger) {
+    return;
+  }
+  burger.addEventListener("click", (event) => {
+    event.preventDefault();
+    const open = topbar.classList.toggle("nav-open");
+    burger.setAttribute("aria-expanded", open ? "true" : "false");
+    burger.textContent = open ? "✕" : "☰";
+  });
+  document.addEventListener("click", (event) => {
+    if (!topbar.classList.contains("nav-open") || topbar.contains(event.target)) {
+      return;
+    }
+    topbar.classList.remove("nav-open");
+    burger.setAttribute("aria-expanded", "false");
+    burger.textContent = "☰";
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !topbar.classList.contains("nav-open")) {
+      return;
+    }
+    topbar.classList.remove("nav-open");
+    burger.setAttribute("aria-expanded", "false");
+    burger.textContent = "☰";
+  });
+}
+
 function initializeShellControls() {
   renderTopbar();
-  applyTheme(window.localStorage.getItem(STORAGE_KEYS.theme) || "light");
+  bindTopbarBurger();
+  applyTheme(window.localStorage.getItem(STORAGE_KEYS.theme) || "dark");
   translateStaticContent();
   document.getElementById("theme-toggle")?.addEventListener("click", () => {
     applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
@@ -859,18 +914,20 @@ function renderSerial(serial) {
         );
       }
       return `<li>
-        <div class="serial-session-row">
-          <div class="serial-session-meta">
+        <div class="console-row">
+          <div class="console-meta">
             <strong>${session.label}</strong>
-            <span>${serialDeviceLabel(session)} <span class="muted">${session.baud_rate} ${session.data_bits}${session.parity === "none" ? "N" : session.parity[0].toUpperCase()}${session.stop_bits}${session.present ? "" : `, ${t("unavailable")}`}</span></span>
+            <span class="console-sub">
+              <span class="mono">${serialDeviceLabel(session)}</span>
+              <span class="chip">${session.baud_rate} ${session.data_bits}${session.parity === "none" ? "N" : session.parity[0].toUpperCase()}${session.stop_bits}</span>
+              ${session.present ? "" : `<span class="chip warn">${t("unavailable")}</span>`}
+            </span>
           </div>
-          <div class="serial-session-actions">
-            <div class="serial-session-action-row">
-              <select data-serial-preset-index="${session.index}">
-                ${presetOptions.map((option) => option.replace(`value="${presetValue}"`, `value="${presetValue}" selected`)).join("")}
-              </select>
-              <button type="button" class="serial-reset-button" data-reset-console-index="${session.index}">${t("reset")}</button>
-            </div>
+          <div class="console-actions">
+            <select name="serial-preset-${session.index}" data-serial-preset-index="${session.index}">
+              ${presetOptions.map((option) => option.replace(`value="${presetValue}"`, `value="${presetValue}" selected`)).join("")}
+            </select>
+            <button type="button" class="btn btn-ghost btn-small serial-reset-button" data-reset-console-index="${session.index}">${t("reset")}</button>
           </div>
         </div>
       </li>`;
@@ -925,20 +982,22 @@ function renderTransfers(transfers) {
   }
   const transferStatus = document.getElementById("transfer-status");
   if (transferStatus) {
-    transferStatus.innerHTML = [
-      `<p><strong>${t("http_label")}</strong>: <a href="${transfers.http_base}">${transfers.http_base}</a></p>`,
-      `<p><strong>${t("root_label")}</strong>: ${transfers.root}</p>`,
-      `<p><strong>${t("http_export_label")}</strong>: ${t("configured")} ${yesNo(transfers.http_export.configured_enabled)}, ${t("active")} ${yesNo(transfers.http_export.active)}</p>`,
-      `<p><strong>${t("tftp_label")}</strong>: ${t("configured")} ${yesNo(transfers.tftp.configured_enabled)}, ${t("active")} ${yesNo(transfers.tftp.active)}, ${t("enabled")} ${yesNo(transfers.tftp.enabled)}</p>`,
-      `<p><strong>${t("ftp_label")}</strong>: ${t("configured")} ${yesNo(transfers.ftp.configured_enabled)}, ${t("active")} ${yesNo(transfers.ftp.active)}, ${t("enabled")} ${yesNo(transfers.ftp.enabled)}</p>`,
-      `<p><strong>${t("scp_label")}</strong>: ${t("built_in_over_ssh")}, ${t("active")} ${yesNo(transfers.scp.active)}, ${t("enabled")} ${yesNo(transfers.scp.enabled)}</p>`,
-      `<p><strong>${t("usb_gadget_label")}</strong>: ${transfers.usb_gadget.supported ? t("yes") : t("no")} ${transfers.usb_gadget.model}</p>`,
-      `<p>${transfers.usb_gadget.note}</p>`,
-      transfers.http_export.note ? `<p>${transfers.http_export.note}</p>` : "",
-      transfers.tftp.note ? `<p>${transfers.tftp.note}</p>` : "",
-      transfers.ftp.note ? `<p>${transfers.ftp.note}</p>` : "",
-      transfers.scp.note ? `<p>${transfers.scp.note}</p>` : "",
-    ].join("");
+    const badge = (active) => (active ? '<span class="chip ok">' + t("active") + "</span>" : '<span class="chip">' + t("configured") + "</span>");
+    transferStatus.innerHTML = `
+      <div class="transfer-status">
+        <p><strong>${t("http_label")}</strong>: <a href="${transfers.http_base}">${transfers.http_base}</a></p>
+        <p><strong>${t("root_label")}</strong>: <span class="mono">${transfers.root}</span></p>
+        <p><strong>${t("http_export_label")}</strong>: ${t("configured")} ${yesNo(transfers.http_export.configured_enabled)} · ${t("active")} ${yesNo(transfers.http_export.active)} ${badge(transfers.http_export.active)}</p>
+        <p><strong>${t("tftp_label")}</strong>: ${t("configured")} ${yesNo(transfers.tftp.configured_enabled)} · ${t("active")} ${yesNo(transfers.tftp.active)} · ${t("enabled")} ${yesNo(transfers.tftp.enabled)} ${badge(transfers.tftp.active)}</p>
+        <p><strong>${t("ftp_label")}</strong>: ${t("configured")} ${yesNo(transfers.ftp.configured_enabled)} · ${t("active")} ${yesNo(transfers.ftp.active)} · ${t("enabled")} ${yesNo(transfers.ftp.enabled)} ${badge(transfers.ftp.active)}</p>
+        <p><strong>${t("scp_label")}</strong>: ${t("built_in_over_ssh")} · ${t("active")} ${yesNo(transfers.scp.active)} ${badge(transfers.scp.active)}</p>
+        <p><strong>${t("usb_gadget_label")}</strong>: ${transfers.usb_gadget.supported ? t("yes") : t("no")} ${transfers.usb_gadget.model}</p>
+        <p>${transfers.usb_gadget.note}</p>
+        ${transfers.http_export.note ? `<p>${transfers.http_export.note}</p>` : ""}
+        ${transfers.tftp.note ? `<p>${transfers.tftp.note}</p>` : ""}
+        ${transfers.ftp.note ? `<p>${transfers.ftp.note}</p>` : ""}
+        ${transfers.scp.note ? `<p>${transfers.scp.note}</p>` : ""}
+      </div>`;
   }
 }
 

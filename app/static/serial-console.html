@@ -11,13 +11,6 @@
         height: 100%;
         overflow: hidden;
       }
-      :root {
-        --line: #c2b6a2;
-        --text: #1f2a2d;
-        --muted: #5e6a6f;
-        --accent: #b24a2b;
-        --accent-dark: #7f311c;
-      }
       * { box-sizing: border-box; }
       body {
         margin: 0;
@@ -25,11 +18,11 @@
         height: 100%;
         overflow: hidden;
         overscroll-behavior: none;
-        font-family: 'IBM Plex Sans', sans-serif;
-        color: var(--text);
+        font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+        color: #e7eef9;
         background:
-          radial-gradient(circle at top left, rgba(178, 74, 43, 0.18), transparent 24%),
-          linear-gradient(180deg, #f6f0e5, #e9dece);
+          radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 26%),
+          linear-gradient(180deg, #070d1a, #0b1220);
       }
       main {
         position: fixed;
@@ -44,23 +37,24 @@
         height: 100%;
         display: flex;
         flex-direction: column;
-        background: rgba(255, 252, 246, 0.94);
-        border: 1px solid var(--line);
-        border-radius: 18px;
+        background: rgba(13, 21, 38, 0.96);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 16px;
         padding: 18px;
         overflow: hidden;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
       }
-      .header { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; }
+      .header { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
       .header-actions { display: flex; align-items: center; gap: 12px; }
-      .header h1 { margin: 0; font-size: 1.4rem; }
-      .muted { color: var(--muted); }
+      .header h1 { margin: 0; font-size: 1.25rem; font-family: "Space Grotesk", "Inter", sans-serif; }
+      .muted { color: #93a6c3; }
       .console-output {
         flex: 1 1 auto;
         min-height: 0;
         margin: 0;
         border-radius: 12px;
-        border: 1px solid var(--line);
-        background: #1e2326;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        background: #050b14;
         outline: none;
         overflow: hidden;
         overscroll-behavior: contain;
@@ -69,18 +63,24 @@
         height: 100%;
         padding: 12px;
       }
-      button { font: inherit; }
       button {
-        padding: 10px 14px;
-        border: 0;
-        border-radius: 999px;
-        background: var(--accent);
-        color: white;
+        padding: 8px 16px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 10px;
+        background: #101b31;
+        color: #e7eef9;
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 700;
         cursor: pointer;
+      }
+      button:hover {
+        border-color: rgba(245, 158, 11, 0.6);
+        color: #f59e0b;
       }
       .capture-note {
         margin: 0 0 12px;
-        font-size: 0.88rem;
+        font-size: 0.85rem;
       }
     </style>
   </head>
@@ -100,7 +100,7 @@
     </main>
     <script src="/static/vendor/xterm.js"></script>
     <script src="/static/vendor/xterm-addon-fit.js"></script>
-    <script src="/static/app.js?v=ui-0.1.5-20260910"></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911"></script>
     <script>
       const profileIndex = __PROFILE_INDEX__;
       const consoleNumber = __CONSOLE_NUMBER__;
@@ -109,12 +109,12 @@
       const output = document.getElementById("console-output");
       const terminal = new Terminal({
         cursorBlink: true,
-        fontFamily: "'IBM Plex Mono', monospace",
+        fontFamily: "'JetBrains Mono', 'IBM Plex Mono', monospace",
         fontSize: 15,
         theme: {
-          background: "#1e2326",
-          foreground: "#d6ead9",
-          cursor: "#d6ead9",
+          background: "#050b14",
+          foreground: "#7ee2a8",
+          cursor: "#f59e0b",
         },
       });
       const fitAddon = new FitAddon.FitAddon();

@@ -4,32 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Files</title>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem("fieldkit-theme") || "dark";
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.6-20260911" />
     <style>
       main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
-      article { padding: 24px; }
-      .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-      .upload-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap; }
-      .upload-row label { display: flex; flex-direction: column; gap: 6px; min-width: 240px; margin-bottom: 0; }
-      .upload-row input { max-width: 100%; margin-top: 0; }
-      .upload-row button { align-self: flex-end; margin-bottom: 1px; }
-      ul { list-style: none; padding: 0; margin: 0; }
-      li { padding: 10px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-      li:last-child { border-bottom: 0; }
-      .item-meta { display: flex; flex-direction: column; gap: 4px; }
-      .item-actions { display: flex; gap: 8px; align-items: center; }
-      .delete-button { background: #8d2f1f; }
-      .delete-button:hover { background: #732515; }
     </style>
   </head>
   <body>
     <main class="app-shell">
       <div data-topbar data-exports-href="/fieldkit"></div>
       <article class="panel">
-        <h1 data-i18n="files_title">Files</h1>
+        <div class="panel-head">
+          <div>
+            <span class="panel-kicker" data-i18n="nav_files">Files</span>
+            <h1 class="panel-title" data-i18n="files_title">Files</h1>
+          </div>
+        </div>
         <p class="muted" data-i18n="files_note">Browse the local file libraries available on the kit.</p>
         <div class="tabs">
-          <button data-library="data">data</button>
+          <button class="active" data-library="data">data</button>
           <button data-library="personal">personal</button>
           <button data-library="usb">usb</button>
           <button data-library="serial-logs">serial-logs</button>
@@ -39,16 +40,16 @@
             <span data-i18n="upload_from_desktop">Upload From Local Desktop</span>
             <input type="file" name="file" required />
           </label>
-          <button type="submit" data-i18n="upload_current_library">Upload To Current Library</button>
+          <button type="submit" class="btn btn-primary" data-i18n="upload_current_library">Upload To Current Library</button>
         </form>
         <p id="upload-result" class="muted"></p>
-        <p class="muted" id="library-path"></p>
-        <p><button id="library-up" type="button" hidden>Up one level</button></p>
+        <p class="muted mono" id="library-path"></p>
+        <p><button id="library-up" type="button" class="btn btn-ghost btn-small" hidden>Up one level</button></p>
         <p id="library-error" role="status"></p>
-        <ul id="library-items"></ul>
+        <ul id="library-items" class="library-list"></ul>
       </article>
     </main>
-    <script src="/static/app.js?v=ui-0.1.5-20260910"></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911"></script>
     <script>
       let currentLibrary = "data";
       let currentPath = "";
@@ -122,6 +123,7 @@
         if (requestId !== libraryRequest) return;
         currentLibrary = name;
         currentPath = payload.path === "." ? "" : payload.path;
+        document.querySelectorAll("[data-library]").forEach((b) => b.classList.toggle("active", b.dataset.library === name));
         updateUploadState(name);
         document.getElementById("library-up").hidden = !currentPath;
         window.history.replaceState(null, "", `/files?library=${encodeURIComponent(name)}&path=${encodeURIComponent(currentPath)}`);
@@ -138,8 +140,8 @@
                 <span class="muted">${item.is_dir ? (i18n ? i18n.t("directory_path", { path: escapeHtml(item.path) }) : `directory: ${escapeHtml(item.path)}`) : (i18n ? i18n.t("bytes", { size: item.size }) : `${item.size} bytes`)}</span>
               </div>
               <div class="item-actions">
-                ${item.is_dir ? "" : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${i18n ? i18n.t("download") : "Download"}</a>`}
-                ${item.deletable ? `<button class="delete-button" type="button" data-delete-path="${escapeHtml(item.path)}">${i18n ? i18n.t("delete") : "Delete"}</button>` : ""}
+                ${item.is_dir ? "" : `<a class="btn btn-ghost btn-small" href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${i18n ? i18n.t("download") : "Download"}</a>`}
+                ${item.deletable ? `<button class="btn btn-small delete-button" type="button" data-delete-path="${escapeHtml(item.path)}">${i18n ? i18n.t("delete") : "Delete"}</button>` : ""}
               </div>
             </li>`
           ).join("") || `<li>${i18n ? i18n.t("no_entries") : "No entries"}</li>`;

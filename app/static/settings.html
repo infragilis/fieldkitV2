@@ -4,7 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Settings</title>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem("fieldkit-theme") || "dark";
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.6-20260911" />
   </head>
   <body>
     <main class="app-shell">
@@ -38,7 +47,12 @@
 
       <section class="grid">
         <article class="panel" id="connectivity">
-          <h2 data-i18n="connectivity">Connectivity</h2>
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="kicker_live">Live</span>
+              <h2 class="panel-title" data-i18n="connectivity">Connectivity</h2>
+            </div>
+          </div>
           <p id="platform-notes" class="muted"></p>
           <h3 data-i18n="active_links">Active Links</h3>
           <ul id="active-connections" class="list"></ul>
@@ -47,42 +61,48 @@
         </article>
 
         <article class="panel" id="settings">
-          <h2 data-i18n="networking">Networking</h2>
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="connectivity">Connectivity</span>
+              <h2 class="panel-title" data-i18n="networking">Networking</h2>
+            </div>
+            <span class="chip accent">eth0</span>
+          </div>
           <form id="settings-form">
-            <label>
-              <span data-i18n="hostname">Hostname</span>
+            <div class="field">
+              <span class="field-label" data-i18n="hostname">Hostname</span>
               <input type="text" name="hostname" />
-            </label>
-            <label>
-              <span data-i18n="ethernet_mode">Ethernet Mode</span>
+            </div>
+            <div class="field">
+              <span class="field-label" data-i18n="ethernet_mode">Ethernet Mode</span>
               <select name="ethernet_mode">
                 <option value="static" data-i18n="static">Static</option>
                 <option value="dhcp">DHCP</option>
               </select>
-            </label>
-            <label>
-              <span data-i18n="ethernet_address">Ethernet Address</span>
+            </div>
+            <div class="field">
+              <span class="field-label" data-i18n="ethernet_address">Ethernet Address</span>
               <input type="text" name="ethernet_address" />
-            </label>
-            <label>
-              <span data-i18n="wifi_mode">Wi-Fi Mode</span>
+            </div>
+            <div class="field">
+              <span class="field-label" data-i18n="wifi_mode">Wi-Fi Mode</span>
               <select name="wifi_mode">
                 <option value="disabled" data-i18n="disabled">Disabled</option>
                 <option value="ap" data-i18n="ap">AP</option>
                 <option value="client" data-i18n="client">Client</option>
               </select>
-            </label>
-            <label>
-              <span data-i18n="wifi_ssid">Wi-Fi SSID</span>
+            </div>
+            <div class="field">
+              <span class="field-label" data-i18n="wifi_ssid">Wi-Fi SSID</span>
               <input type="text" name="wifi_ssid" />
-            </label>
-            <label>
-              <span data-i18n="wifi_password">Wi-Fi AP Password</span>
+            </div>
+            <div class="field">
+              <span class="field-label" data-i18n="wifi_password">Wi-Fi AP Password</span>
               <input type="password" name="wifi_password" />
-            </label>
+            </div>
             <div class="button-row">
-              <button type="submit" data-i18n="save_network_settings">Save Network Settings</button>
-              <button id="apply-network-button" type="button" data-i18n="apply_network_settings">Apply Network Settings</button>
+              <button type="submit" class="btn btn-primary" data-i18n="save_network_settings">Save Network Settings</button>
+              <button id="apply-network-button" type="button" class="btn btn-ghost" data-i18n="apply_network_settings">Apply Network Settings</button>
             </div>
           </form>
           <p class="muted" id="wifi-access-note"></p>
@@ -91,21 +111,37 @@
         </article>
 
         <article class="panel" id="transfer-services">
-          <h2 data-i18n="transfer_services_title">Transfer Services</h2>
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="appliance_controls">Appliance Controls</span>
+              <h2 class="panel-title" data-i18n="transfer_services_title">Transfer Services</h2>
+            </div>
+          </div>
           <form id="transfer-services-form">
             <label class="toggle-row">
               <span data-i18n="http_export_access">HTTP Export Access</span>
-              <input type="checkbox" name="http_export_enabled" checked />
+              <span class="toggle">
+                <input type="checkbox" name="http_export_enabled" checked />
+                <span class="toggle-track"></span>
+              </span>
             </label>
             <label class="toggle-row">
               <span data-i18n="tftp_access">TFTP Access</span>
-              <input type="checkbox" name="tftp_enabled" />
+              <span class="toggle">
+                <input type="checkbox" name="tftp_enabled" />
+                <span class="toggle-track"></span>
+              </span>
             </label>
             <label class="toggle-row">
               <span data-i18n="ftp_access">FTP Access</span>
-              <input type="checkbox" name="ftp_enabled" />
+              <span class="toggle">
+                <input type="checkbox" name="ftp_enabled" />
+                <span class="toggle-track"></span>
+              </span>
             </label>
-            <button type="submit" data-i18n="apply_transfer_services">Apply Transfer Services</button>
+            <div class="button-row">
+              <button type="submit" class="btn btn-primary" data-i18n="apply_transfer_services">Apply Transfer Services</button>
+            </div>
           </form>
           <p id="transfer-result" class="muted"></p>
           <div id="transfer-status" class="muted"></div>
@@ -113,49 +149,65 @@
         </article>
 
         <article class="panel" id="serial-settings">
-          <h2 data-i18n="serial_settings">Serial Settings</h2>
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="serial_consoles">Serial Consoles</span>
+              <h2 class="panel-title" data-i18n="serial_settings">Serial Settings</h2>
+            </div>
+          </div>
           <form id="serial-settings-form">
-            <label>
-              <span data-i18n="console_1_preset">Console 1 Preset</span>
+            <div class="field">
+              <span class="field-label" data-i18n="console_1_preset">Console 1 Preset</span>
               <select name="console1_preset">
                 <option value="9600-8n1">9600 8N1</option>
                 <option value="115200-8n1">115200 8N1</option>
                 <option value="custom" data-i18n="custom">Custom</option>
               </select>
-            </label>
-            <label>
-              <span data-i18n="console_2_preset">Console 2 Preset</span>
+            </div>
+            <div class="field">
+              <span class="field-label" data-i18n="console_2_preset">Console 2 Preset</span>
               <select name="console2_preset">
                 <option value="9600-8n1">9600 8N1</option>
                 <option value="115200-8n1">115200 8N1</option>
                 <option value="custom" data-i18n="custom">Custom</option>
               </select>
-            </label>
-            <button type="submit" data-i18n="save_serial_settings">Save Serial Settings</button>
+            </div>
+            <button type="submit" class="btn btn-primary" data-i18n="save_serial_settings">Save Serial Settings</button>
           </form>
           <p class="muted serial-settings-note" data-i18n="serial_settings_note">For nonstandard baud, parity, stop bits, or device paths, use Serial Profiles.</p>
         </article>
 
         <article class="panel" id="password-settings">
-          <h2 data-i18n="change_password">Change Password</h2>
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="password">Password</span>
+              <h2 class="panel-title" data-i18n="change_password">Change Password</h2>
+            </div>
+          </div>
           <form id="password-form">
-            <label>
-              <span data-i18n="current_password">Current Password</span>
+            <div class="field">
+              <span class="field-label" data-i18n="current_password">Current Password</span>
               <input type="password" name="current_password" />
-            </label>
-            <label>
-              <span data-i18n="new_password">New Password</span>
+            </div>
+            <div class="field">
+              <span class="field-label" data-i18n="new_password">New Password</span>
               <input type="password" name="new_password" />
-            </label>
-            <button type="submit" data-i18n="change_password">Change Password</button>
+            </div>
+            <button type="submit" class="btn btn-primary" data-i18n="change_password">Change Password</button>
           </form>
           <p id="password-result" class="muted"></p>
         </article>
 
         <article class="panel" id="local-shell-settings">
-          <h2 data-i18n="local_shell_title">Local Pi Shell</h2>
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" data-i18n="local_shell_title">Local Pi Shell</h2>
+            </div>
+          </div>
           <p class="muted" data-i18n="local_shell_note">This terminal runs directly on the Fieldkit appliance as the local service account.</p>
-          <p><a href="/pi-shell" data-i18n="open_local_shell">Open Local Shell</a></p>
+          <div class="btn-row">
+            <a class="chip" href="/pi-shell" data-i18n="open_local_shell">Open Local Shell</a>
+          </div>
         </article>
       </section>
 
@@ -165,6 +217,6 @@
       </footer>
     </main>
 
-    <script src="/static/app.js?v=ui-0.1.5-20260910" defer></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911" defer></script>
   </body>
 </html>

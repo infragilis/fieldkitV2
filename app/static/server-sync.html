@@ -4,34 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit Server Sync</title>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem("fieldkit-theme") || "dark";
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.6-20260911" />
     <style>
       main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
-      article { padding: 24px; }
-      .status-row { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
-      .status-row dt { width: 140px; color: var(--muted, #888); }
-      .result { font-family: monospace; white-space: pre-wrap; background: var(--panel-2, #f4f6f8); padding: 12px; border-radius: 6px; }
-      .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: var(--panel-2, #eee); }
-      .badge.ok { background: #dff0d8; color: #2f6d3a; }
-      .badge.missing { background: #fbe9c8; color: #8a6d00; }
-      .hidden { display: none; }
-      .field { margin-bottom: 12px; }
-      .field label { display: block; font-weight: 600; margin-bottom: 4px; }
-      .field input { width: 100%; padding: 8px 10px; border: 1px solid var(--border, #ccc); border-radius: 6px; }
-      .hint { color: var(--muted, #888); font-size: 0.85rem; }
-      progress { width: 100%; height: 20px; }
-      .sync-details { display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 8px 16px; }
-      .sync-details dt { color: var(--muted, #888); }
-      .sync-details dd { margin: 0; overflow-wrap: anywhere; }
-      .sync-details.hidden { display: none; }
-      .sync-section { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 24px; }
     </style>
   </head>
   <body>
     <main class="app-shell">
       <div data-topbar></div>
       <article class="panel">
-        <h1>Server Sync</h1>
+        <div class="panel-head">
+          <div>
+            <span class="panel-kicker" data-i18n="nav_server_sync">Server Sync</span>
+            <h1 class="panel-title">Server Sync <span class="badge draft">beta</span></h1>
+          </div>
+        </div>
         <p class="muted">Download content from the Fieldkit server into the local <code>data</code> and <code>personal</code> libraries.</p>
         <p>Automatic checks run <strong>10 minutes after the kit boots, then every hour</strong>. The page does not need to stay open.</p>
         <p class="hint">Data folders:
@@ -45,25 +41,25 @@
 
         <h2>Configuration</h2>
         <div class="field">
-          <label for="base-url">Server URL</label>
+          <span class="field-label">Server URL</span>
           <input type="text" id="base-url" value="https://fieldkit.infragilis.org" />
         </div>
         <div class="field">
-          <label for="device-token">Device token</label>
+          <span class="field-label">Device token</span>
           <input type="password" id="device-token" placeholder="Paste the token from the Fieldkit server" autocomplete="off" />
           <p class="hint">Get this from the Fieldkit server web UI (Dashboard → Device token). Leave blank to keep the saved token.</p>
         </div>
-        <button type="button" id="save-btn">Save configuration</button>
+        <button type="button" id="save-btn" class="btn btn-ghost">Save configuration</button>
         <p id="save-status" class="muted"></p>
 
         <h2>Status</h2>
         <dl>
-          <div class="status-row"><dt>Configured</dt><dd><span id="configured" class="badge missing">…</span></dd></div>
-          <div class="status-row"><dt>Device ID</dt><dd id="device-id">…</dd></div>
+          <div class="sync-status-row"><dt>Configured</dt><dd><span id="configured" class="badge missing">…</span></dd></div>
+          <div class="sync-status-row"><dt>Device ID</dt><dd id="device-id">…</dd></div>
         </dl>
 
         <div class="actions" style="display:flex; gap:12px; margin:16px 0;">
-          <button type="button" id="sync-btn">Sync now</button>
+          <button type="button" id="sync-btn" class="btn btn-primary">Sync now</button>
         </div>
 
         <p id="sync-status" class="muted" role="status" aria-live="polite"></p>
@@ -99,7 +95,7 @@
         </section>
       </article>
     </main>
-    <script src="/static/app.js?v=ui-0.1.5-20260910"></script>
-    <script src="/static/server-sync.js?v=sync-20260910"></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911"></script>
+    <script src="/static/server-sync.js?v=sync-20260911"></script>
   </body>
 </html>

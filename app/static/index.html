@@ -4,24 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit</title>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem("fieldkit-theme") || "dark";
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.6-20260911" />
   </head>
   <body>
     <main class="app-shell">
       <div data-topbar></div>
 
       <section class="hero">
-        <article class="panel hero-card hero-card-main" id="serial">
-          <h2 data-i18n="serial_consoles">Serial Consoles</h2>
-          <ul id="serial-sessions" class="list"></ul>
-          <p id="serial-quick-result" class="muted"></p>
-          <p id="serial-reset-result" class="muted"></p>
-          <div class="console-controls">
-            <button id="open-console-0" type="button" data-i18n="open_console_1">Open Console 1</button>
-            <button id="open-console-1" type="button" data-i18n="open_console_2">Open Console 2</button>
+        <div class="hero-card hero-card-main">
+          <p class="hero-kicker" data-i18n="hero_kicker">Field service appliance</p>
+          <h1>Fieldkit</h1>
+          <p class="subhead" data-i18n="hero_subhead">
+            Serial consoles, file libraries, transfer services and field reference notes - for network equipment work anywhere.
+          </p>
+          <div class="chip-row">
+            <span class="chip accent">2 serial consoles</span>
+            <span class="chip">data · personal · usb</span>
+            <span class="chip">HTTP · TFTP · FTP · SCP</span>
+            <span class="chip">AP + Ethernet</span>
           </div>
-          <p class="muted" data-i18n="popup_note">Each console opens in its own movable popup window for field use.</p>
-        </article>
+        </div>
         <div class="hero-card hero-card-side">
           <p class="hero-kicker" data-i18n="quick_access">Quick Access</p>
           <div class="hero-shortcuts">
@@ -35,31 +46,61 @@
       </section>
 
       <section class="grid">
+        <article class="panel" id="serial">
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="kicker_live">Live</span>
+              <h2 class="panel-title" data-i18n="serial_consoles">Serial Consoles</h2>
+            </div>
+          </div>
+          <ul id="serial-sessions" class="list"></ul>
+          <p id="serial-quick-result" class="muted"></p>
+          <p id="serial-reset-result" class="muted"></p>
+          <div class="btn-row">
+            <button id="open-console-0" type="button" class="btn btn-primary" data-i18n="open_console_1">Open Console 1</button>
+            <button id="open-console-1" type="button" class="btn btn-ghost" data-i18n="open_console_2">Open Console 2</button>
+          </div>
+          <p class="panel-note" data-i18n="popup_note">Each console opens in its own movable popup window for field use.</p>
+        </article>
+
         <article class="panel" id="docs">
-          <h2 data-i18n="reference_docs">Reference Docs</h2>
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="reference_docs">Reference Docs</span>
+              <h2 class="panel-title" data-i18n="docs_title">Fieldkit Reference Notes</h2>
+            </div>
+          </div>
           <p class="muted" data-i18n="docs_note">Vendor quick-reference topics stored locally on the kit.</p>
-          <ul class="list">
-            <li><a href="/kit-docs/netapp" target="_blank" rel="noopener noreferrer">NetApp</a></li>
-            <li><a href="/kit-docs/cisco" target="_blank" rel="noopener noreferrer">Cisco</a></li>
-            <li><a href="/kit-docs/nvidia" target="_blank" rel="noopener noreferrer">NVIDIA</a></li>
-            <li><a href="/kit-docs/brocade-fabric-os" target="_blank" rel="noopener noreferrer">Brocade Fabric OS</a></li>
-            <li><a href="/kit-docs/broadcom-ethernet-switching" target="_blank" rel="noopener noreferrer">Broadcom Ethernet Switching</a></li>
-          </ul>
+          <div class="chip-row" style="margin-bottom: 12px">
+            <a class="chip" href="/kit-docs/netapp" target="_blank" rel="noopener noreferrer">NetApp</a>
+            <a class="chip" href="/kit-docs/cisco" target="_blank" rel="noopener noreferrer">Cisco</a>
+            <a class="chip" href="/kit-docs/nvidia" target="_blank" rel="noopener noreferrer">NVIDIA</a>
+            <a class="chip" href="/kit-docs/brocade-fabric-os" target="_blank" rel="noopener noreferrer">Brocade Fabric OS</a>
+            <a class="chip" href="/kit-docs/broadcom-ethernet-switching" target="_blank" rel="noopener noreferrer">Broadcom Ethernet Switching</a>
+          </div>
           <p class="docs-index-link"><a href="/kit-docs" target="_blank" rel="noopener noreferrer" data-i18n="docs_index">Open docs index</a></p>
         </article>
 
         <article class="panel">
-          <h2 data-i18n="upload_title">Upload</h2>
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker" data-i18n="upload_title">Upload</span>
+              <h2 class="panel-title" data-i18n="upload_file">Upload File</h2>
+            </div>
+          </div>
           <form id="upload-form">
-            <label>
-              <span data-i18n="destination">Destination</span>
+            <div class="field">
+              <span class="field-label" data-i18n="destination">Destination</span>
               <select name="upload_library">
                 <option value="personal">personal</option>
                 <option value="usb">usb</option>
               </select>
-            </label>
-            <input type="file" name="file" required />
-            <button type="submit" data-i18n="upload_file">Upload File</button>
+            </div>
+            <div class="field">
+              <span class="field-label">File</span>
+              <input type="file" name="file" required />
+            </div>
+            <button type="submit" class="btn btn-primary" data-i18n="upload_file">Upload File</button>
           </form>
           <p id="upload-result" class="muted"></p>
         </article>
@@ -70,6 +111,6 @@
       </footer>
     </main>
 
-    <script src="/static/app.js?v=ui-0.1.5-20260910" defer></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911" defer></script>
   </body>
 </html>

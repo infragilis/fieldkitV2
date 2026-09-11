@@ -4,21 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fieldkit README</title>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.5-20260910" />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem("fieldkit-theme") || "dark";
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.1.6-20260911" />
     <style>
       main { width: min(960px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
-      article { padding: 24px; }
-      pre { white-space: pre-wrap; font-family: 'IBM Plex Mono', monospace; line-height: 1.5; }
     </style>
   </head>
   <body>
     <main class="app-shell">
       <div data-topbar></div>
       <article class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="panel-kicker" data-i18n="nav_readme">README</span>
+            <h1 class="panel-title" data-i18n="open_readme">Open README</h1>
+          </div>
+        </div>
         <pre id="readme-body">Loading...</pre>
       </article>
     </main>
-    <script src="/static/app.js?v=ui-0.1.5-20260910" defer></script>
+    <script src="/static/app.js?v=ui-0.1.6-20260911" defer></script>
     <script>
       async function loadReadmeContent(language) {
         const response = await fetch(`/api/readme-content?lang=${encodeURIComponent(language)}`);
