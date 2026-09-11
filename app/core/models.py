@@ -36,6 +36,7 @@ class TransferServicesConfig(BaseModel):
 class ServerSyncConfig(BaseModel):
     base_url: str = "https://fieldkit.infragilis.org"
     device_token: str = ""
+    prune: bool = False
 
 
 class AppSettingsPayload(BaseModel):

@@ -1,6 +1,7 @@
 """Pull server content into the kit, reporting progress to the background job."""
 
 import hashlib
+import json
 import os
 import socket
 import tempfile
@@ -58,6 +59,47 @@ class ServerSyncService:
     def device_id(self) -> str:
         return socket.gethostname()
 
+    def prune_enabled(self) -> bool:
+        return bool(self._config().prune)
+
+    def _managed_path(self) -> Path:
+        return self._runtime.state_root / "server-sync-managed.json"
+
+    def _load_managed(self) -> list[str]:
+        try:
+            data = json.loads(self._managed_path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return []
+        return data if isinstance(data, list) else []
+
+    def _save_managed(self, paths: list[str]) -> None:
+        temporary = self._managed_path().with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(sorted(set(paths))), encoding="utf-8")
+        os.replace(temporary, self._managed_path())
+
+    def _prune_stale_data_files(self, manifest_paths: set[str], managed: list[str]) -> None:
+        """Remove previously synced data files that left the manifest.
+
+        Only files the sync itself downloaded (the managed list) are removed;
+        user-placed files and personal content are never touched. Export copies
+        are refreshed by the publishing step that follows.
+        """
+        remaining = []
+        for relative in managed:
+            if relative in manifest_paths:
+                remaining.append(relative)
+                continue
+            try:
+                target = self._storage.resolve_download("data", relative)
+            except ValueError:
+                continue
+            try:
+                if target.is_file():
+                    target.unlink()
+            except OSError:
+                continue
+        self._save_managed(remaining)
+
     def _client(self):
         # Freeze URL and credentials for this run; share the connection pool.
         # Downloads of mirrored files are 307-redirected to object storage;
@@ -109,6 +151,13 @@ class ServerSyncService:
             entries = manifest["files"]
             total_bytes = sum(entry["size"] for entry in entries)
             notify({"total_files": len(entries), "total_bytes": total_bytes})
+            prune = self.prune_enabled()
+            managed = self._load_managed() if prune else []
+            manifest_data_paths = {
+                entry["path"]
+                for entry in entries
+                if (entry.get("library") or "data") == "data" and entry.get("path")
+            }
             for entry in entries:
                 size = entry["size"]
                 name = entry.get("path") or entry.get("name") or ""
@@ -140,12 +189,16 @@ class ServerSyncService:
                 if error:
                     result["error"] = error
                 results.append(result)
+                if prune and result["library"] == "data" and status in {"ok", "skipped"}:
+                    managed.append(entry.get("path") or "")
                 notify({
                     "completed_files": len(results), "processed_bytes": completed_bytes,
                     "downloaded_bytes": downloaded_bytes,
                     "counts": self._counts(results), "eta_seconds": None,
                 })
 
+            if prune:
+                self._prune_stale_data_files(manifest_data_paths, managed)
             notify({"phase": "publishing", "current_file": None, "eta_seconds": None})
             self._storage.sync_export_tree()
             notify({"phase": "reporting"})

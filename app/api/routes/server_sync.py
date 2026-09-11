@@ -19,6 +19,7 @@ async def status():
         "configured": service.configured,
         "base_url": service.base_url(),
         "device_id": service.device_id(),
+        "prune": service.prune_enabled(),
         "schedule": {"startup_delay_seconds": 600, "interval_seconds": 3600},
         **job.status(),
     }
@@ -37,6 +38,7 @@ async def set_config(payload: ServerSyncConfig):
         "configured": service.configured,
         "base_url": service.base_url(),
         "device_id": service.device_id(),
+        "prune": service.prune_enabled(),
     }
 
 

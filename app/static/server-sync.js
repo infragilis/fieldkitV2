@@ -60,6 +60,7 @@
     text("configured", configured ? "configured" : "not configured");
     el("configured").className = `badge ${configured ? "ok" : "missing"}`;
     text("device-id", payload.device_id);
+    el("prune-toggle").checked = Boolean(payload.prune);
     if (!urlLoaded) {
       el("base-url").value = payload.base_url || "";
       urlLoaded = true;
@@ -120,7 +121,11 @@
     try {
       await request("/api/server-sync/config", {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base_url: el("base-url").value.trim(), device_token: el("device-token").value.trim() }),
+        body: JSON.stringify({
+          base_url: el("base-url").value.trim(),
+          device_token: el("device-token").value.trim(),
+          prune: el("prune-toggle").checked,
+        }),
       });
       el("device-token").value = "";
       text("save-status", "Configuration saved.");

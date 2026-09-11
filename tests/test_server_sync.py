@@ -214,6 +214,9 @@ class FakeSyncService:
     def device_id(self):
         return "demo-kit"
 
+    def prune_enabled(self):
+        return False
+
     def sync(self, progress):
         progress({"phase": "downloading", "downloaded_bytes": 64, "eta_seconds": 4})
         self.entered.set()
@@ -443,3 +446,154 @@ def test_sync_retries_mirrored_file_via_origin(monkeypatch, tmp_path):
     assert origin_attempts == ["", "source=origin"]
     data_root = service._storage.library_paths()["data"]
     assert (data_root / "cisco" / "image.bin").read_bytes() == content
+
+
+def _prune_service(monkeypatch, tmp_path, prune, manifests):
+    settings = RuntimeSettings(
+        content_root=tmp_path / "content",
+        state_root=tmp_path / "state",
+        server_base_url="https://example.com",
+    )
+    settings_store_path = tmp_path / "state" / "settings.json"
+    settings_store_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setattr(ss_module.StorageService, "_detect_usb_mount", lambda self: None)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "token")
+    service = ss_module.ServerSyncService()
+
+    current = {"manifest_version": 1, "files": []}
+
+    def handler(request):
+        if request.url.path == "/api/v1/device/manifest":
+            public = {k: v for k, v in current["manifest"].items() if k != "files"}
+            public["files"] = [{k: v for k, v in f.items() if k != "_content"} for f in current["manifest"]["files"]]
+            return httpx.Response(200, json=public)
+        if request.url.path.startswith("/api/v1/device/files/"):
+            file_id = request.url.path.rsplit("/", 1)[-1]
+            for entry in current["manifest"]["files"]:
+                if entry["id"] == file_id:
+                    return httpx.Response(200, content=entry["_content"])
+            return httpx.Response(404)
+        if request.url.path == "/api/v1/device/sync-results":
+            return httpx.Response(202, json={"accepted": True})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.Client
+    monkeypatch.setattr(
+        ss_module.httpx,
+        "Client",
+        lambda *args, **kwargs: real_client(transport=transport, *args, **kwargs),
+    )
+    # persist prune through the settings store used by the service
+    from app.core.models import AppSettingsPayload
+    payload = AppSettingsPayload()
+    payload.server_sync.base_url = "https://example.com"
+    payload.server_sync.prune = prune
+    settings_store.SettingsStore().save(payload)
+    return service, current
+
+
+def entry(sha, name, content, library="data", path=None):
+    return {
+        "id": sha, "name": name, "path": path or name.split("/", 1)[1],
+        "size": len(content), "sha256": sha, "library": library, "_content": content,
+    }
+
+
+def test_prune_removes_managed_data_files_that_leave_manifest(monkeypatch, tmp_path):
+    content = b"windowed vendor file"
+    sha = hashlib.sha256(content).hexdigest()
+    service, current = _prune_service(monkeypatch, tmp_path, True, [])
+    first = entry(sha, "data/ontap/old.bin", content)
+    current["manifest"] = {"manifest_version": 1, "files": [first]}
+
+    result = service.sync()
+    assert result["files"][0]["status"] == "ok"
+    data_root = service._storage.library_paths()["data"]
+    assert (data_root / "ontap" / "old.bin").exists()
+
+    current["manifest"] = {"manifest_version": 1, "files": []}
+    result = service.sync()
+    assert result["counts"]["failed"] == 0
+    assert not (data_root / "ontap" / "old.bin").exists()
+    assert not (service._storage.export_root() / "data" / "ontap" / "old.bin").exists()
+
+
+def test_prune_disabled_keeps_files(monkeypatch, tmp_path):
+    content = b"keep me"
+    sha = hashlib.sha256(content).hexdigest()
+    service, current = _prune_service(monkeypatch, tmp_path, False, [])
+    first = entry(sha, "data/ontap/keep.bin", content)
+    current["manifest"] = {"manifest_version": 1, "files": [first]}
+
+    service.sync()
+    current["manifest"] = {"manifest_version": 1, "files": []}
+    service.sync()
+
+    data_root = service._storage.library_paths()["data"]
+    assert (data_root / "ontap" / "keep.bin").exists()
+
+
+def test_prune_never_touches_personal_or_manual_files(monkeypatch, tmp_path):
+    content = b"personal config"
+    sha = hashlib.sha256(content).hexdigest()
+    service, current = _prune_service(monkeypatch, tmp_path, True, [])
+    personal = entry(sha, "personal/example/cfg.txt", content, library="personal", path="cfg.txt")
+    current["manifest"] = {"manifest_version": 1, "files": [personal]}
+
+    service.sync()
+    personal_root = service._storage.library_paths()["personal"]
+    assert (personal_root / "cfg.txt").exists()
+
+    data_root = service._storage.library_paths()["data"]
+    (data_root / "manual.bin").write_bytes(b"user placed")
+    current["manifest"] = {"manifest_version": 1, "files": []}
+    service.sync()
+
+    assert (personal_root / "cfg.txt").exists()
+    assert (data_root / "manual.bin").exists()
+
+
+def test_config_prune_roundtrip(monkeypatch, tmp_path):
+    from app.api.routes import server_sync as routes
+    from app.core.models import AppSettingsPayload
+    from app.main import app
+    store = settings_store.SettingsStore()
+    store.path = tmp_path / "settings.json"
+    original = AppSettingsPayload()
+    original.server_sync.device_token = "synthetic-token"
+    original.server_sync.prune = False
+    store.save(original)
+    service = FakeSyncService(tmp_path)
+    service.configured = True
+    monkeypatch.setattr(routes, "store", store)
+    monkeypatch.setattr(routes, "service", service)
+    monkeypatch.setattr(routes, "job", ServerSyncJob(service))
+    service.prune_enabled = lambda: True
+    response = TestClient(app).put("/api/server-sync/config", json={
+        "base_url": "https://example.com", "device_token": "", "prune": True,
+    })
+    assert response.status_code == 200
+    assert response.json()["prune"] is True
+    assert store.load().server_sync.prune is True
+    assert store.load().server_sync.device_token == "synthetic-token"
+
+
+def test_prune_tracks_skipped_files_on_first_run(monkeypatch, tmp_path):
+    content = b"already present"
+    sha = hashlib.sha256(content).hexdigest()
+    service, current = _prune_service(monkeypatch, tmp_path, True, [])
+    first = entry(sha, "data/ontap/present.bin", content)
+    data_root = service._storage.library_paths()["data"]
+    (data_root / "ontap").mkdir(parents=True, exist_ok=True)
+    (data_root / "ontap" / "present.bin").write_bytes(content)
+    current["manifest"] = {"manifest_version": 1, "files": [first]}
+
+    result = service.sync()
+    assert result["files"][0]["status"] == "skipped"
+
+    current["manifest"] = {"manifest_version": 1, "files": []}
+    service.sync()
+    assert not (data_root / "ontap" / "present.bin").exists()

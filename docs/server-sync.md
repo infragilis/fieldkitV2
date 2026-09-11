@@ -142,3 +142,17 @@ systemctl list-timers fieldkit-server-sync.timer
 Use `systemctl status fieldkit-server-sync.timer` for actual timer state. The
 schedule text on the page describes the installed policy, not proof a manually
 disabled system timer is still enabled.
+
+## Sync window and pruning
+
+The server limits each kit's manifest with a per-user **sync window** (newest
+N files per subscribed data folder, default 5) plus per-file **pin/exclude**
+overrides. Personal files are always included.
+
+Kits that need to stay small can enable **Remove synced files no longer
+offered by the server** on the Server Sync page (opt-in, stored in
+`settings.json` as `server_sync.prune`). With pruning enabled the kit keeps a
+managed-files list in `runtime/state/server-sync-managed.json`: files it
+downloaded (or confirmed present) from `data/` are removed together with their
+export-mirror copies when they disappear from the manifest. User-placed files
+and personal content are never touched.

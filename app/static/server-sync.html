@@ -50,6 +50,14 @@
             <input type="password" id="device-token" placeholder="Paste the token from the Fieldkit server" autocomplete="off" />
             <p class="hint">Get this from the Fieldkit server web UI (Dashboard → Device token). Leave blank to keep the saved token.</p>
           </div>
+          <label class="toggle-row">
+            <span>Remove synced files no longer offered by the server</span>
+            <span class="toggle">
+              <input type="checkbox" id="prune-toggle" name="prune" />
+              <span class="toggle-track"></span>
+            </span>
+          </label>
+          <p class="hint">Keeps this kit small: files that fall out of the server's sync window are deleted locally (only files the sync downloaded; personal files are never touched).</p>
           <button type="button" id="save-btn" class="btn btn-ghost">Save configuration</button>
           <p id="save-status" class="muted"></p>
         </section>
