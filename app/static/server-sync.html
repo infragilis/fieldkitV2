@@ -25,7 +25,7 @@
         <div class="panel-head">
           <div>
             <span class="panel-kicker" data-i18n="nav_server_sync">Server Sync</span>
-            <h1 class="panel-title">Server Sync <span class="badge draft">beta</span></h1>
+            <h1 class="panel-title">Server Sync <span id="configured" class="badge missing">…</span> <span class="badge draft">beta</span></h1>
           </div>
         </div>
         <p class="muted">Download content from the Fieldkit server into the local <code>data</code> and <code>personal</code> libraries.</p>
@@ -39,30 +39,33 @@
           Server file paths determine which folder receives each download.
         </p>
 
-        <h2>Configuration</h2>
-        <div class="field">
-          <span class="field-label">Server URL</span>
-          <input type="text" id="base-url" value="https://fieldkit.infragilis.org" />
-        </div>
-        <div class="field">
-          <span class="field-label">Device token</span>
-          <input type="password" id="device-token" placeholder="Paste the token from the Fieldkit server" autocomplete="off" />
-          <p class="hint">Get this from the Fieldkit server web UI (Dashboard → Device token). Leave blank to keep the saved token.</p>
-        </div>
-        <button type="button" id="save-btn" class="btn btn-ghost">Save configuration</button>
-        <p id="save-status" class="muted"></p>
+        <section id="config-section" class="sync-section" aria-labelledby="config-heading">
+          <h2 id="config-heading">Configuration</h2>
+          <div class="field">
+            <span class="field-label">Server URL</span>
+            <input type="text" id="base-url" value="https://fieldkit.infragilis.org" />
+          </div>
+          <div class="field">
+            <span class="field-label">Device token</span>
+            <input type="password" id="device-token" placeholder="Paste the token from the Fieldkit server" autocomplete="off" />
+            <p class="hint">Get this from the Fieldkit server web UI (Dashboard → Device token). Leave blank to keep the saved token.</p>
+          </div>
+          <button type="button" id="save-btn" class="btn btn-ghost">Save configuration</button>
+          <p id="save-status" class="muted"></p>
+        </section>
 
-        <h2>Status</h2>
-        <dl>
-          <div class="sync-status-row"><dt>Configured</dt><dd><span id="configured" class="badge missing">…</span></dd></div>
-          <div class="sync-status-row"><dt>Device ID</dt><dd id="device-id">…</dd></div>
-        </dl>
+        <section id="status-section" class="sync-section" aria-labelledby="status-heading">
+          <h2 id="status-heading">Status</h2>
+          <dl>
+            <div class="sync-status-row"><dt>Device ID</dt><dd id="device-id">…</dd></div>
+          </dl>
 
-        <div class="actions" style="display:flex; gap:12px; margin:16px 0;">
-          <button type="button" id="sync-btn" class="btn btn-primary">Sync now</button>
-        </div>
+          <div class="actions" style="display:flex; gap:12px; margin:16px 0;">
+            <button type="button" id="sync-btn" class="btn btn-primary">Sync now</button>
+          </div>
 
-        <p id="sync-status" class="muted" role="status" aria-live="polite"></p>
+          <p id="sync-status" class="muted" role="status" aria-live="polite"></p>
+        </section>
         <section class="sync-section" aria-labelledby="current-heading">
           <h2 id="current-heading">Current sync</h2>
           <p id="current-phase">No sync running.</p>
@@ -96,6 +99,6 @@
       </article>
     </main>
     <script src="/static/app.js?v=ui-0.1.6-20260911"></script>
-    <script src="/static/server-sync.js?v=sync-20260911"></script>
+    <script src="/static/server-sync.js?v=sync-20260912"></script>
   </body>
 </html>

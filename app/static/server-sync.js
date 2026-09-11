@@ -7,6 +7,7 @@
   let saving = false;
   let running = false;
   let configured = false;
+  let configPlacedAtBottom = null;
 
   function duration(seconds) {
     if (seconds === null || seconds === undefined) return "—";
@@ -39,9 +40,23 @@
     return payload;
   }
 
+  function placeConfigSection() {
+    const panel = document.querySelector(".panel");
+    const section = el("config-section");
+    if (!panel || !section) return;
+    if (configPlacedAtBottom === configured) return;
+    configPlacedAtBottom = configured;
+    if (configured) {
+      panel.append(section);
+    } else {
+      panel.insertBefore(section, el("status-section"));
+    }
+  }
+
   function render(payload) {
     configured = payload.configured;
     running = payload.running;
+    placeConfigSection();
     text("configured", configured ? "configured" : "not configured");
     el("configured").className = `badge ${configured ? "ok" : "missing"}`;
     text("device-id", payload.device_id);
