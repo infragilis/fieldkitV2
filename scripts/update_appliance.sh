@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# Apply an in-place Fieldkit update bundle (run as root via sudo).
+#
+# Usage: update_appliance.sh <version> <url> <sha256>
+#
+# Downloads the update bundle, verifies its SHA-256, backs up the current
+# app/scripts/deploy trees, extracts the new files, and restarts the web
+# service. Safe to re-run; a failed download or checksum leaves the running
+# appliance untouched.
+set -euo pipefail
+
+FIELDKIT_ROOT=${FIELDKIT_ROOT:-/opt/fieldkit}
+VERSION=$1
+URL=$2
+SHA256=$3
+
+if [[ -z "${VERSION}" || -z "${URL}" || -z "${SHA256}" ]]; then
+  echo "Usage: update_appliance.sh <version> <url> <sha256>" >&2
+  exit 2
+fi
+
+STATE_DIR="${FIELDKIT_ROOT}/runtime/state"
+STATE_FILE="${STATE_DIR}/update-state.json"
+LOCK_FILE="${STATE_DIR}/update.lock"
+
+if [[ -f "${LOCK_FILE}" ]]; then
+  echo "An update is already in progress." >&2
+  exit 1
+fi
+trap 'rm -f "${LOCK_FILE}"' EXIT
+touch "${LOCK_FILE}"
+
+mkdir -p "${STATE_DIR}"
+BUNDLE="${STATE_DIR}/fieldkit-update-${VERSION}.tgz"
+
+record_state() {
+  local status=$1
+  local detail=${2:-}
+  printf '{"status": "%s", "version": "%s", "detail": "%s", "finished_at": "%s"}\n' \
+    "${status}" "${VERSION}" "${detail}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${STATE_FILE}"
+  chown service:service "${STATE_FILE}" 2>/dev/null || true
+}
+
+echo "Downloading ${VERSION} from ${URL}"
+curl -fSL --retry 2 -o "${BUNDLE}" "${URL}"
+record_state downloading "downloaded ${VERSION}"
+
+echo "Verifying checksum"
+echo "${SHA256}  ${BUNDLE}" | sha256sum -c - || {
+  rm -f "${BUNDLE}"
+  record_state failed "checksum mismatch"
+  exit 1
+}
+record_state verified "checksum ok"
+
+echo "Backing up current install"
+BACKUP_DIR="/root/fieldkit-backups"
+mkdir -p "${BACKUP_DIR}"
+BACKUP_TGZ="${BACKUP_DIR}/fieldkit-update-pre-${VERSION}-$(date -u +%Y%m%dT%H%M%SZ).tgz"
+tar czf "${BACKUP_TGZ}" -C "${FIELDKIT_ROOT}" app scripts deploy 2>/dev/null || true
+record_state backed-up "backup at ${BACKUP_TGZ}"
+
+echo "Extracting update"
+tar xzf "${BUNDLE}" -C "${FIELDKIT_ROOT}"
+chown -R service:service "${FIELDKIT_ROOT}/app" "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy"
+chmod 0755 "${FIELDKIT_ROOT}/scripts/"*.sh 2>/dev/null || true
+install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-network" /etc/sudoers.d/fieldkit-network 2>/dev/null || true
+install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-transfer" /etc/sudoers.d/fieldkit-transfer 2>/dev/null || true
+install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-update" /etc/sudoers.d/fieldkit-update 2>/dev/null || true
+rm -f "${BUNDLE}"
+record_state applying "files extracted"
+
+echo "Restarting web service"
+record_state applied "update applied; restarting"
+# Restart from a transient unit so the restart does not kill this script
+# (a plain systemctl restart stops the service cgroup that spawned it).
+systemd-run --collect --no-block --unit=fieldkit-post-update \
+  systemctl restart fieldkit-web.service 2>/dev/null || true
+echo "Update to ${VERSION} applied."

@@ -3,7 +3,7 @@
 Fieldkit is a Raspberry Pi toolkit for field work on network equipment. It gives you a local web interface for console access, file handling, transfer services, and appliance management.
 Apple devices can reach the GUI at http://fieldkit.local/ while connected to the Fieldkit AP. Direct fallback: http://10.42.0.1/
 
-Current appliance version: **v0.1.6**. Cluster Import and Server Sync are marked
+Current appliance version: **v0.1.7**. Cluster Import and Server Sync are marked
 with amber **beta** badges in the menu.
 
 ## What Fieldkit Does

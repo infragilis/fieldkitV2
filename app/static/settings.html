@@ -209,6 +209,27 @@
             <a class="chip" href="/pi-shell" data-i18n="open_local_shell">Open Local Shell</a>
           </div>
         </article>
+
+        <article class="panel" id="appliance-updates">
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker">Updates</span>
+              <h2 class="panel-title">Appliance updates</h2>
+            </div>
+          </div>
+          <p class="muted">Installed version: <span id="update-local-version" class="mono">…</span></p>
+          <p id="update-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="button-row">
+            <button id="update-check-button" type="button" class="btn btn-ghost">Check for updates</button>
+            <button id="update-apply-button" type="button" class="btn btn-primary" hidden>Apply update</button>
+          </div>
+          <p class="muted serial-settings-note">Updates are fetched from your configured Fieldkit server and applied in place with an automatic backup. The appliance restarts briefly after applying.</p>
+        </article>
+          <p class="muted" data-i18n="local_shell_note">This terminal runs directly on the Fieldkit appliance as the local service account.</p>
+          <div class="btn-row">
+            <a class="chip" href="/pi-shell" data-i18n="open_local_shell">Open Local Shell</a>
+          </div>
+        </article>
       </section>
 
       <footer class="app-footer">

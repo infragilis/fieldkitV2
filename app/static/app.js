@@ -643,6 +643,88 @@ function bindTopbarBurger() {
   });
 }
 
+async function checkForUpdates() {
+  const status = document.getElementById("update-status");
+  const applyButton = document.getElementById("update-apply-button");
+  if (status) {
+    status.textContent = "Checking for updates…";
+  }
+  try {
+    const payload = await getJson("/api/system/update/latest", { timeoutMs: 30000 });
+    lastUpdatePayload = payload;
+    const local = document.getElementById("update-local-version");
+    if (local) {
+      local.textContent = payload.local_version || "unknown";
+    }
+    if (!payload.available) {
+      if (status) {
+        status.textContent = payload.error || "This appliance is up to date.";
+      }
+      if (applyButton) {
+        applyButton.hidden = true;
+      }
+      return;
+    }
+    if (payload.update_available) {
+      if (status) {
+        status.textContent = `Version ${payload.latest_version} is available (published ${payload.published_at || "recently"}).`;
+      }
+      if (applyButton) {
+        applyButton.hidden = false;
+        applyButton.textContent = `Apply update ${payload.latest_version}`;
+      }
+    } else {
+      if (status) {
+        status.textContent = `Up to date (latest: ${payload.latest_version}).`;
+      }
+      if (applyButton) {
+        applyButton.hidden = true;
+      }
+    }
+  } catch (error) {
+    lastUpdatePayload = null;
+    if (status) {
+      status.textContent = error.message;
+    }
+  }
+}
+
+async function applyUpdate() {
+  if (!lastUpdatePayload?.update_available) {
+    return;
+  }
+  const status = document.getElementById("update-status");
+  const applyButton = document.getElementById("update-apply-button");
+  if (status) {
+    status.textContent = `Applying update ${lastUpdatePayload.latest_version}… the appliance restarts briefly.`;
+  }
+  if (applyButton) {
+    applyButton.disabled = true;
+  }
+  try {
+    await getJson("/api/system/update/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        version: lastUpdatePayload.latest_version,
+        url: lastUpdatePayload.url,
+        sha256: lastUpdatePayload.sha256,
+      }),
+    });
+    if (status) {
+      status.textContent = "Update started. The page will reload when the appliance is back.";
+    }
+    setTimeout(() => window.location.reload(), 15000);
+  } catch (error) {
+    if (status) {
+      status.textContent = error.message;
+    }
+    if (applyButton) {
+      applyButton.disabled = false;
+    }
+  }
+}
+
 function initializeShellControls() {
   renderTopbar();
   bindTopbarBurger();
@@ -711,6 +793,7 @@ async function getJson(url, options = {}) {
 
 let currentSettings = null;
 let lastSerialStatus = null;
+let lastUpdatePayload = null;
 const consoleWindows = new Map();
 
 function serialPresetValue(profile) {
@@ -1218,6 +1301,11 @@ document.getElementById("open-console-1")?.addEventListener("click", () => openC
 document.getElementById("subnet-form")?.addEventListener("submit", updateSubnetCalculator);
 document.getElementById("subnet-ip")?.addEventListener("input", updateSubnetCalculator);
 document.getElementById("subnet-prefix")?.addEventListener("input", updateSubnetCalculator);
+document.getElementById("update-check-button")?.addEventListener("click", checkForUpdates);
+document.getElementById("update-apply-button")?.addEventListener("click", applyUpdate);
+if (document.getElementById("update-check-button")) {
+  checkForUpdates();
+}
 window.addEventListener("fieldkit:language-change", updateSubnetCalculator);
 window.addEventListener("fieldkit:language-change", () => {
   if (lastSerialStatus) {

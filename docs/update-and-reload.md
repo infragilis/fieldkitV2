@@ -173,3 +173,23 @@ This uploads a temporary file to `personal` and verifies:
 - Keep a wired path available when testing AP mode changes.
 - The export tree is synced once at startup and on file mutations; it is no longer rescanned on every directory listing.
 - `service` needs NOPASSWD sudo only for the allowlisted commands in `deploy/sudoers/fieldkit-network`. Ethernet apply requires the `nmcli connection modify/up` rules; password change requires `scripts/change_password.sh`.
+
+## One-click appliance updates
+
+Kits at v0.1.7+ can update themselves from the configured Fieldkit server:
+
+- Settings page → **Appliance updates**: shows the installed version, checks
+  the server for the latest published bundle, and offers **Apply update**.
+- The server publishes `fieldkit-update-<version>.tgz` and
+  `fieldkit-update-latest.json` in the Spaces `releases/` area; the device API
+  (`/api/v1/device/update-latest`, device-token auth) hands kits a fresh
+  presigned download URL (the upload key is limited-access, so no bucket
+  policy is used).
+- Applying downloads the bundle, verifies its SHA-256, backs up
+  `app/scripts/deploy` to `/root/fieldkit-backups/fieldkit-update-pre-*.tgz`,
+  extracts, refreshes sudoers, and restarts the web service via a transient
+  `fieldkit-post-update` unit so the restart does not kill the updater.
+  Progress lands in `runtime/state/update-state.json`.
+- Build bundles with `scripts/build_update_bundle.sh <version>`; publish to
+  the bucket (see `docs/golden-image-build.md`). Keep the monthly golden image
+  for new kits and ship in-place updates between releases.

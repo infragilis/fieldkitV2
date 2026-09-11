@@ -609,3 +609,88 @@ def test_usb_gadget_status_reports_supported_when_udc_present(monkeypatch):
 
     assert status["supported"] is True
     assert status["controllers"] == ["20980000.usb"]
+
+
+def test_update_latest_reports_up_to_date_when_server_unavailable(monkeypatch):
+    from app.api.routes import updates
+    from app.core.config import RuntimeSettings
+    monkeypatch.setattr(updates, "get_settings", lambda: RuntimeSettings(content_root="/tmp/fk", state_root="/tmp/fk-state"))
+    monkeypatch.setattr(updates, "VERSION_PATH", __import__("pathlib").Path("/tmp/fk/pyproject.toml"))
+
+    class FailingClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, path):
+            raise __import__("httpx").ConnectError("down")
+
+    monkeypatch.setattr(updates, "_client", lambda: (FailingClient(), None))
+    result = updates.update_latest()
+    assert result["available"] is False
+    assert "Could not reach" in result["error"]
+
+
+def test_update_latest_detects_newer_version(monkeypatch, tmp_path):
+    from app.api.routes import updates
+    from app.core.config import RuntimeSettings
+    from app.services import settings_store as ss
+    version_file = tmp_path / "pyproject.toml"
+    version_file.write_text('version = "0.1.6"\n')
+    monkeypatch.setattr(updates, "get_settings", lambda: RuntimeSettings(content_root=tmp_path, state_root=tmp_path))
+    monkeypatch.setattr(ss, "get_settings", lambda: RuntimeSettings(content_root=tmp_path, state_root=tmp_path))
+    monkeypatch.setattr(updates, "VERSION_PATH", version_file)
+
+    class StubClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, path):
+            response = __import__("httpx").Response(200, json={
+                "available": True, "version": "0.1.7",
+                "url": "https://cdn.example/bundle.tgz", "sha256": "a" * 64,
+            })
+            response.raise_for_status = lambda: None
+            return response
+
+    monkeypatch.setattr(updates, "_client", lambda: (StubClient(), None))
+    result = updates.update_latest()
+    assert result["available"] is True
+    assert result["update_available"] is True
+    assert result["latest_version"] == "0.1.7"
+
+
+def test_update_apply_requires_valid_payload_and_script(monkeypatch, tmp_path):
+    from app.api.routes import updates
+    from fastapi import HTTPException
+    monkeypatch.setattr(updates, "UPDATE_SCRIPT", tmp_path / "missing.sh")
+    try:
+        updates.update_apply({"version": "0.1.7", "url": "", "sha256": "bad"})
+        assert False, "expected validation failure"
+    except HTTPException as exc:
+        assert exc.status_code == 400
+
+    try:
+        updates.update_apply({"version": "0.1.7", "url": "https://cdn.example/b.tgz", "sha256": "b" * 64})
+        assert False, "expected missing-script failure"
+    except HTTPException as exc:
+        assert exc.status_code == 501
+
+
+def test_update_apply_launches_script(monkeypatch, tmp_path):
+    from app.api.routes import updates
+    script = tmp_path / "update_appliance.sh"
+    script.write_text("#!/bin/bash\nexit 0\n")
+    calls = []
+    monkeypatch.setattr(updates, "UPDATE_SCRIPT", script)
+    monkeypatch.setattr(updates.subprocess, "Popen", lambda *args, **kwargs: calls.append((args, kwargs)))
+    result = updates.update_apply({"version": "0.1.7", "url": "https://cdn.example/b.tgz", "sha256": "c" * 64})
+    assert result["started"] is True
+    assert len(calls) == 1
+    argv = calls[0][0][0]
+    assert argv[:3] == ["sudo", "/bin/bash", str(script)]
