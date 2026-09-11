@@ -136,6 +136,7 @@ const TRANSLATIONS = {
     upload_failed: "Upload failed",
     saved_to: "Saved {name} to {library}",
     uploads_not_allowed: "Uploads are not allowed to {library}.",
+    uploads_managed_by_server: "Uploads for vendor data are managed by the server.",
     no_entries: "No entries",
     directory_path: "directory: {path}",
     download: "Download",
@@ -373,6 +374,10 @@ TRANSLATIONS.fr.preset = "Preset";
 TRANSLATIONS.fr.preset_title = "Preset de ligne serie de {label}";
 TRANSLATIONS.fr.reset_session = "Reinitialiser la session";
 TRANSLATIONS.fr.reset_session_title = "Reinitialiser la session de {label}";
+TRANSLATIONS.es.uploads_managed_by_server = "Las subidas de datos de fabricantes se gestionan desde el servidor.";
+TRANSLATIONS.de.uploads_managed_by_server = "Uploads fuer Herstellerdaten werden vom Server verwaltet.";
+TRANSLATIONS.nl.uploads_managed_by_server = "Uploads voor leveranciersgegevens worden door de server beheerd.";
+TRANSLATIONS.fr.uploads_managed_by_server = "Les envois de donnees fournisseurs sont geres par le serveur.";
 
 function flagEmoji(countryCode) {
   return countryCode
