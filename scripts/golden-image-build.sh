@@ -79,7 +79,13 @@ mount -t proc proc mnt/proc
 mount -t sysfs sysfs mnt/sys
 mount -t devtmpfs devtmpfs mnt/dev || mount --bind /dev mnt/dev
 mount -t devpts devpts mnt/dev/pts || true
-chroot mnt /bin/bash /opt/fieldkit/scripts/golden-chroot-install.sh
+GOLDEN_MODE=install chroot mnt /bin/bash /opt/fieldkit/scripts/golden-chroot-install.sh
+
+log "Saving pre-sysprep snapshot for future refresh builds"
+cp -a "${RAW_IMG}" installed.img
+
+log "Sysprepping the image"
+GOLDEN_MODE=sysprep chroot mnt /bin/bash /opt/fieldkit/scripts/golden-chroot-install.sh
 
 log "Unmounting"
 umount mnt/dev/pts 2>/dev/null || true
@@ -105,7 +111,7 @@ losetup -d "${LOOP}"
 truncate -s "${TOTAL_BYTES}" "${RAW_IMG}"
 
 log "Compressing (this also takes a while)"
-xz -T0 -9 -c "${RAW_IMG}" > "${IMAGE_NAME}.xz"
+xz -T0 -6 -c "${RAW_IMG}" > "${IMAGE_NAME}.xz"
 sha256sum "${IMAGE_NAME}.xz" > "${IMAGE_NAME}.xz.sha256"
 rm -f "${RAW_IMG}"
 

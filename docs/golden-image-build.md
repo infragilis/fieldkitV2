@@ -8,24 +8,41 @@ Raspberry Pi is needed. The result is a shrunk, compressed
 ## Requirements (build host)
 
 - x86_64 Debian/Ubuntu with ~10 GB free disk, root access
-- `qemu-user-static parted e2fsprogs pv xz-utils curl git`
+- `qemu-user-static parted e2fsprogs pv xz-utils curl git rsync`
 
 ## One-shot build
 
 ```bash
-sudo apt-get install -y qemu-user-static parted e2fsprogs pv xz-utils curl git
+sudo apt-get install -y qemu-user-static parted e2fsprogs pv xz-utils curl git rsync
 sudo bash scripts/golden-image-build.sh
 ```
 
 The script downloads the official Debian 13 (trixie) arm64 Raspberry Pi image
 (`https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-raspi-arm64-daily.tar.xz`),
 grows it, chroots in with qemu, runs the full Fieldkit installer with
-`START_SERVICES=0` (a systemctl shim enables the units without starting them),
-syspreps (password SSH, host keys regenerated on first boot, cloud-init
-disabled, logs/runtime cleared), shrinks the filesystem and partition, and
-compresses the image with `xz -T0 -9`.
+`START_SERVICES=0` (a systemctl/hostnamectl shim enables the units without
+starting them), saves a pre-sysprep snapshot (`installed.img`), then syspreps
+(password SSH, host keys regenerated on first boot, cloud-init disabled,
+logs/runtime cleared), shrinks the filesystem and partition, and compresses
+the image with `xz -T0 -6`. The first build takes roughly 30-60 minutes
+because the OS/package install runs under arm64 emulation.
 
-Bump `IMAGE_NAME` in the script when the Fieldkit version changes; the image
+## Fast refresh (small changes)
+
+After the first build, keep `installed.img`. For bug fixes and small changes,
+skip the emulated install entirely:
+
+```bash
+sudo bash scripts/golden-refresh.sh
+```
+
+The refresh copies the snapshot, rsyncs the changed repository files into it,
+re-runs `pip install -e` and sysprep, then shrinks and compresses. Typically
+5-15 minutes instead of an hour. For everyday iteration on a live kit, prefer
+copy-deploy (`docs/update-and-reload.md`) — seconds, no image involved. Only
+refresh the image when new kits need to ship with the changes.
+
+Bump `IMAGE_NAME` in the scripts when the Fieldkit version changes; the image
 is built from `main` on GitHub, so push the release first.
 
 ## Publish

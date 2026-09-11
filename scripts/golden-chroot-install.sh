@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Runs INSIDE the golden-image chroot as root: installs Fieldkit, enables the
-# services without starting them, and syspreps the image for first boot.
+# services without starting them, and optionally syspreps the image.
+#
+# GOLDEN_MODE=install  -> install everything (slow apt phase)
+# GOLDEN_MODE=sysprep  -> sysprep only (used on refresh builds)
+# GOLDEN_MODE=all      -> both (default)
 set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
+GOLDEN_MODE=${GOLDEN_MODE:-all}
 FIELDKIT_ROOT=${FIELDKIT_ROOT:-/opt/fieldkit}
 
 log() {
@@ -52,41 +57,50 @@ hostnamectl() {
 }
 export -f hostnamectl
 
-log "OS packages"
-apt-get update
-apt-get install -y --no-install-recommends \
-  ca-certificates curl git sudo
+install_fieldkit() {
+  log "OS packages"
+  apt-get update
+  apt-get install -y --no-install-recommends \
+    ca-certificates curl git sudo
 
-log "Installing Fieldkit"
-FIELDKIT_USER=service \
-FIELDKIT_PASS=service \
-FIELDKIT_HOSTNAME=fieldkit \
-INSTALL_OS_PACKAGES=1 \
-INSTALL_AP_SUPPORT=1 \
-INSTALL_TRANSFER_SUPPORT=1 \
-START_SERVICES=0 \
-bash "${FIELDKIT_ROOT}/scripts/install_fieldkit.sh"
+  log "Installing Fieldkit"
+  FIELDKIT_USER=service \
+  FIELDKIT_PASS=service \
+  FIELDKIT_HOSTNAME=fieldkit \
+  INSTALL_OS_PACKAGES=1 \
+  INSTALL_AP_SUPPORT=1 \
+  INSTALL_TRANSFER_SUPPORT=1 \
+  START_SERVICES=0 \
+  bash "${FIELDKIT_ROOT}/scripts/install_fieldkit.sh"
 
-log "First-boot SSH: password login on, host keys regenerated on boot"
-if [[ -f /etc/ssh/sshd_config ]]; then
-  sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
-fi
-rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
-if [[ -d /etc/systemd/system/multi-user.target.wants ]]; then
-  for unit in ssh.service sshd.service regenerate_ssh_host_keys.service; do
-    [[ -f "/etc/systemd/system/${unit}" ]] && ln -sf "/etc/systemd/system/${unit}" "/etc/systemd/system/multi-user.target.wants/${unit}"
-  done
-fi
+  log "First-boot SSH: password login on, host keys regenerated on boot"
+  if [[ -f /etc/ssh/sshd_config ]]; then
+    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+  fi
+}
 
-log "Neutralize cloud-init"
-touch /etc/cloud/cloud-init.disabled 2>/dev/null || true
+sysprep() {
+  log "Sysprep"
+  rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+  if [[ -d /etc/systemd/system/multi-user.target.wants ]]; then
+    for unit in ssh.service sshd.service regenerate_ssh_host_keys.service; do
+      [[ -f "/etc/systemd/system/${unit}" ]] && ln -sf "/etc/systemd/system/${unit}" "/etc/systemd/system/multi-user.target.wants/${unit}"
+    done
+  fi
+  touch /etc/cloud/cloud-init.disabled 2>/dev/null || true
+  find /var/log -type f -delete 2>/dev/null || true
+  rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
+  rm -f /root/.bash_history /home/service/.bash_history 2>/dev/null || true
+  rm -rf "${FIELDKIT_ROOT}/runtime/content"/* "${FIELDKIT_ROOT}/runtime/state"/* 2>/dev/null || true
+  find "${FIELDKIT_ROOT}" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
+  sync
+}
 
-log "Sysprep"
-find /var/log -type f -delete 2>/dev/null || true
-rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
-rm -f /root/.bash_history /home/service/.bash_history 2>/dev/null || true
-rm -rf "${FIELDKIT_ROOT}/runtime/content"/* "${FIELDKIT_ROOT}/runtime/state"/* 2>/dev/null || true
-find "${FIELDKIT_ROOT}" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
-sync
+case "${GOLDEN_MODE}" in
+  install) install_fieldkit ;;
+  sysprep) sysprep ;;
+  *) install_fieldkit; sysprep ;;
+esac
 
-log "Golden image ready"
+log "Golden chroot step complete (${GOLDEN_MODE})"
+
