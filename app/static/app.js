@@ -145,6 +145,10 @@ const TRANSLATIONS = {
     delete_failed: "Delete failed",
     no_files: "No files",
     directory: "Directory",
+    preset: "Preset",
+    preset_title: "{label} serial line preset",
+    reset_session: "Reset session",
+    reset_session_title: "Reset {label} session",
     bytes: "{size} bytes",
     secure: "secure",
     preferred: "preferred",
@@ -353,6 +357,22 @@ TRANSLATIONS.nl.kicker_live = "Live";
 TRANSLATIONS.fr.hero_kicker = "Appareil de service terrain";
 TRANSLATIONS.fr.hero_subhead = "Consoles serie, bibliotheques de fichiers, services de transfert et notes de reference - pour travailler sur des equipements reseau partout.";
 TRANSLATIONS.fr.kicker_live = "En direct";
+TRANSLATIONS.es.preset = "Ajuste rapido";
+TRANSLATIONS.es.preset_title = "Ajuste rapido de la linea serial {label}";
+TRANSLATIONS.es.reset_session = "Reiniciar sesion";
+TRANSLATIONS.es.reset_session_title = "Reiniciar la sesion de {label}";
+TRANSLATIONS.de.preset = "Vorgabe";
+TRANSLATIONS.de.preset_title = "Serielle Leitungsvorgabe fuer {label}";
+TRANSLATIONS.de.reset_session = "Sitzung zuruecksetzen";
+TRANSLATIONS.de.reset_session_title = "Sitzung von {label} zuruecksetzen";
+TRANSLATIONS.nl.preset = "Preset";
+TRANSLATIONS.nl.preset_title = "Seriele lijnpreset voor {label}";
+TRANSLATIONS.nl.reset_session = "Sessie resetten";
+TRANSLATIONS.nl.reset_session_title = "Sessie van {label} resetten";
+TRANSLATIONS.fr.preset = "Preset";
+TRANSLATIONS.fr.preset_title = "Preset de ligne serie de {label}";
+TRANSLATIONS.fr.reset_session = "Reinitialiser la session";
+TRANSLATIONS.fr.reset_session_title = "Reinitialiser la session de {label}";
 
 function flagEmoji(countryCode) {
   return countryCode
@@ -685,6 +705,7 @@ async function getJson(url, options = {}) {
 }
 
 let currentSettings = null;
+let lastSerialStatus = null;
 const consoleWindows = new Map();
 
 function serialPresetValue(profile) {
@@ -924,10 +945,13 @@ function renderSerial(serial) {
             </span>
           </div>
           <div class="console-actions">
-            <select name="serial-preset-${session.index}" data-serial-preset-index="${session.index}">
-              ${presetOptions.map((option) => option.replace(`value="${presetValue}"`, `value="${presetValue}" selected`)).join("")}
-            </select>
-            <button type="button" class="btn btn-ghost btn-small serial-reset-button" data-reset-console-index="${session.index}">${t("reset")}</button>
+            <label class="preset-control">
+              <span class="control-caption">${t("preset")}</span>
+              <select name="serial-preset-${session.index}" data-serial-preset-index="${session.index}" title="${t("preset_title", { label: session.label })}">
+                ${presetOptions.map((option) => option.replace(`value="${presetValue}"`, `value="${presetValue}" selected`)).join("")}
+              </select>
+            </label>
+            <button type="button" class="btn btn-ghost btn-small serial-reset-button" data-reset-console-index="${session.index}" title="${t("reset_session_title", { label: session.label })}">${t("reset_session")}</button>
           </div>
         </div>
       </li>`;
@@ -1019,6 +1043,7 @@ async function loadStatus() {
     renderConnectivity(connectivityResult.value);
   }
   if (serialResult.status === "fulfilled") {
+    lastSerialStatus = serialResult.value;
     renderSerial(serialResult.value);
   }
   if (settingsResult.status === "fulfilled") {
@@ -1189,6 +1214,13 @@ document.getElementById("subnet-form")?.addEventListener("submit", updateSubnetC
 document.getElementById("subnet-ip")?.addEventListener("input", updateSubnetCalculator);
 document.getElementById("subnet-prefix")?.addEventListener("input", updateSubnetCalculator);
 window.addEventListener("fieldkit:language-change", updateSubnetCalculator);
+window.addEventListener("fieldkit:language-change", () => {
+  if (lastSerialStatus) {
+    renderSerial(lastSerialStatus);
+    bindQuickSerialPresetControls();
+    bindResetConsoleControls();
+  }
+});
 if (document.getElementById("serial-sessions") || document.getElementById("settings-form") || document.getElementById("serial-settings-form")) {
   loadStatus();
 }

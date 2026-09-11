@@ -621,9 +621,24 @@ a.chip:hover {
 
 .console-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.preset-control {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 0;
+}
+
+.control-caption {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
 }
 
 .console-actions select {
