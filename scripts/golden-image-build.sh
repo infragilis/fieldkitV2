@@ -73,6 +73,9 @@ if [[ -d "${LOCAL_CHECKOUT}/.git" ]]; then
 else
   git clone --branch "${FIELDKIT_BRANCH:-main}" "${FIELDKIT_REPO_URL:-https://github.com/infragilis/fieldkitV2.git}" mnt/opt/fieldkit
 fi
+# The chroot helper must match the build host's working tree, not the clone's
+# committed HEAD (the builder checkout may carry uncommitted script fixes).
+install -m 0755 "${LOCAL_CHECKOUT}/scripts/golden-chroot-install.sh" mnt/opt/fieldkit/scripts/golden-chroot-install.sh
 
 log "Running installer inside the chroot (this is the slow part)"
 mount -t proc proc mnt/proc
