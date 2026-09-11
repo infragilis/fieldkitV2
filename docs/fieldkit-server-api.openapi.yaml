@@ -32,12 +32,25 @@ paths:
     get:
       operationId: getDeviceFile
       summary: Download one file from the manifest
+      description: |
+        Mirrored files (manifest entry `storage: "s3"`) are answered with a
+        307 redirect to a short-lived presigned object-storage URL; clients
+        must follow redirects and must not forward the bearer token to the
+        redirect target. Clients may retry a failed mirrored download with
+        `?source=origin` to ask the server to serve a local copy instead.
       parameters:
         - name: file_id
           in: path
           required: true
           schema:
             type: string
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [origin]
+          description: Serve the local copy even when the file is mirrored.
       responses:
         "200":
           description: File content.
@@ -46,10 +59,14 @@ paths:
               schema:
                 type: string
                 format: binary
+        "307":
+          description: Mirrored file; follow the Location header (presigned URL, not authenticated).
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
           description: File id not found in the device manifest.
+        "503":
+          description: File is mirrored but object storage is unavailable on the server.
   /device/sync-results:
     post:
       operationId: reportSyncResults
@@ -109,6 +126,10 @@ components:
           type: string
           enum: [data, personal]
           description: Which appliance library the file belongs in.
+        storage:
+          type: string
+          enum: [local, s3]
+          description: Where the file is served from. `s3` means mirrored in object storage and downloads redirect there.
     SyncResults:
       type: object
       required: [device_id, files]

@@ -60,10 +60,13 @@ class ServerSyncService:
 
     def _client(self):
         # Freeze URL and credentials for this run; share the connection pool.
+        # Downloads of mirrored files are 307-redirected to object storage;
+        # httpx follows them and strips Authorization on the cross-host hop.
         return httpx.Client(
             base_url=self._base_url() + "/",
             headers={"Authorization": f"Bearer {self._token()}"},
             timeout=httpx.Timeout(120.0, connect=15.0),
+            follow_redirects=True,
         )
 
     def get_manifest(self) -> dict:
@@ -169,22 +172,41 @@ class ServerSyncService:
                 return "skipped", None
             target.parent.mkdir(parents=True, exist_ok=True)
             started = time.monotonic()
-            received = 0
-            digest = hashlib.sha256()
-            progress(0, 0)
-            with client.stream("GET", f"api/v1/device/files/{quote(entry['id'], safe='')}") as response:
-                response.raise_for_status()
-                with tempfile.NamedTemporaryFile(dir=target.parent, prefix=".fieldkit-sync-", delete=False) as output:
-                    temporary = Path(output.name)
-                    for chunk in response.iter_bytes(chunk_size=64 * 1024):
-                        received += len(chunk)
-                        if received > entry["size"]:
-                            raise ValueError("Downloaded file exceeds its declared size.")
-                        output.write(chunk)
-                        digest.update(chunk)
-                        progress(received, time.monotonic() - started)
-                    output.flush()
-                    os.fsync(output.fileno())
+            url = f"api/v1/device/files/{quote(entry['id'], safe='')}"
+            last_error = None
+            for attempt in (1, 2):
+                received = 0
+                digest = hashlib.sha256()
+                started = time.monotonic()
+                progress(0, 0)
+                try:
+                    with client.stream("GET", url) as response:
+                        response.raise_for_status()
+                        with tempfile.NamedTemporaryFile(dir=target.parent, prefix=".fieldkit-sync-", delete=False) as output:
+                            temporary = Path(output.name)
+                            for chunk in response.iter_bytes(chunk_size=64 * 1024):
+                                received += len(chunk)
+                                if received > entry["size"]:
+                                    raise ValueError("Downloaded file exceeds its declared size.")
+                                output.write(chunk)
+                                digest.update(chunk)
+                                progress(received, time.monotonic() - started)
+                            output.flush()
+                            os.fsync(output.fileno())
+                    last_error = None
+                    break
+                except httpx.HTTPError as exc:
+                    # Mirrored files live in object storage; if that fails,
+                    # retry once through the server origin before giving up.
+                    last_error = exc
+                    if temporary is not None:
+                        temporary.unlink(missing_ok=True)
+                        temporary = None
+                    if attempt == 2 or "source=origin" in url:
+                        break
+                    url += "&source=origin" if "?" in url else "?source=origin"
+            if last_error is not None:
+                raise last_error
             if received != entry["size"] or digest.hexdigest() != entry["sha256"]:
                 return "failed", "Downloaded size or checksum does not match the manifest."
             # Publish only verified content, retaining old files on any failure.

@@ -345,3 +345,101 @@ def test_vendor_folder_api_with_relative_runtime_roots(monkeypatch, tmp_path):
     assert response.status_code == 200
     assert response.json()["path"] == "ontap"
     assert response.json()["items"][0]["path"] == "ontap/image.bin"
+
+
+def test_sync_follows_s3_redirect_without_forwarding_token(monkeypatch, tmp_path):
+    content = b"mirrored vendor image"
+    sha = hashlib.sha256(content).hexdigest()
+    manifest = {
+        "manifest_version": 1,
+        "files": [{"id": sha, "name": "data/ontap/image.bin", "path": "ontap/image.bin", "library": "data", "size": len(content), "sha256": sha, "storage": "s3"}],
+    }
+    seen_authorization = []
+
+    def handler(request):
+        seen_authorization.append(request.headers.get("authorization"))
+        if request.url.path == "/api/v1/device/manifest":
+            return httpx.Response(200, json=manifest)
+        if request.url.host == "cdn.example.com":
+            assert request.headers.get("authorization") is None
+            return httpx.Response(200, content=content)
+        if request.url.path == "/api/v1/device/files/{}".format(sha):
+            return httpx.Response(307, headers={"Location": "https://cdn.example.com/data/ontap/image.bin"})
+        if request.url.path == "/api/v1/device/sync-results":
+            return httpx.Response(202, json={"accepted": True})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.Client
+    monkeypatch.setattr(
+        ss_module.httpx,
+        "Client",
+        lambda *args, **kwargs: real_client(transport=transport, *args, **kwargs),
+    )
+    settings = RuntimeSettings(
+        content_root=tmp_path / "content",
+        state_root=tmp_path / "state",
+        server_base_url="https://example.com",
+    )
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setattr(ss_module.StorageService, "_detect_usb_mount", lambda self: None)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "token")
+    service = ss_module.ServerSyncService()
+
+    result = service.sync()
+
+    assert result["files"][0]["status"] == "ok"
+    data_root = service._storage.library_paths()["data"]
+    assert (data_root / "ontap" / "image.bin").read_bytes() == content
+    assert "Bearer token" in seen_authorization
+    assert all(header is None or "cdn.example.com" not in str(header) for header in seen_authorization[1:])
+
+
+def test_sync_retries_mirrored_file_via_origin(monkeypatch, tmp_path):
+    content = b"fallback content"
+    sha = hashlib.sha256(content).hexdigest()
+    manifest = {
+        "manifest_version": 1,
+        "files": [{"id": sha, "name": "data/cisco/image.bin", "path": "cisco/image.bin", "library": "data", "size": len(content), "sha256": sha, "storage": "s3"}],
+    }
+    origin_attempts = []
+
+    def handler(request):
+        if request.url.path == "/api/v1/device/manifest":
+            return httpx.Response(200, json=manifest)
+        if request.url.host == "cdn.example.com":
+            return httpx.Response(503)
+        if request.url.path == "/api/v1/device/files/{}".format(sha):
+            origin_attempts.append(request.url.query.decode())
+            if request.url.query.decode() != "source=origin":
+                return httpx.Response(307, headers={"Location": "https://cdn.example.com/data/cisco/image.bin"})
+            return httpx.Response(200, content=content)
+        if request.url.path == "/api/v1/device/sync-results":
+            return httpx.Response(202, json={"accepted": True})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.Client
+    monkeypatch.setattr(
+        ss_module.httpx,
+        "Client",
+        lambda *args, **kwargs: real_client(transport=transport, *args, **kwargs),
+    )
+    settings = RuntimeSettings(
+        content_root=tmp_path / "content",
+        state_root=tmp_path / "state",
+        server_base_url="https://example.com",
+    )
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setattr(ss_module.StorageService, "_detect_usb_mount", lambda self: None)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "token")
+    service = ss_module.ServerSyncService()
+
+    result = service.sync()
+
+    assert result["files"][0]["status"] == "ok"
+    assert origin_attempts == ["", "source=origin"]
+    data_root = service._storage.library_paths()["data"]
+    assert (data_root / "cisco" / "image.bin").read_bytes() == content
