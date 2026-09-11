@@ -156,3 +156,16 @@ managed-files list in `runtime/state/server-sync-managed.json`: files it
 downloaded (or confirmed present) from `data/` are removed together with their
 export-mirror copies when they disappear from the manifest. User-placed files
 and personal content are never touched.
+
+## Storage planning and the disk-space check
+
+Synced files exist twice on the kit — the local library and the HTTP export
+mirror — so plan storage accordingly: a **64 GB microSD card is the minimum
+for kits that use Server Sync**; 32 GB remains fine for kits that do not.
+
+Before downloading anything, the sync estimates the space the library, the
+export mirror, the largest in-flight file and a safety margin will need and
+compares it against the free space. When it does not fit, the sync fails fast
+with a clear "Not enough disk space" error that points at the server Data
+page, and nothing is downloaded. Pruning runs before this check, so shrinking
+the sync window on the server lets a full kit recover on its next sync.

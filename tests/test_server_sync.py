@@ -597,3 +597,83 @@ def test_prune_tracks_skipped_files_on_first_run(monkeypatch, tmp_path):
     current["manifest"] = {"manifest_version": 1, "files": []}
     service.sync()
     assert not (data_root / "ontap" / "present.bin").exists()
+
+
+def _patch_free(monkeypatch, free_bytes):
+    monkeypatch.setattr(ss_module.shutil, "disk_usage",
+                        lambda path: type("Usage", (), {"free": free_bytes})())
+
+
+def test_disk_check_refuses_sync_without_space(monkeypatch, tmp_path):
+    content = b"big vendor file"
+    sha = hashlib.sha256(content).hexdigest()
+    service, current = _prune_service(monkeypatch, tmp_path, False, [])
+    first = entry(sha, "data/ontap/big.bin", content)
+    current["manifest"] = {"manifest_version": 1, "files": [first]}
+    _patch_free(monkeypatch, 1024)
+
+    try:
+        service.sync()
+        assert False, "expected disk space refusal"
+    except ValueError as exc:
+        assert "Not enough disk space" in str(exc)
+        assert "Data page" in str(exc)
+
+
+def test_disk_check_requires_mirror_space_for_present_files(monkeypatch, tmp_path):
+    content = b"present but unmirrored"
+    sha = hashlib.sha256(content).hexdigest()
+    service, current = _prune_service(monkeypatch, tmp_path, False, [])
+    first = entry(sha, "data/ontap/present.bin", content)
+    data_root = service._storage.library_paths()["data"]
+    (data_root / "ontap").mkdir(parents=True, exist_ok=True)
+    (data_root / "ontap" / "present.bin").write_bytes(content)
+    current["manifest"] = {"manifest_version": 1, "files": [first]}
+    _patch_free(monkeypatch, 1024)
+
+    try:
+        service.sync()
+        assert False, "expected disk space refusal for missing mirror copy"
+    except ValueError as exc:
+        assert "Not enough disk space" in str(exc)
+
+
+def test_disk_check_lets_prune_recover_a_full_kit(monkeypatch, tmp_path):
+    content = b"leaving the window"
+    sha = hashlib.sha256(content).hexdigest()
+    service, current = _prune_service(monkeypatch, tmp_path, True, [])
+    first = entry(sha, "data/ontap/old.bin", content)
+    current["manifest"] = {"manifest_version": 1, "files": [first]}
+    service.sync()
+    data_root = service._storage.library_paths()["data"]
+    assert (data_root / "ontap" / "old.bin").exists()
+
+    current["manifest"] = {"manifest_version": 1, "files": []}
+    _patch_free(monkeypatch, 1024)
+    result = service.sync()
+    assert result["counts"]["failed"] == 0
+    assert not (data_root / "ontap" / "old.bin").exists()
+
+
+def test_disk_check_passes_with_enough_space(monkeypatch, tmp_path):
+    content = b"fits fine"
+    sha = hashlib.sha256(content).hexdigest()
+    service, current = _prune_service(monkeypatch, tmp_path, False, [])
+    first = entry(sha, "data/ontap/fits.bin", content)
+    current["manifest"] = {"manifest_version": 1, "files": [first]}
+    _patch_free(monkeypatch, 10 * 1024**3)
+
+    result = service.sync()
+    assert result["files"][0]["status"] == "ok"
+
+
+def test_job_records_disk_space_refusal(monkeypatch, tmp_path):
+    service = FakeSyncService(tmp_path)
+    monkeypatch.setattr(service, "sync",
+                        lambda progress=None: (_ for _ in ()).throw(ValueError("Not enough disk space: needs 1 GiB")))
+    job = ServerSyncJob(service)
+    assert job.start("manual")
+    job._thread.join(3)
+    state = job.status()
+    assert state["last_sync"]["outcome"] == "failed"
+    assert "Not enough disk space" in state["last_sync"]["error"]

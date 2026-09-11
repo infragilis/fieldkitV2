@@ -51,7 +51,8 @@ Weitere Informationen: [Server Sync](docs/server-sync.md) und
 
 Fieldkit speichert Uploads, Exportdateien und serielle Sitzungslogs auf der Appliance selbst.
 
-- Empfohlene Mindestgroesse der microSD-Karte: `32 GB`
+- Empfohlene Mindestgroesse der microSD-Karte: `64 GB` bei Server-Sync (Dateien existieren doppelt)
+- `32 GB` reichen fuer Kits ohne Server-Sync
 - Mehr Speicher ist sinnvoll, wenn Images, Firmware oder viele Logs auf dem Kit bleiben sollen
 
 ## Hauptfunktionen

@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import shutil
 import socket
 import tempfile
 import time
@@ -17,6 +18,16 @@ from app.services.storage import StorageService
 
 DEVICE_TOKEN_ENV = "FIELDKIT_DEVICE_TOKEN"
 SYNC_LIBRARIES = {"data", "personal"}
+DISK_MARGIN_BYTES = 256 * 1024**2
+
+
+def human_bytes(value: int) -> str:
+    if value <= 0:
+        return "0 B"
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if value < 1024 or unit == "GiB":
+            return f"{value:.1f} {unit}"
+        value /= 1024
 
 
 def sync_error(exc: Exception) -> str:
@@ -100,6 +111,66 @@ class ServerSyncService:
                 continue
         self._save_managed(remaining)
 
+    def _manifest_target(self, entry: dict) -> Path | None:
+        library = entry.get("library") or "data"
+        relative = entry.get("path") or entry.get("name") or ""
+        try:
+            return self._storage.resolve_download(library, relative)
+        except ValueError:
+            return None
+
+    def _mirror_target(self, entry: dict) -> Path | None:
+        library = entry.get("library") or "data"
+        relative = entry.get("path") or entry.get("name") or ""
+        try:
+            return self._storage.export_root() / library / relative
+        except (OSError, ValueError):
+            return None
+
+    def _plan_entries(self, entries: list[dict]) -> dict[str, str]:
+        """Decide skip vs download once, hashing present files a single time."""
+        plan: dict[str, str] = {}
+        for entry in entries:
+            target = self._manifest_target(entry)
+            if target is not None and target.is_file() \
+                    and target.stat().st_size == entry["size"] \
+                    and self._sha256(target) == entry["sha256"]:
+                plan[entry["id"]] = "skip"
+            else:
+                plan[entry["id"]] = "download"
+        return plan
+
+    def _check_disk_space(self, entries: list[dict], plan: dict[str, str]) -> None:
+        """Refuse to start when the library plus its export mirror cannot fit.
+
+        Runs after pruning, so a tightened server-side sync window can free
+        space and let the next sync recover a full kit.
+        """
+        library_needed = 0
+        mirror_needed = 0
+        largest = 0
+        for entry in entries:
+            size = entry["size"]
+            if plan.get(entry["id"]) == "download":
+                library_needed += size
+                largest = max(largest, size)
+            mirror = self._mirror_target(entry)
+            if mirror is None or not mirror.is_file() or mirror.stat().st_size != size:
+                mirror_needed += size
+        base = library_needed + mirror_needed + largest
+        if base == 0:
+            return
+        required = base + DISK_MARGIN_BYTES
+        anchor = self._storage.library_paths()["data"]
+        free = shutil.disk_usage(anchor.parent).free
+        if free < required:
+            raise ValueError(
+                "Not enough disk space: this sync needs about "
+                f"{human_bytes(required)} free, but only {human_bytes(free)} is "
+                "available. Reduce the sync set on the server (Data page) and "
+                "try again."
+            )
+
     def _client(self):
         # Freeze URL and credentials for this run; share the connection pool.
         # Downloads of mirrored files are 307-redirected to object storage;
@@ -158,7 +229,26 @@ class ServerSyncService:
                 for entry in entries
                 if (entry.get("library") or "data") == "data" and entry.get("path")
             }
+            if prune:
+                self._prune_stale_data_files(manifest_data_paths, managed)
+            plan = self._plan_entries(entries)
+            self._check_disk_space(entries, plan)
             for entry in entries:
+                if plan.get(entry["id"]) == "skip":
+                    result = {
+                        "id": entry["id"],
+                        "name": entry.get("path") or entry.get("name") or "",
+                        "library": entry.get("library") or "data",
+                        "status": "skipped",
+                    }
+                    results.append(result)
+                    notify({
+                        "completed_files": len(results),
+                        "counts": self._counts(results), "eta_seconds": None,
+                    })
+                    if prune and result["library"] == "data":
+                        managed.append(entry.get("path") or "")
+                    continue
                 size = entry["size"]
                 name = entry.get("path") or entry.get("name") or ""
                 notify({

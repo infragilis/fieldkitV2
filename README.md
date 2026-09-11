@@ -29,9 +29,10 @@ with amber **beta** badges in the menu.
 
 ## Storage Recommendation
 
-Fieldkit stores uploaded files, exported files, and serial session logs on the appliance itself.
+Fieldkit stores uploaded files, exported files, and serial session logs on the appliance itself. Synced files exist twice (the local library plus the HTTP export mirror), and the kit refuses syncs it cannot fit.
 
-- Minimum recommended microSD card size: `32 GB`
+- Minimum recommended microSD card size: `64 GB` if you use Server Sync
+- `32 GB` remains fine for kits that do not use Server Sync
 - Use larger storage if you expect to keep firmware images, switch software, or long serial log history on the kit
 
 ## Main Features

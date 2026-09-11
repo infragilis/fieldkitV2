@@ -6,6 +6,7 @@ This document records the reference Raspberry Pi appliance state that Fieldkit w
 
 - Raspberry Pi 3 Model B or newer
 - 64-bit userspace is the reference target
+- **microSD card: 64 GB minimum for kits that use Server Sync** (synced files exist twice — the local library plus the HTTP export mirror — and the kit refuses syncs it cannot fit). 32 GB remains adequate for kits that do not use Server Sync.
 - Two USB-to-serial console cables or USB serial adapters for `ttyUSB` or `ttyACM` access
 - Ethernet uplink for direct servicing workflows
 

@@ -52,7 +52,8 @@ Mas informacion: [Server Sync](docs/server-sync.md) y
 
 Fieldkit guarda en el propio appliance los archivos subidos, los archivos exportados y los logs de consola.
 
-- Tamano minimo recomendado de la microSD: `32 GB`
+- Tamano minimo recomendado de la microSD: `64 GB` si usas la sincronizacion de servidor (los archivos existen dos veces)
+- `32 GB` es suficiente para kits que no usan la sincronizacion de servidor
 - Use mas capacidad si piensa guardar imagenes, firmware o muchos logs serie
 
 ## Funciones Principales

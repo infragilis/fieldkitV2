@@ -52,7 +52,8 @@ Meer informatie: [Server Sync](docs/server-sync.md) en
 
 Fieldkit bewaart uploads, exportbestanden en seriele sessielogs op het appliance zelf.
 
-- Minimale aanbevolen microSD-grootte: `32 GB`
+- Minimale aanbevolen microSD-grootte: `64 GB` met server-sync (bestanden bestaan dubbel)
+- `32 GB` is voldoende voor kits zonder server-sync
 - Gebruik meer opslag als je images, firmware of veel logs lokaal wilt bewaren
 
 ## Belangrijkste Functies
