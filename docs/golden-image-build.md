@@ -61,10 +61,10 @@ for name in ("fieldkit-v0.1.6.img.xz", "fieldkit-v0.1.6.img.xz.sha256"):
 PY
 ```
 
-The `releases/` prefix is public-read (bucket policy), so the `/get` page links
-to `https://fieldkit.nyc3.digitaloceanspaces.com/fieldkit/releases/...` and
-flips from "not published yet" to the download state automatically (it checks
-the object and shows the published SHA-256).
+The upload key is a limited-access Spaces key, which cannot apply bucket
+policies, so there is no public prefix: `/get` and the update-latest device
+route generate fresh **presigned URLs** on each request (24h for the image,
+6h for update bundles) and show the published SHA-256.
 
 ## User steps (shown on /get)
 
