@@ -10,7 +10,7 @@ Huidige applianceversie: **v0.1.6**. Cluster Import en Server Sync hebben amberk
 - Stel de server-URL en je apparaattoken in op **Server Sync** op het appliance.
   Synchronisatie start 10 minuten na het opstarten en daarna elk uur; **Sync now**
   start direct een controle. Downloads worden op grootte en checksum gecontroleerd.
-- **`data/{fos,bes,cisco,ontap,nvidia}`** bevat gedeelde leveranciersbestanden;
+- **`data/{cisco,ontap,brocade,efos,nvidia}`** bevat gedeelde leveranciersbestanden;
   **`personal`** is voor configuraties en gebruikersspecifieke bestanden.
 - Op de **serverwebinterface** biedt **Data** een mapkiezer, downloads en
   **My sync subscriptions**. Kies je mappen en sla op. Alle kits met jouw token

@@ -196,7 +196,7 @@ def test_standard_vendor_directories_are_created_without_moving_files(monkeypatc
     root = service._storage.library_paths()["data"]
     (root / "existing.txt").write_text("keep")
     ss_module.StorageService(service._runtime)
-    assert all((root / name).is_dir() for name in ("ontap", "bes", "cisco", "nvidia", "fos"))
+    assert all((root / name).is_dir() for name in ("cisco", "ontap", "brocade", "efos", "nvidia"))
     assert (root / "existing.txt").read_text() == "keep"
 
 

@@ -4,7 +4,7 @@ from typing import BinaryIO
 
 from app.core.config import RuntimeSettings
 
-DATA_SUBDIRECTORIES = ("ontap", "bes", "cisco", "nvidia", "fos")
+DATA_SUBDIRECTORIES = ("cisco", "ontap", "brocade", "efos", "nvidia")
 
 
 def ensure_runtime_layout(settings: RuntimeSettings) -> None:

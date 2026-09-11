@@ -137,7 +137,7 @@
                   ? `<a href="/files?library=${encodeURIComponent(name)}&path=${encodeURIComponent(item.path)}" data-directory-path="${escapeHtml(item.path)}">${escapeHtml(item.name)}/</a>`
                   : `<a href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${escapeHtml(item.name)}</a>`
                 }
-                <span class="muted">${item.is_dir ? (i18n ? i18n.t("directory_path", { path: escapeHtml(item.path) }) : `directory: ${escapeHtml(item.path)}`) : (i18n ? i18n.t("bytes", { size: item.size }) : `${item.size} bytes`)}</span>
+                ${item.is_dir ? "" : `<span class="muted">${i18n ? i18n.t("bytes", { size: item.size }) : `${item.size} bytes`}</span>`}
               </div>
               <div class="item-actions">
                 ${item.is_dir ? "" : `<a class="btn btn-ghost btn-small" href="/api/files/download?library=${encodeURIComponent(payload.library)}&path=${encodeURIComponent(item.path)}" download>${i18n ? i18n.t("download") : "Download"}</a>`}

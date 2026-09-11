@@ -52,7 +52,7 @@ Configure the server URL and your device token on the appliance's **Server Sync*
 page. Checks run 10 minutes after boot and hourly, with **Sync now** for an immediate
 check. Downloaded files are size/checksum verified before publication.
 
-- **`data/{fos,bes,cisco,ontap,nvidia}`** is the shared vendor library for software,
+- **`data/{cisco,ontap,brocade,efos,nvidia}`** is the shared vendor library for software,
   firmware and reference files. **`personal`** holds your configs and user-specific files.
 - On the **server webfront**, **Data** provides folder browsing, Download buttons
   and **My sync subscriptions**. Choose folders and save; every kit using your

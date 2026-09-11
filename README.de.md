@@ -10,7 +10,7 @@ bernsteinfarbene **beta**-Markierungen im Menue.
 - Server-URL und Geraetetoken auf der Appliance unter **Server Sync** eintragen.
   Die Pruefung startet 10 Minuten nach dem Booten und danach stuendlich;
   **Sync now** startet sie sofort. Downloads werden nach Groesse und Pruefsumme geprueft.
-- **`data/{fos,bes,cisco,ontap,nvidia}`** enthaelt gemeinsame Herstellerdateien;
+- **`data/{cisco,ontap,brocade,efos,nvidia}`** enthaelt gemeinsame Herstellerdateien;
   **`personal`** ist fuer Konfigurationen und benutzerspezifische Dateien bestimmt.
 - In der **Server-Weboberflaeche** bietet **Data** Ordnerauswahl, Downloads und
   **My sync subscriptions**. Ordner auswaehlen und speichern. Alle Kits mit

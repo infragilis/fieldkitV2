@@ -10,7 +10,7 @@ des etiquettes **beta** ambre dans le menu.
 - Configurez l'URL du serveur et votre jeton dans **Server Sync** sur l'appliance.
   La verification commence 10 minutes apres le demarrage, puis chaque heure;
   **Sync now** la lance immediatement. La taille et la somme de controle sont verifiees.
-- **`data/{fos,bes,cisco,ontap,nvidia}`** contient les fichiers fournisseurs partages;
+- **`data/{cisco,ontap,brocade,efos,nvidia}`** contient les fichiers fournisseurs partages;
   **`personal`** est reserve aux configurations et fichiers propres a l'utilisateur.
 - Dans l'**interface web du serveur**, **Data** propose le choix des dossiers,
   les telechargements et **My sync subscriptions**. Selectionnez puis enregistrez

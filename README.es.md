@@ -10,7 +10,7 @@ etiquetas **beta** ambar en el menu.
 - Configure la URL del servidor y su token en **Server Sync** del appliance.
   La comprobacion comienza 10 minutos despues del arranque y luego cada hora;
   **Sync now** la inicia inmediatamente. Se verifican el tamano y la suma de comprobacion.
-- **`data/{fos,bes,cisco,ontap,nvidia}`** contiene archivos compartidos de fabricantes;
+- **`data/{cisco,ontap,brocade,efos,nvidia}`** contiene archivos compartidos de fabricantes;
   **`personal`** es para configuraciones y archivos propios del usuario.
 - En la **interfaz web del servidor**, **Data** ofrece un selector de carpetas,
   descargas y **My sync subscriptions**. Seleccione las carpetas y guarde. Todos
