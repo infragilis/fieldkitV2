@@ -5,7 +5,7 @@ libraries. Configure the server URL and a device token on **Server Sync**
 (`/server-sync`). Leaving the token field blank when saving keeps the saved
 token. `FIELDKIT_DEVICE_TOKEN` can override it for managed installations.
 
-The main shared vendor structure is **`data/{fos,bes,cisco,ontap,nvidia}`**, for
+The main shared vendor structure is **`data/{cisco,ontap,brocade,efos,nvidia}`**, for
 software, firmware and reference files. **`personal`** is for configuration files
 and other user-specific content. Select **Shared data** when uploading vendor
 files to the server; it is the default for users with shared-data upload permission.
@@ -55,11 +55,11 @@ The runtime creates these folders without moving existing content:
 
 ```text
 runtime/content/data/
-  ontap/
-  bes/
   cisco/
+  ontap/
+  brocade/
+  efos/
   nvidia/
-  fos/
 ```
 
 The server manifest determines placement. For example, `library: data` and
