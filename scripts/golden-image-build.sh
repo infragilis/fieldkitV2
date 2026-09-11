@@ -48,17 +48,18 @@ log "Attaching image"
 LOOP="$(losetup -Pf --show "${RAW_IMG}")"
 echo "loop device: ${LOOP}"
 
-log "Growing root partition"
-parted -s "${LOOP}" resizepart 2 100% || true
+log "Growing root partition (Debian cloud layout: root=p1, boot=p15)"
+parted -s "${LOOP}" resizepart 1 100% || true
 partprobe "${LOOP}" || true
-ROOT_PART="${LOOP}p2"
+ROOT_PART="${LOOP}p1"
+BOOT_PART="${LOOP}p15"
 e2fsck -fy "${ROOT_PART}" || true
 resize2fs "${ROOT_PART}"
 
 log "Mounting rootfs"
 mkdir -p mnt
 mount "${ROOT_PART}" mnt
-mount "${LOOP}p1" mnt/boot/firmware 2>/dev/null || true
+mount "${BOOT_PART}" mnt/boot/firmware 2>/dev/null || true
 
 log "Preparing chroot"
 install -m 0644 /etc/resolv.conf mnt/etc/resolv.conf
