@@ -12,7 +12,7 @@
 set -euo pipefail
 
 WORKDIR=${WORKDIR:-/opt/fieldkit-golden}
-IMAGE_NAME=${IMAGE_NAME:-fieldkit-v0.1.6.img}
+IMAGE_NAME=${IMAGE_NAME:-fieldkit-v0.1.7.img}
 LOCAL_CHECKOUT=${LOCAL_CHECKOUT:-/opt/fieldkit-golden-builder}
 FIELDKIT_BRANCH=${FIELDKIT_BRANCH:-main}
 

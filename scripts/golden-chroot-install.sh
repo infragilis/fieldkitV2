@@ -61,7 +61,7 @@ install_fieldkit() {
   log "OS packages"
   apt-get update
   apt-get install -y --no-install-recommends \
-    ca-certificates curl git sudo
+    ca-certificates cloud-guest-utils curl e2fsprogs gdisk git sudo
 
   log "Installing Fieldkit"
   FIELDKIT_USER=service \
@@ -87,6 +87,7 @@ sysprep() {
       [[ -f "/etc/systemd/system/${unit}" ]] && ln -sf "/etc/systemd/system/${unit}" "/etc/systemd/system/multi-user.target.wants/${unit}"
     done
   fi
+  install_growroot
   touch /etc/cloud/cloud-init.disabled 2>/dev/null || true
   find /var/log -type f -delete 2>/dev/null || true
   rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
@@ -94,6 +95,14 @@ sysprep() {
   rm -rf "${FIELDKIT_ROOT}/runtime/content"/* "${FIELDKIT_ROOT}/runtime/state"/* 2>/dev/null || true
   find "${FIELDKIT_ROOT}" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
   sync
+}
+
+install_growroot() {
+  log "Arming first-boot root partition grow"
+  install -D -m 0755 "${FIELDKIT_ROOT}/scripts/fieldkit-growroot.sh" /usr/local/sbin/fieldkit-growroot.sh
+  install -D -m 0644 "${FIELDKIT_ROOT}/deploy/systemd/fieldkit-growroot.service" /etc/systemd/system/fieldkit-growroot.service
+  systemctl enable fieldkit-growroot.service
+  touch /etc/fieldkit-growroot
 }
 
 case "${GOLDEN_MODE}" in

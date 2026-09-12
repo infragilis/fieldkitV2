@@ -12,7 +12,7 @@ set -euo pipefail
 
 WORKDIR=${WORKDIR:-/opt/fieldkit-golden}
 BASE_URL=${BASE_URL:-https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-raspi-arm64-daily.tar.xz}
-IMAGE_NAME=${IMAGE_NAME:-fieldkit-v0.1.6.img}
+IMAGE_NAME=${IMAGE_NAME:-fieldkit-v0.1.7.img}
 REPO_CHECKOUT=${REPO_CHECKOUT:-/home/user/fieldkit}
 
 log() {

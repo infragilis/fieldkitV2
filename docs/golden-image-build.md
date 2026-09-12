@@ -65,7 +65,7 @@ from server import s3
 from server.config import Settings
 s = Settings.from_env()
 c = s3._client(s, s.s3_endpoint)
-for name in ("fieldkit-v0.1.6.img.xz", "fieldkit-v0.1.6.img.xz.sha256"):
+for name in ("fieldkit-v0.1.7.img.xz", "fieldkit-v0.1.7.img.xz.sha256"):
     c.upload_file(f"/opt/fieldkit-golden/{name}", "fieldkit", f"fieldkit/releases/{name}")
 PY
 ```
@@ -74,6 +74,10 @@ The upload key is a limited-access Spaces key, which cannot apply bucket
 policies, so there is no public prefix: `/get` and the update-latest device
 route generate fresh **presigned URLs** on each request (24h for the image,
 6h for update bundles) and show the published SHA-256.
+
+The server's `/get` looks for a fixed object name — `GOLDEN_IMAGE_NAME` in
+`server/web.py`. Bump it to the new filename **together with** the image, or
+`/get` will keep pointing at the previous object.
 
 ## User steps (shown on /get)
 
@@ -95,8 +99,11 @@ route generate fresh **presigned URLs** on each request (24h for the image,
 - First build on the VM succeeded 2026-09-12 (fixes: partition-number bug in
   the old `parted resizepart 2`, start-offset arithmetic, script-mode parted
   shrink refusal, stale GPT headers from a killed run).
-- The shipped root filesystem is minimum-sized (~2.5 GiB in a ~2.75 GiB
-  partition). `x-systemd.growfs` in `/etc/fstab` grows the *filesystem* to the
-  partition on first boot, but nothing grows the *partition* to fill the card
-  (cloud-init growpart is disabled by sysprep). On a 64 GB card the root stays
-  ~2.75 GiB until a first-boot partition-grow unit is added — undecided.
+- The image ships with the root partition shrunk to ~2.75 GiB and the root
+  filesystem at its minimum (~2.5 GiB). `/etc/fstab` already carries
+  `x-systemd.growfs`, which grows the filesystem to the partition at mount;
+  the golden builder additionally installs `fieldkit-growroot.service`, which
+  on first boot grows the root **partition** to fill the boot media
+  (32/64/128 GB) and then the filesystem, then disarms itself by removing
+  `/etc/fieldkit-growroot`. It uses `growpart` + `sgdisk` (installed by the
+  golden installer) and is a no-op on already-full media.
