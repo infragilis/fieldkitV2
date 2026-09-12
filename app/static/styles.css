@@ -24,6 +24,7 @@
   --warn: #fbbf24;
   --term-bg: #050b14;
   --term-text: #7ee2a8;
+  --field-bg: #050b14;
   --shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
   --shadow-soft: 0 6px 22px rgba(0, 0, 0, 0.3);
   --radius: 16px;
@@ -59,6 +60,7 @@
   --warn: #b45309;
   --term-bg: #050b14;
   --term-text: #6ee7b7;
+  --field-bg: #f4f7fb;
   --shadow: 0 14px 40px rgba(15, 23, 42, 0.14);
   --shadow-soft: 0 6px 22px rgba(15, 23, 42, 0.08);
 }
@@ -595,7 +597,7 @@ a.chip:hover {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--term-bg);
+  background: var(--field-bg);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -829,7 +831,7 @@ select {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--term-bg);
+  background: var(--field-bg);
   color: var(--text);
   font: inherit;
   font-size: 0.92rem;
