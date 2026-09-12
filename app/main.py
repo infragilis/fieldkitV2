@@ -57,7 +57,7 @@ async def lifespan(_: FastAPI):
         await asyncio.to_thread(server_sync_job.stop)
 
 
-app = FastAPI(title="Fieldkit", version="0.1.7", lifespan=lifespan)
+app = FastAPI(title="Fieldkit", version="0.2.0", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 storage_service = StorageService(get_settings())
