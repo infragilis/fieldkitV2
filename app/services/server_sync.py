@@ -7,6 +7,7 @@ import shutil
 import socket
 import tempfile
 import time
+import uuid
 from pathlib import Path
 from urllib.parse import quote
 
@@ -68,6 +69,23 @@ class ServerSyncService:
         return self._base_url()
 
     def device_id(self) -> str:
+        """Stable per-kit id, persisted so it survives hostname reuse/changes."""
+        path = self._runtime.state_root / "device-id"
+        try:
+            value = path.read_text(encoding="utf-8").strip()
+            if value:
+                return value
+        except OSError:
+            pass
+        value = uuid.uuid4().hex
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(value, encoding="utf-8")
+        except OSError:
+            pass
+        return value
+
+    def device_label(self) -> str:
         return socket.gethostname()
 
     def prune_enabled(self) -> bool:
@@ -240,6 +258,7 @@ class ServerSyncService:
                         "name": entry.get("path") or entry.get("name") or "",
                         "library": entry.get("library") or "data",
                         "status": "skipped",
+                        "size": entry.get("size") or 0,
                     }
                     results.append(result)
                     notify({
@@ -275,7 +294,7 @@ class ServerSyncService:
                 downloaded_bytes += received
                 download_seconds += elapsed
                 completed_bytes += size
-                result = {"id": entry["id"], "name": name, "library": entry.get("library") or "data", "status": status}
+                result = {"id": entry["id"], "name": name, "library": entry.get("library") or "data", "status": status, "size": entry.get("size") or 0}
                 if error:
                     result["error"] = error
                 results.append(result)
@@ -366,7 +385,7 @@ class ServerSyncService:
         try:
             response = client.post(
                 "api/v1/device/sync-results",
-                json={"device_id": self.device_id(), "files": results}, timeout=30.0,
+                json={"device_id": self.device_id(), "device_label": self.device_label(), "files": results}, timeout=30.0,
             )
             response.raise_for_status()
         except httpx.HTTPError as exc:

@@ -32,6 +32,21 @@ def test_configured_requires_token_and_url(monkeypatch, tmp_path):
     assert ss_module.ServerSyncService().configured is False
 
 
+def test_device_identity_is_stable_and_not_the_hostname(monkeypatch, tmp_path):
+    import socket
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    service = ss_module.ServerSyncService()
+
+    first = service.device_id()
+    assert first == service.device_id()
+    assert first != socket.gethostname()
+    assert len(first) == 32
+    assert service.device_label() == socket.gethostname()
+
+
 def _service(monkeypatch, tmp_path, manifest, content):
     settings = RuntimeSettings(
         content_root=tmp_path / "content",
