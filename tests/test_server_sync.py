@@ -692,3 +692,79 @@ def test_job_records_disk_space_refusal(monkeypatch, tmp_path):
     state = job.status()
     assert state["last_sync"]["outcome"] == "failed"
     assert "Not enough disk space" in state["last_sync"]["error"]
+
+
+def test_sha256_is_cached_until_the_file_changes(monkeypatch, tmp_path):
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    service = ss_module.ServerSyncService()
+
+    calls = {"n": 0}
+
+    def counted(path):
+        calls["n"] += 1
+        digest = hashlib.sha256()
+        digest.update(path.read_bytes())
+        return digest.hexdigest()
+
+    monkeypatch.setattr(ss_module.ServerSyncService, "_hash_file", staticmethod(counted))
+
+    target = tmp_path / "f.bin"
+    target.write_bytes(b"one")
+    first = service._sha256(target)
+    assert service._sha256(target) == first
+    assert calls["n"] == 1  # unchanged file hashed once
+
+    target.write_bytes(b"two-two-two")
+    assert service._sha256(target) != first
+    assert calls["n"] == 2  # changed file re-hashed
+
+
+def test_sync_reports_actual_on_disk_inventory(monkeypatch, tmp_path):
+    good = b"good file\n"
+    good_sha = hashlib.sha256(good).hexdigest()
+    bad_sha = hashlib.sha256(b"missing").hexdigest()
+    manifest = {
+        "manifest_version": 1,
+        "files": [
+            {"id": good_sha, "name": "kits/good.txt", "size": len(good), "sha256": good_sha},
+            {"id": bad_sha, "name": "kits/bad.txt", "size": 7, "sha256": bad_sha},
+        ],
+    }
+    settings = RuntimeSettings(
+        content_root=tmp_path / "content", state_root=tmp_path / "state",
+        server_base_url="https://example.com",
+    )
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setattr(ss_module.StorageService, "_detect_usb_mount", lambda self: None)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "token")
+
+    def handler(request):
+        path = request.url.path
+        if path == "/api/v1/device/manifest":
+            return httpx.Response(200, json=manifest)
+        if path == f"/api/v1/device/files/{good_sha}":
+            return httpx.Response(200, content=good)
+        if path == f"/api/v1/device/files/{bad_sha}":
+            return httpx.Response(500)
+        if path == "/api/v1/device/sync-results":
+            return httpx.Response(202, json={"accepted": True})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.Client
+    monkeypatch.setattr(ss_module.httpx, "Client",
+                        lambda *args, **kwargs: real_client(transport=transport, *args, **kwargs))
+    service = ss_module.ServerSyncService()
+
+    captured = {}
+    monkeypatch.setattr(service, "_report",
+                        lambda client, results: captured.setdefault("files", list(results)) or None)
+    service.sync()
+
+    by_name = {item["name"]: item for item in captured["files"]}
+    assert by_name["kits/good.txt"]["status"] == "ok"
+    assert by_name["kits/good.txt"]["size"] == len(good)
+    assert by_name["kits/bad.txt"]["status"] == "failed"

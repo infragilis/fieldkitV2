@@ -51,6 +51,49 @@ class ServerSyncService:
         self._runtime = get_settings()
         self._storage = StorageService(self._runtime)
         self._store = SettingsStore()
+        self._hash_cache: dict[str, dict] | None = None
+        self._hash_cache_dirty = False
+
+    def _hash_cache_path(self) -> Path:
+        return self._runtime.state_root / "sync-hash-cache.json"
+
+    def _load_hash_cache(self) -> dict[str, dict]:
+        if self._hash_cache is None:
+            try:
+                data = json.loads(self._hash_cache_path().read_text(encoding="utf-8"))
+                self._hash_cache = data if isinstance(data, dict) else {}
+            except (OSError, ValueError):
+                self._hash_cache = {}
+        return self._hash_cache
+
+    def _save_hash_cache(self) -> None:
+        if not self._hash_cache_dirty or self._hash_cache is None:
+            return
+        # Keep only entries for files that still exist so the cache cannot grow
+        # without bound as files come and go.
+        live = {key: value for key, value in self._hash_cache.items() if Path(key).is_file()}
+        self._hash_cache = live
+        temporary = self._hash_cache_path().with_suffix(".json.tmp")
+        try:
+            self._hash_cache_path().parent.mkdir(parents=True, exist_ok=True)
+            temporary.write_text(json.dumps(live), encoding="utf-8")
+            os.replace(temporary, self._hash_cache_path())
+        except OSError:
+            temporary.unlink(missing_ok=True)
+            return
+        self._hash_cache_dirty = False
+
+    def _remember_hash(self, path: Path, digest: str) -> None:
+        try:
+            stat = path.stat()
+        except OSError:
+            return
+        self._load_hash_cache()[str(path)] = {
+            "size": stat.st_size,
+            "mtime_ns": stat.st_mtime_ns,
+            "sha256": digest,
+        }
+        self._hash_cache_dirty = True
 
     def _config(self):
         return self._store.load().server_sync
@@ -250,6 +293,7 @@ class ServerSyncService:
             if prune:
                 self._prune_stale_data_files(manifest_data_paths, managed)
             plan = self._plan_entries(entries)
+            self._save_hash_cache()
             self._check_disk_space(entries, plan)
             for entry in entries:
                 if plan.get(entry["id"]) == "skip":
@@ -310,8 +354,9 @@ class ServerSyncService:
                 self._prune_stale_data_files(manifest_data_paths, managed)
             notify({"phase": "publishing", "current_file": None, "eta_seconds": None})
             self._storage.sync_export_tree()
+            self._save_hash_cache()
             notify({"phase": "reporting"})
-            report_error = self._report(client, results)
+            report_error = self._report(client, self._report_inventory(entries, results))
         return {
             "manifest_version": manifest.get("manifest_version"), "files": results,
             "counts": self._counts(results), "report_error": report_error,
@@ -374,12 +419,63 @@ class ServerSyncService:
             # Publish only verified content, retaining old files on any failure.
             temporary.chmod(0o644)
             os.replace(temporary, target)
+            self._remember_hash(target, entry["sha256"])
             return "ok", None
         except (httpx.HTTPError, OSError, ValueError) as exc:
             return "failed", sync_error(exc)
         finally:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
+
+    def _report_inventory(self, entries: list[dict], results: list[dict]) -> list[dict]:
+        """Actual on-disk contents of the synced libraries, with failures overlaid.
+
+        This is the reliable source of truth for the server's "what's on the
+        kit" view: it reflects reality even when a sync failed, a file was
+        removed, or content was added outside a sync. Present files are `ok`;
+        this run's failed downloads are surfaced even when the file is absent.
+        """
+        manifest_size: dict[tuple[str, str], int] = {}
+        for entry in entries:
+            key = (entry.get("library") or "data", entry.get("path") or entry.get("name") or "")
+            manifest_size[key] = int(entry.get("size") or 0)
+        failed: dict[tuple[str, str], str | None] = {}
+        for result in results:
+            if result.get("status") == "failed":
+                failed[(result.get("library") or "data", result.get("name") or "")] = result.get("error")
+
+        inventory: dict[tuple[str, str], dict] = {}
+        for library in ("data", "personal"):
+            root = self._storage.library_paths().get(library)
+            if root is None or not root.is_dir():
+                continue
+            for path in root.rglob("*"):
+                if not path.is_file():
+                    continue
+                relative = path.relative_to(root).as_posix()
+                if any(part.startswith(".") for part in relative.split("/")):
+                    continue
+                key = (library, relative)
+                try:
+                    size = path.stat().st_size
+                except OSError:
+                    continue
+                item = {"name": relative, "library": library, "status": "ok", "size": size}
+                if key in failed:
+                    item["status"] = "failed"
+                    if failed[key]:
+                        item["error"] = failed[key]
+                inventory[key] = item
+
+        for key, error in failed.items():
+            if key in inventory:
+                continue
+            item = {"name": key[1], "library": key[0], "status": "failed", "size": manifest_size.get(key, 0)}
+            if error:
+                item["error"] = error
+            inventory[key] = item
+
+        return list(inventory.values())[:10000]
 
     def _report(self, client, results) -> str | None:
         try:
@@ -402,8 +498,23 @@ class ServerSyncService:
             return None
         return name
 
+    def _sha256(self, path: Path) -> str:
+        """SHA-256 with a size+mtime cache so unchanged files are never re-read."""
+        try:
+            stat = path.stat()
+        except OSError:
+            return ""
+        cache = self._load_hash_cache()
+        cached = cache.get(str(path))
+        if cached and cached.get("size") == stat.st_size and cached.get("mtime_ns") == stat.st_mtime_ns:
+            return cached.get("sha256", "")
+        digest = self._hash_file(path)
+        cache[str(path)] = {"size": stat.st_size, "mtime_ns": stat.st_mtime_ns, "sha256": digest}
+        self._hash_cache_dirty = True
+        return digest
+
     @staticmethod
-    def _sha256(path) -> str:
+    def _hash_file(path: Path) -> str:
         digest = hashlib.sha256()
         with path.open("rb") as handle:
             for chunk in iter(lambda: handle.read(1024 * 1024), b""):
