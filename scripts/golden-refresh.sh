@@ -5,8 +5,9 @@
 # Skips the slow emulated OS/package install entirely. Run after pushing code
 # changes to main when a fresh flash-and-go image is needed quickly.
 #
-# Requires installed.img (saved by scripts/golden-image-build.sh) and a local
-# checkout to copy from. See docs/golden-image-build.md.
+# Requires installed.img (saved by scripts/golden-image-build.sh), a local
+# checkout to copy from, and gdisk for the final GPT repair.
+# See docs/golden-image-build.md.
 
 set -euo pipefail
 
@@ -79,13 +80,21 @@ BLOCK_SIZE="$(dumpe2fs -h "${ROOT_PART}" 2>/dev/null | awk -F: '/Block size/ {gs
 BLOCK_COUNT="$(dumpe2fs -h "${ROOT_PART}" 2>/dev/null | awk -F: '/Block count/ {gsub(/ /,"",$2); print $2}')"
 FS_BYTES=$(( BLOCK_SIZE * BLOCK_COUNT ))
 SLACK=$(( 256 * 1024 * 1024 ))
-NEW_END_SECTORS=$(( (FS_BYTES + SLACK) / 512 ))
-parted -s "${LOOP}" unit s resizepart 1 "${NEW_END_SECTORS}"
-partprobe "${LOOP}" || true
-END_SECTOR="$(parted -s "${LOOP}" unit s print | awk '$1 == 1 {print $3}' | tr -d 's')"
-TOTAL_BYTES=$(( (END_SECTOR + 1) * 512 ))
+PART_START="$(sgdisk -i 1 refresh.img | awk -F: '/First sector/ {gsub(/ /,"",$2); sub(/\(.*/,"",$2); print $2}')"
+TYPE_GUID="$(sgdisk -i 1 refresh.img | awk -F: '/Partition GUID code/ {gsub(/ /,"",$2); sub(/\(.*/,"",$2); print $2}')"
+UNIQ_GUID="$(sgdisk -i 1 refresh.img | awk -F: '/Partition unique GUID/ {gsub(/ /,"",$2); sub(/\(.*/,"",$2); print $2}')"
+BOOT_START="$(sgdisk -i 15 refresh.img | awk -F: '/First sector/ {gsub(/ /,"",$2); sub(/\(.*/,"",$2); print $2}')"
+BOOT_END="$(sgdisk -i 15 refresh.img | awk -F: '/Last sector/ {gsub(/ /,"",$2); sub(/\(.*/,"",$2); print $2}')"
+BOOT_TYPE="$(sgdisk -i 15 refresh.img | awk -F: '/Partition GUID code/ {gsub(/ /,"",$2); sub(/\(.*/,"",$2); print $2}')"
+BOOT_UNIQ="$(sgdisk -i 15 refresh.img | awk -F: '/Partition unique GUID/ {gsub(/ /,"",$2); sub(/\(.*/,"",$2); print $2}')"
+SLACK_SECTORS=$(( SLACK / 512 ))
+NEW_END_SECTORS=$(( PART_START + (FS_BYTES / 512) + SLACK_SECTORS ))
 losetup -d "${LOOP}"
-truncate -s "${TOTAL_BYTES}" refresh.img
+truncate -s "$(( (NEW_END_SECTORS + 34) * 512 ))" refresh.img
+sgdisk -Z -o \
+  -n "15:${BOOT_START}:${BOOT_END}" -t "15:${BOOT_TYPE}" -u "15:${BOOT_UNIQ}" \
+  -n "1:${PART_START}:${NEW_END_SECTORS}" -t "1:${TYPE_GUID}" -u "1:${UNIQ_GUID}" \
+  -e refresh.img
 
 log "Compressing"
 xz -T0 -6 -c refresh.img > "${IMAGE_NAME}.xz"

@@ -8,24 +8,33 @@ Raspberry Pi is needed. The result is a shrunk, compressed
 ## Requirements (build host)
 
 - x86_64 Debian/Ubuntu with ~10 GB free disk, root access
-- `qemu-user-static parted e2fsprogs pv xz-utils curl git rsync`
+- `qemu-user-static parted e2fsprogs pv xz-utils curl git rsync gdisk`
 
 ## One-shot build
 
 ```bash
-sudo apt-get install -y qemu-user-static parted e2fsprogs pv xz-utils curl git rsync
+sudo apt-get install -y qemu-user-static parted e2fsprogs pv xz-utils curl git rsync gdisk
 sudo bash scripts/golden-image-build.sh
 ```
 
 The script downloads the official Debian 13 (trixie) arm64 Raspberry Pi image
 (`https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-raspi-arm64-daily.tar.xz`),
-grows it, chroots in with qemu, runs the full Fieldkit installer with
+grows it to 8 GiB, chroots in with qemu, runs the full Fieldkit installer with
 `START_SERVICES=0` (a systemctl/hostnamectl shim enables the units without
 starting them), saves a pre-sysprep snapshot (`installed.img`), then syspreps
 (password SSH, host keys regenerated on first boot, cloud-init disabled,
 logs/runtime cleared), shrinks the filesystem and partition, and compresses
 the image with `xz -T0 -6`. The first build takes roughly 30-60 minutes
 because the OS/package install runs under arm64 emulation.
+
+Shrink mechanics (shared with the refresh script): `resize2fs -M` shrinks the
+root filesystem to its minimum, then the GPT is rebuilt with `sgdisk -Z -o`
+instead of `parted resizepart` (script-mode parted refuses to shrink; the
+half-resized headers a failed run leaves behind would also block it). Both
+partitions are recreated with their original geometry, type GUIDs, and unique
+GUIDs (PARTUUIDs), because `/etc/fstab` mounts root and `/boot/firmware` by
+`PARTUUID=`. The stock hybrid MBR (FAT boot entry + 0xEE entries) is left
+intact. Output: a ~3.2 GiB image that compresses to roughly 650 MB.
 
 ## Fast refresh (small changes)
 
@@ -83,3 +92,11 @@ route generate fresh **presigned URLs** on each request (24h for the image,
 - Rebuild per release; the image is version-stamped by filename.
 - Pi 3 boot media: the image uses the standard `/boot/firmware` layout and the
   official kernel, matching the reference appliance.
+- First build on the VM succeeded 2026-09-12 (fixes: partition-number bug in
+  the old `parted resizepart 2`, start-offset arithmetic, script-mode parted
+  shrink refusal, stale GPT headers from a killed run).
+- The shipped root filesystem is minimum-sized (~2.5 GiB in a ~2.75 GiB
+  partition). `x-systemd.growfs` in `/etc/fstab` grows the *filesystem* to the
+  partition on first boot, but nothing grows the *partition* to fill the card
+  (cloud-init growpart is disabled by sysprep). On a 64 GB card the root stays
+  ~2.75 GiB until a first-boot partition-grow unit is added — undecided.
