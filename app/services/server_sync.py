@@ -488,6 +488,22 @@ class ServerSyncService:
             return sync_error(exc)
         return None
 
+    def report_requested(self) -> bool:
+        """True when the server has asked this kit to post a fresh inventory."""
+        if not self.configured:
+            return False
+        with self._client() as client:
+            response = client.get("api/v1/device/report-requested", timeout=15.0)
+            response.raise_for_status()
+            return bool(response.json().get("requested"))
+
+    def report_now(self) -> str | None:
+        """Post an inventory-only report (no manifest fetch or downloads)."""
+        if not self.configured:
+            return "not configured"
+        with self._client() as client:
+            return self._report(client, self._report_inventory([], []))
+
     @staticmethod
     def _counts(results):
         return {status: sum(result["status"] == status for result in results) for status in ("ok", "skipped", "failed")}

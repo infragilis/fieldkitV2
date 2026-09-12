@@ -768,3 +768,38 @@ def test_sync_reports_actual_on_disk_inventory(monkeypatch, tmp_path):
     assert by_name["kits/good.txt"]["status"] == "ok"
     assert by_name["kits/good.txt"]["size"] == len(good)
     assert by_name["kits/bad.txt"]["status"] == "failed"
+
+
+def test_report_now_posts_inventory_without_a_manifest(monkeypatch, tmp_path):
+    settings = RuntimeSettings(
+        content_root=tmp_path / "content", state_root=tmp_path / "state",
+        server_base_url="https://example.com",
+    )
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setattr(ss_module.StorageService, "_detect_usb_mount", lambda self: None)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "token")
+
+    captured = {}
+
+    def handler(request):
+        if request.url.path == "/api/v1/device/report-requested":
+            return httpx.Response(200, json={"requested": True})
+        if request.url.path == "/api/v1/device/sync-results":
+            captured["files"] = json.loads(request.content)["files"]
+            return httpx.Response(202, json={"accepted": True})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.Client
+    monkeypatch.setattr(ss_module.httpx, "Client",
+                        lambda *args, **kwargs: real_client(transport=transport, *args, **kwargs))
+    service = ss_module.ServerSyncService()
+    (service._storage.library_paths()["data"] / "kits").mkdir(parents=True, exist_ok=True)
+    (service._storage.library_paths()["data"] / "kits" / "a.bin").write_bytes(b"123")
+
+    assert service.report_requested() is True
+    assert service.report_now() is None
+    files = {item["name"]: item for item in captured["files"]}
+    assert files["kits/a.bin"]["status"] == "ok"
+    assert files["kits/a.bin"]["size"] == 3

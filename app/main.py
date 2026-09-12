@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from contextlib import asynccontextmanager
 from html import escape
 from pathlib import Path
@@ -11,8 +12,10 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
 from app.api.routes.server_sync import job as server_sync_job
+from app.api.routes.server_sync import service as server_sync_service
 from app.core.config import get_settings
 from app.services.docs_catalog import list_topics, topic_path
+from app.services.report_poller import ReportRequestPoller
 from app.services.storage import StorageService, ensure_runtime_layout
 
 _SECURITY_HEADERS = {
@@ -46,9 +49,11 @@ def _json_for_script(value) -> str:
 async def lifespan(_: FastAPI):
     ensure_runtime_layout(get_settings())
     storage_service.sync_export_tree()
+    report_poller.start()
     try:
         yield
     finally:
+        report_poller.stop()
         await asyncio.to_thread(server_sync_job.stop)
 
 
@@ -56,6 +61,10 @@ app = FastAPI(title="Fieldkit", version="0.1.7", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 storage_service = StorageService(get_settings())
+report_poller = ReportRequestPoller(
+    server_sync_service,
+    int(os.environ.get("FIELDKIT_REPORT_POLL_SECONDS", "60") or "60"),
+)
 
 
 @app.middleware("http")
