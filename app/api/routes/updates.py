@@ -2,8 +2,10 @@
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -16,6 +18,8 @@ router = APIRouter()
 UPDATE_SCRIPT = Path("/opt/fieldkit/scripts/update_appliance.sh")
 VERSION_PATH = Path("/opt/fieldkit/pyproject.toml")
 FALLBACK_VERSION = "0.1.6"
+_VERSION_RE = re.compile(r"^\d+(\.\d+){1,3}$")
+_SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
 def local_version() -> str:
@@ -78,11 +82,22 @@ def update_latest() -> dict:
 
 @router.post("/update/apply", status_code=202)
 def update_apply(payload: dict) -> dict:
-    version = str(payload.get("version") or "")
-    url = str(payload.get("url") or "")
-    sha256 = str(payload.get("sha256") or "")
-    if not version or not url or not sha256 or len(sha256) != 64:
-        raise HTTPException(status_code=400, detail="version, url and sha256 are required")
+    # Never trust a caller-supplied URL/checksum: re-fetch the published latest
+    # from the configured server (device-token authenticated) and apply that.
+    requested = str(payload.get("version") or "").strip()
+    latest = update_latest()
+    if not latest.get("available"):
+        raise HTTPException(status_code=409, detail="No update is currently available")
+    version = str(latest.get("latest_version") or "")
+    url = str(latest.get("url") or "")
+    sha256 = str(latest.get("sha256") or "")
+    if requested and requested != version:
+        raise HTTPException(status_code=409, detail="Requested version is not the published latest")
+    if not _VERSION_RE.match(version) or not _SHA256_RE.match(sha256):
+        raise HTTPException(status_code=400, detail="Update metadata is malformed")
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise HTTPException(status_code=400, detail="Update URL must be https")
     if not UPDATE_SCRIPT.is_file():
         raise HTTPException(status_code=501, detail="Update script not installed")
     try:

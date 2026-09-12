@@ -19,10 +19,12 @@ class NetworkService:
         interfaces = self._detect_interfaces()
         platform = self._platform.detect()
         active_connections = self._active_connections()
+        wifi = settings.wifi.model_dump()
+        wifi["password"] = ""
         return {
             "hostname": settings.hostname,
             "ethernet": settings.ethernet.model_dump(),
-            "wifi": settings.wifi.model_dump(),
+            "wifi": wifi,
             "interfaces": interfaces,
             "active_connections": active_connections,
             "platform": platform,

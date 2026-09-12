@@ -1,3 +1,4 @@
+import os
 import shutil
 from pathlib import Path
 from typing import BinaryIO
@@ -5,6 +6,10 @@ from typing import BinaryIO
 from app.core.config import RuntimeSettings
 
 DATA_SUBDIRECTORIES = ("cisco", "ontap", "brocade", "efos", "nvidia")
+
+# Cap appliance-side uploads (0 disables the cap). Server-published vendor files
+# are placed directly on the server, not through this client upload path.
+MAX_UPLOAD_BYTES = int(os.environ.get("FIELDKIT_MAX_UPLOAD_BYTES", str(10 * 1024**3)) or "0")
 
 
 def ensure_runtime_layout(settings: RuntimeSettings) -> None:
@@ -60,6 +65,8 @@ class StorageService:
 
         parts = [part for part in Path(relative_path).parts if part not in {"", "."}]
         if any(part == ".." for part in parts):
+            raise ValueError("Invalid path")
+        if any(part.startswith(".") for part in parts):
             raise ValueError("Invalid path")
         if not parts:
             return root
@@ -134,15 +141,30 @@ class StorageService:
     def save_upload(self, library: str, filename: str, stream: BinaryIO) -> Path:
         if not self._is_uploadable_library(library):
             raise ValueError(f"Uploads are not allowed for library: {library}")
-        target = self._library_root(library) / Path(filename).name
+        name = Path(filename).name
+        target = self._library_root(library) / name
         if target.exists():
-            raise FileExistsError(Path(filename).name)
-        with target.open("wb") as output:
-            while True:
-                chunk = stream.read(1024 * 1024)
-                if not chunk:
-                    break
-                output.write(chunk)
+            raise FileExistsError(name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        free = shutil.disk_usage(target.parent).free
+        temp = target.parent / f".{name}.upload-{os.getpid()}"
+        written = 0
+        try:
+            with temp.open("wb") as output:
+                while True:
+                    chunk = stream.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    written += len(chunk)
+                    if MAX_UPLOAD_BYTES and written > MAX_UPLOAD_BYTES:
+                        raise ValueError("Upload exceeds the maximum allowed size")
+                    if written + 64 * 1024 * 1024 > free:
+                        raise ValueError("Not enough disk space for this upload")
+                    output.write(chunk)
+            os.replace(temp, target)
+        finally:
+            if temp.exists():
+                temp.unlink(missing_ok=True)
         if library in self.export_library_paths():
             self.sync_export_tree()
         return target

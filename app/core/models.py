@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class EthernetConfig(BaseModel):
@@ -13,9 +13,24 @@ class EthernetConfig(BaseModel):
 
 class WifiConfig(BaseModel):
     mode: Literal["ap", "client", "disabled"] = "ap"
-    ssid: str = "fieldkit"
-    password: str = "fieldkit"
+    ssid: str = Field(default="fieldkit", max_length=32)
+    password: str = Field(default="fieldkit", max_length=63)
     country_code: str = "US"
+
+    @field_validator("ssid", "password")
+    @classmethod
+    def _reject_control_characters(cls, value: str) -> str:
+        if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+            raise ValueError("must not contain control characters")
+        return value
+
+    @field_validator("country_code")
+    @classmethod
+    def _normalize_country(cls, value: str) -> str:
+        value = value.strip().upper()
+        if len(value) != 2 or not value.isalpha():
+            raise ValueError("country_code must be two letters")
+        return value
 
 
 class SerialPortConfig(BaseModel):
@@ -40,7 +55,11 @@ class ServerSyncConfig(BaseModel):
 
 
 class AppSettingsPayload(BaseModel):
-    hostname: str = "fieldkit"
+    hostname: str = Field(
+        default="fieldkit",
+        max_length=63,
+        pattern=r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$",
+    )
     ethernet: EthernetConfig = Field(default_factory=EthernetConfig)
     wifi: WifiConfig = Field(default_factory=WifiConfig)
     serial_ports: list[SerialPortConfig] = Field(

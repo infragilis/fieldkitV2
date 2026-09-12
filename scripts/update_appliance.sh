@@ -19,6 +19,21 @@ if [[ -z "${VERSION}" || -z "${URL}" || -z "${SHA256}" ]]; then
   exit 2
 fi
 
+# Defensive validation: the route already derives these from the trusted server,
+# but the script may also be invoked directly.
+if [[ ! "${VERSION}" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]]; then
+  echo "Invalid version: ${VERSION}" >&2
+  exit 2
+fi
+if [[ ! "${SHA256}" =~ ^[0-9a-fA-F]{64}$ ]]; then
+  echo "Invalid sha256" >&2
+  exit 2
+fi
+if [[ ! "${URL}" =~ ^https:// ]]; then
+  echo "Update URL must be https" >&2
+  exit 2
+fi
+
 STATE_DIR="${FIELDKIT_ROOT}/runtime/state"
 STATE_FILE="${STATE_DIR}/update-state.json"
 LOCK_FILE="${STATE_DIR}/update.lock"
@@ -61,8 +76,17 @@ tar czf "${BACKUP_TGZ}" -C "${FIELDKIT_ROOT}" app scripts deploy 2>/dev/null || 
 record_state backed-up "backup at ${BACKUP_TGZ}"
 
 echo "Extracting update"
+if tar tzf "${BUNDLE}" | grep -qE '(^/|(^|/)\.\.(/|$))'; then
+  echo "Refusing update: archive contains unsafe paths" >&2
+  record_state failed "unsafe archive paths"
+  exit 1
+fi
 tar xzf "${BUNDLE}" -C "${FIELDKIT_ROOT}"
-chown -R service:service "${FIELDKIT_ROOT}/app" "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy"
+# App code stays service-owned; root-executed helpers and their assets must not
+# be writable by the web account.
+chown -R service:service "${FIELDKIT_ROOT}/app"
+chown -R root:root "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy"
+chmod 0755 "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy"
 chmod 0755 "${FIELDKIT_ROOT}/scripts/"*.sh 2>/dev/null || true
 install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-network" /etc/sudoers.d/fieldkit-network 2>/dev/null || true
 install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-transfer" /etc/sudoers.d/fieldkit-transfer 2>/dev/null || true

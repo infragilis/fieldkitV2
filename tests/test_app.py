@@ -164,7 +164,7 @@ def test_tools_page_includes_subnet_calculator():
     assert response.status_code == 200
     assert "Subnet Calculator" in response.text
     assert 'id="subnet-form"' in response.text
-    assert "/static/app.js?v=ui-0.1.7-20260912" in response.text
+    assert "/static/app.js?v=ui-0.1.7-20260912-sec" in response.text
 
 
 def test_subnet_calculator_has_supported_language_strings():
@@ -277,7 +277,9 @@ def test_update_settings():
     response = client.put("/api/settings", json=payload)
     assert response.status_code == 200
     assert response.json()["serial_ports"][1]["baud_rate"] == 115200
-    assert response.json()["wifi"]["password"] == "fieldkitpass"
+    # Secrets are never returned to clients.
+    assert response.json()["wifi"]["password"] == ""
+    assert client.get("/api/settings").json()["wifi"]["password"] == ""
     assert response.json()["transfer_services"]["tftp_enabled"] is True
 
 
@@ -668,18 +670,56 @@ def test_update_latest_detects_newer_version(monkeypatch, tmp_path):
 def test_update_apply_requires_valid_payload_and_script(monkeypatch, tmp_path):
     from app.api.routes import updates
     from fastapi import HTTPException
-    monkeypatch.setattr(updates, "UPDATE_SCRIPT", tmp_path / "missing.sh")
-    try:
-        updates.update_apply({"version": "0.1.7", "url": "", "sha256": "bad"})
-        assert False, "expected validation failure"
-    except HTTPException as exc:
-        assert exc.status_code == 400
 
+    monkeypatch.setattr(updates, "UPDATE_SCRIPT", tmp_path / "missing.sh")
+    monkeypatch.setattr(updates, "update_latest", lambda: {"available": False})
     try:
-        updates.update_apply({"version": "0.1.7", "url": "https://cdn.example/b.tgz", "sha256": "b" * 64})
+        updates.update_apply({})
+        assert False, "expected no-update failure"
+    except HTTPException as exc:
+        assert exc.status_code == 409
+
+    published = {"available": True, "latest_version": "0.1.7",
+                 "url": "https://cdn.example/b.tgz", "sha256": "b" * 64}
+    monkeypatch.setattr(updates, "update_latest", lambda: published)
+    try:
+        updates.update_apply({"version": "0.1.7"})
         assert False, "expected missing-script failure"
     except HTTPException as exc:
         assert exc.status_code == 501
+
+    try:
+        updates.update_apply({"version": "0.0.1"})
+        assert False, "expected version-mismatch failure"
+    except HTTPException as exc:
+        assert exc.status_code == 409
+
+
+def test_update_apply_rejects_bad_server_metadata(monkeypatch, tmp_path):
+    from app.api.routes import updates
+    from fastapi import HTTPException
+
+    script = tmp_path / "update_appliance.sh"
+    script.write_text("#!/bin/bash\nexit 0\n")
+    monkeypatch.setattr(updates, "UPDATE_SCRIPT", script)
+
+    monkeypatch.setattr(updates, "update_latest",
+                        lambda: {"available": True, "latest_version": "0.1.7",
+                                 "url": "http://cdn.example/b.tgz", "sha256": "b" * 64})
+    try:
+        updates.update_apply({"version": "0.1.7"})
+        assert False, "expected non-https rejection"
+    except HTTPException as exc:
+        assert exc.status_code == 400
+
+    monkeypatch.setattr(updates, "update_latest",
+                        lambda: {"available": True, "latest_version": "0.1.7",
+                                 "url": "https://cdn.example/b.tgz", "sha256": "zz"})
+    try:
+        updates.update_apply({"version": "0.1.7"})
+        assert False, "expected malformed-sha rejection"
+    except HTTPException as exc:
+        assert exc.status_code == 400
 
 
 def test_update_apply_launches_script(monkeypatch, tmp_path):
@@ -688,9 +728,42 @@ def test_update_apply_launches_script(monkeypatch, tmp_path):
     script.write_text("#!/bin/bash\nexit 0\n")
     calls = []
     monkeypatch.setattr(updates, "UPDATE_SCRIPT", script)
+    monkeypatch.setattr(updates, "update_latest",
+                        lambda: {"available": True, "latest_version": "0.1.7",
+                                 "url": "https://cdn.example/b.tgz", "sha256": "c" * 64})
     monkeypatch.setattr(updates.subprocess, "Popen", lambda *args, **kwargs: calls.append((args, kwargs)))
-    result = updates.update_apply({"version": "0.1.7", "url": "https://cdn.example/b.tgz", "sha256": "c" * 64})
+    # Caller-supplied url/sha must be ignored in favour of the published latest.
+    result = updates.update_apply({"version": "0.1.7", "url": "https://evil.example/x.tgz", "sha256": "e" * 64})
     assert result["started"] is True
     assert len(calls) == 1
     argv = calls[0][0][0]
     assert argv[:3] == ["sudo", "/bin/bash", str(script)]
+    assert argv[3:] == ["0.1.7", "https://cdn.example/b.tgz", "c" * 64]
+
+
+def test_json_for_script_escapes_script_terminators():
+    from app.main import _json_for_script
+
+    encoded = _json_for_script({"name": "</script><script>alert(1)</script>"})
+    assert "</script>" not in encoded
+    assert "<" not in encoded and ">" not in encoded
+
+
+def test_export_hidden_paths_are_rejected():
+    response = client.get("/fieldkit/personal/.hidden-secret")
+    assert response.status_code == 400
+
+
+def test_settings_validators_reject_injection():
+    import pytest
+    from pydantic import ValidationError
+    from app.core.models import AppSettingsPayload, WifiConfig
+
+    with pytest.raises(ValidationError):
+        AppSettingsPayload(hostname="evil\n1.2.3.4 host")
+    with pytest.raises(ValidationError):
+        WifiConfig(ssid="evil\nssid=1")
+    with pytest.raises(ValidationError):
+        WifiConfig(password="short\nwpa=1")
+    with pytest.raises(ValidationError):
+        WifiConfig(country_code="USA")

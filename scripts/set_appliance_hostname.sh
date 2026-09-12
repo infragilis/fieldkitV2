@@ -13,6 +13,12 @@ if [[ -z ${HOSTNAME_VALUE} ]]; then
   exit 1
 fi
 
+# Single RFC 1123 label only; reject anything that could inject /etc/hosts lines.
+if [[ ! ${HOSTNAME_VALUE} =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; then
+  echo "Invalid hostname: ${HOSTNAME_VALUE}" >&2
+  exit 1
+fi
+
 hostnamectl set-hostname "${HOSTNAME_VALUE}"
 
 python3 - "${HOSTNAME_VALUE}" <<'PY'

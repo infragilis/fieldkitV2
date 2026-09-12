@@ -76,6 +76,12 @@ systemctl reload avahi-daemon >/dev/null 2>&1 || true
 
 log "Provisioning runtime layout"
 chown -R "${FIELDKIT_USER}:${FIELDKIT_USER}" "${FIELDKIT_ROOT}"
+# Root executes helpers from scripts/ and installs assets from deploy/ under
+# sudo. Those must not be writable by the web account, or the sudo allowlist is
+# not a real boundary. Keep app/ (and runtime/) owned by the service user.
+chown -R root:root "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy"
+chmod 0755 "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy"
+chmod 0755 "${FIELDKIT_ROOT}/scripts/"*.sh 2>/dev/null || true
 if [[ "${INSTALL_AP_SUPPORT}" == "1" ]]; then
   FIELDKIT_DEFAULT_WIFI_MODE=ap
 else

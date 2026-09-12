@@ -519,7 +519,7 @@ function renderSubnetResult(result) {
     [t("subnet_host_range"), result.hostRange],
     [t("subnet_hosts"), result.usableHosts],
   ];
-  target.innerHTML = rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+  target.innerHTML = rows.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("");
 }
 
 function updateSubnetCalculator(event) {
@@ -855,12 +855,25 @@ async function loadMeta() {
   versionTarget.textContent = `v${schema.info.version}`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[ch]);
+}
+
 function renderKeyValue(target, data) {
   if (!target) {
     return;
   }
   target.innerHTML = Object.entries(data)
-    .map(([key, value]) => `<p><strong>${key}</strong>: ${typeof value === "object" ? JSON.stringify(value) : value}</p>`)
+    .map(([key, value]) => {
+      const text = typeof value === "object" ? JSON.stringify(value) : value;
+      return `<p><strong>${escapeHtml(key)}</strong>: ${escapeHtml(text)}</p>`;
+    })
     .join("");
 }
 
@@ -949,7 +962,7 @@ async function loadWifiNetworks() {
     renderList(
       document.getElementById("wifi-networks"),
       wifi.networks,
-      (network) => `<li>${network.ssid} <span class="muted">(${network.signal}%${network.secure ? `, ${t("secure")}` : ""})</span></li>`
+      (network) => `<li>${escapeHtml(network.ssid)} <span class="muted">(${escapeHtml(network.signal)}%${network.secure ? `, ${t("secure")}` : ""})</span></li>`
     );
   } catch (_) {
     renderList(document.getElementById("wifi-networks"), [], () => "");
@@ -969,7 +982,7 @@ function renderConnectivity(connectivity) {
     document.getElementById("active-connections"),
     connectivity.active_connections || [],
     (connection) =>
-      `<li><strong>${connection.device}</strong> ${connection.name} <span class="muted">${connection.type}, ${connection.state}</span></li>`
+      `<li><strong>${escapeHtml(connection.device)}</strong> ${escapeHtml(connection.name)} <span class="muted">${escapeHtml(connection.type)}, ${escapeHtml(connection.state)}</span></li>`
   );
 }
 
@@ -1011,34 +1024,39 @@ function renderSerial(serial) {
     document.getElementById("serial-sessions"),
     serial.sessions,
     (session) => {
-      const presetValue = serialPresetValue(session);
+      const presetValue = escapeHtml(serialPresetValue(session));
+      const label = escapeHtml(session.label);
+      const deviceLabel = escapeHtml(serialDeviceLabel(session));
+      const parity = session.parity === "none" ? "N" : escapeHtml(session.parity[0].toUpperCase());
+      const framing = `${escapeHtml(session.baud_rate)} ${escapeHtml(session.data_bits)}${parity}${escapeHtml(session.stop_bits)}`;
+      const index = escapeHtml(session.index);
       const presetOptions = [
         '<option value="9600-8n1">9600 8N1</option>',
         '<option value="115200-8n1">115200 8N1</option>',
       ];
       if (presetValue === "custom") {
         presetOptions.unshift(
-          `<option value="custom" selected>${t("custom")} (${session.baud_rate} ${session.data_bits}${session.parity === "none" ? "N" : session.parity[0].toUpperCase()}${session.stop_bits})</option>`
+          `<option value="custom" selected>${t("custom")} (${framing})</option>`
         );
       }
       return `<li>
         <div class="console-row">
           <div class="console-meta">
-            <strong>${session.label}</strong>
+            <strong>${label}</strong>
             <span class="console-sub">
-              <span class="mono">${serialDeviceLabel(session)}</span>
-              <span class="chip">${session.baud_rate} ${session.data_bits}${session.parity === "none" ? "N" : session.parity[0].toUpperCase()}${session.stop_bits}</span>
+              <span class="mono">${deviceLabel}</span>
+              <span class="chip">${framing}</span>
               ${session.present ? "" : `<span class="chip warn">${t("unavailable")}</span>`}
             </span>
           </div>
           <div class="console-actions">
             <label class="preset-control">
               <span class="control-caption">${t("preset")}</span>
-              <select name="serial-preset-${session.index}" data-serial-preset-index="${session.index}" title="${t("preset_title", { label: session.label })}">
+              <select name="serial-preset-${index}" data-serial-preset-index="${index}" title="${escapeHtml(t("preset_title", { label: session.label }))}">
                 ${presetOptions.map((option) => option.replace(`value="${presetValue}"`, `value="${presetValue}" selected`)).join("")}
               </select>
             </label>
-            <button type="button" class="btn btn-ghost btn-small serial-reset-button" data-reset-console-index="${session.index}" title="${t("reset_session_title", { label: session.label })}">${t("reset_session")}</button>
+            <button type="button" class="btn btn-ghost btn-small serial-reset-button" data-reset-console-index="${index}" title="${escapeHtml(t("reset_session_title", { label: session.label }))}">${t("reset_session")}</button>
           </div>
         </div>
       </li>`;
@@ -1094,20 +1112,24 @@ function renderTransfers(transfers) {
   const transferStatus = document.getElementById("transfer-status");
   if (transferStatus) {
     const badge = (active) => (active ? '<span class="chip ok">' + t("active") + "</span>" : '<span class="chip">' + t("configured") + "</span>");
+    const httpBase = String(transfers.http_base ?? "");
+    const httpBaseHtml = /^https?:\/\//i.test(httpBase)
+      ? `<a href="${escapeHtml(httpBase)}">${escapeHtml(httpBase)}</a>`
+      : escapeHtml(httpBase);
     transferStatus.innerHTML = `
       <div class="transfer-status">
-        <p><strong>${t("http_label")}</strong>: <a href="${transfers.http_base}">${transfers.http_base}</a></p>
-        <p><strong>${t("root_label")}</strong>: <span class="mono">${transfers.root}</span></p>
+        <p><strong>${t("http_label")}</strong>: ${httpBaseHtml}</p>
+        <p><strong>${t("root_label")}</strong>: <span class="mono">${escapeHtml(transfers.root)}</span></p>
         <p><strong>${t("http_export_label")}</strong>: ${t("configured")} ${yesNo(transfers.http_export.configured_enabled)} · ${t("active")} ${yesNo(transfers.http_export.active)} ${badge(transfers.http_export.active)}</p>
         <p><strong>${t("tftp_label")}</strong>: ${t("configured")} ${yesNo(transfers.tftp.configured_enabled)} · ${t("active")} ${yesNo(transfers.tftp.active)} · ${t("enabled")} ${yesNo(transfers.tftp.enabled)} ${badge(transfers.tftp.active)}</p>
         <p><strong>${t("ftp_label")}</strong>: ${t("configured")} ${yesNo(transfers.ftp.configured_enabled)} · ${t("active")} ${yesNo(transfers.ftp.active)} · ${t("enabled")} ${yesNo(transfers.ftp.enabled)} ${badge(transfers.ftp.active)}</p>
         <p><strong>${t("scp_label")}</strong>: ${t("built_in_over_ssh")} · ${t("active")} ${yesNo(transfers.scp.active)} ${badge(transfers.scp.active)}</p>
-        <p><strong>${t("usb_gadget_label")}</strong>: ${transfers.usb_gadget.supported ? t("yes") : t("no")} ${transfers.usb_gadget.model}</p>
-        <p>${transfers.usb_gadget.note}</p>
-        ${transfers.http_export.note ? `<p>${transfers.http_export.note}</p>` : ""}
-        ${transfers.tftp.note ? `<p>${transfers.tftp.note}</p>` : ""}
-        ${transfers.ftp.note ? `<p>${transfers.ftp.note}</p>` : ""}
-        ${transfers.scp.note ? `<p>${transfers.scp.note}</p>` : ""}
+        <p><strong>${t("usb_gadget_label")}</strong>: ${transfers.usb_gadget.supported ? t("yes") : t("no")} ${escapeHtml(transfers.usb_gadget.model)}</p>
+        <p>${escapeHtml(transfers.usb_gadget.note)}</p>
+        ${transfers.http_export.note ? `<p>${escapeHtml(transfers.http_export.note)}</p>` : ""}
+        ${transfers.tftp.note ? `<p>${escapeHtml(transfers.tftp.note)}</p>` : ""}
+        ${transfers.ftp.note ? `<p>${escapeHtml(transfers.ftp.note)}</p>` : ""}
+        ${transfers.scp.note ? `<p>${escapeHtml(transfers.scp.note)}</p>` : ""}
       </div>`;
   }
 }

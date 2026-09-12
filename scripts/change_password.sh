@@ -20,6 +20,18 @@ if [[ ${#NEW_PASSWORD} -lt 4 ]]; then
   exit 1
 fi
 
+# Only the appliance accounts may be targeted, and the password must be a
+# single line with no chpasswd separators (prevents setting another account's
+# password via an injected newline).
+case "${TARGET_USER}" in
+  service|fieldkit) ;;
+  *) echo "Unsupported target user: ${TARGET_USER}"; exit 1 ;;
+esac
+if [[ ${NEW_PASSWORD} == *[[:cntrl:]]* || ${NEW_PASSWORD} == *:* ]]; then
+  echo "New password contains invalid characters."
+  exit 1
+fi
+
 if ! python3 - "${TARGET_USER}" "${CURRENT_PASSWORD}" <<'PY'
 import ctypes
 import sys
