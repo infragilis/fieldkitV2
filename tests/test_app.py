@@ -490,6 +490,31 @@ def test_export_tree_contains_mirrored_files_inside_real_library_dirs(tmp_path):
     assert (export_root / "personal" / "firmware.bin").read_text(encoding="utf-8") == "payload"
 
 
+def test_export_tree_hardlinks_same_filesystem(tmp_path):
+    import os
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    service = StorageService(settings)
+    source = service.library_paths()["personal"] / "firmware.bin"
+    source.write_text("payload", encoding="utf-8")
+
+    service.sync_export_tree()
+    export = service.export_root() / "personal" / "firmware.bin"
+    assert os.stat(source).st_ino == os.stat(export).st_ino
+
+    # In-place edit is visible through the shared inode; a rename-replace is relinked.
+    source.write_text("in place", encoding="utf-8")
+    service.sync_export_tree()
+    assert export.read_text(encoding="utf-8") == "in place"
+
+    replacement = source.with_suffix(".tmp")
+    replacement.write_text("replaced", encoding="utf-8")
+    os.replace(replacement, source)
+    service.sync_export_tree()
+    assert os.stat(source).st_ino == os.stat(export).st_ino
+    assert export.read_text(encoding="utf-8") == "replaced"
+
+
 def test_resolve_export_path_uses_virtual_library_paths(tmp_path):
     settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
     service = StorageService(settings)

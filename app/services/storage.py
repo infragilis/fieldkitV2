@@ -242,12 +242,32 @@ class StorageService:
     def _sync_export_file(self, export_path: Path, source: Path) -> None:
         if export_path.is_symlink() or export_path.is_dir():
             self._remove_tree(export_path)
-        elif export_path.exists():
+        try:
             source_stat = source.stat()
-            export_stat = export_path.stat()
-            if export_stat.st_size == source_stat.st_size and export_stat.st_mtime_ns == source_stat.st_mtime_ns:
-                return
-        shutil.copy2(source, export_path)
+        except OSError:
+            return
+        if export_path.exists():
+            try:
+                export_stat = export_path.stat()
+            except OSError:
+                export_stat = None
+            if export_stat is not None:
+                same_inode = export_stat.st_dev == source_stat.st_dev and export_stat.st_ino == source_stat.st_ino
+                if same_inode:
+                    return  # already hardlinked
+                if export_stat.st_dev == source_stat.st_dev:
+                    # Same filesystem: replace the redundant copy with a hardlink.
+                    export_path.unlink()
+                elif export_stat.st_size == source_stat.st_size and export_stat.st_mtime_ns == source_stat.st_mtime_ns:
+                    return  # cross-device copy already up to date
+                else:
+                    export_path.unlink()
+        # Hardlink shares the inode (no duplicated bytes); fall back to a copy
+        # across filesystems or where hardlinks are unsupported (e.g. vfat USB).
+        try:
+            os.link(source, export_path)
+        except OSError:
+            shutil.copy2(source, export_path)
 
     def _remove_tree(self, path: Path) -> None:
         if path.is_symlink() or path.is_file():
