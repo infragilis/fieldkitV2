@@ -83,7 +83,7 @@ def generate_playbook(config: ClusterConfig) -> str:
         '        cluster_mgmt_ip: "{{ cluster_mgmt_ip }}"\n'
         '        cluster_mgmt_netmask: "{{ cluster_mgmt_netmask }}"\n'
         '        cluster_mgmt_gateway: "{{ cluster_mgmt_gateway }}"\n'
-        '        node: "{{ cluster_nodes }}"\n'
+        '        node: "{{ nodes }}"\n'
         '        admin_password: "{{ ontap_admin_password }}"\n'
         "        state: present\n"
         "      no_log: true\n"

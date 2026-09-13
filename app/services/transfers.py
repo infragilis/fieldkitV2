@@ -112,7 +112,7 @@ class TransferService:
         return f"sudo -n systemctl {action} {unit}"
 
     def _http_export_preview(self, enabled: bool) -> str:
-        return "sudo -n /bin/bash /opt/fieldkit/scripts/install_export_http_mode.sh"
+        return f"sudo -n /bin/bash /opt/fieldkit/scripts/install_export_http_mode.sh {'enable' if enabled else 'disable'}"
 
     def _apply_http_export(self, enabled: bool):
         return self._runner.run(
@@ -121,20 +121,25 @@ class TransferService:
                 "-n",
                 "/bin/bash",
                 "/opt/fieldkit/scripts/install_export_http_mode.sh",
+                "enable" if enabled else "disable",
             ]
         )
 
     def _http_export_status(self, configured_enabled: bool) -> dict:
         rendered = self._read_text(Path("/etc/nginx/sites-enabled/fieldkit"))
-        export_http_active = "listen 80;" in rendered and (
-            "location ^~ /fieldkit" in rendered
-            or ("proxy_pass http://127.0.0.1:8000;" in rendered and "return 301 https://$host$request_uri;" not in rendered)
-        )
-        note = "" if rendered else "nginx config unavailable."
+        listener = self._runner.run(["ss", "-ltn", "sport", "=", ":80"])
+        listening = listener.ok and any(":80" in line for line in listener.stdout.splitlines())
+        probe = self._runner.run(["curl", "--max-time", "2", "-sS", "-o", "/dev/null", "-w", "%{http_code}", "http://127.0.0.1/fieldkit/"])
+        probe_code = probe.stdout.strip()
+        probe_ok = probe.ok and probe_code[:1] in {"2", "3"}
+        # `active` is deliberately based only on live observations. The
+        # on-disk config can be stale while nginx is serving another config.
+        export_http_active = listening and probe_ok
+        note = "" if export_http_active else (listener.stderr.strip() or f"HTTP export probe returned {probe_code or 'no response'}.")
         return {
             "configured_enabled": configured_enabled,
             "active": export_http_active,
-            "manageable": bool(rendered),
+            "manageable": bool(rendered) or listener.ok,
             "note": note,
         }
 

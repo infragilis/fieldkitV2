@@ -164,7 +164,7 @@ def test_tools_page_includes_subnet_calculator():
     assert response.status_code == 200
     assert "Subnet Calculator" in response.text
     assert 'id="subnet-form"' in response.text
-    assert "/static/app.js?v=ui-0.2.0-20260912" in response.text
+    assert "/static/app.js?v=ui-0.2.1-20260913" in response.text
 
 
 def test_subnet_calculator_has_supported_language_strings():
@@ -658,6 +658,48 @@ def test_update_latest_reports_up_to_date_when_server_unavailable(monkeypatch):
     result = updates.update_latest()
     assert result["available"] is False
     assert "Could not reach" in result["error"]
+
+
+def test_update_client_uses_origin_bound_effective_credentials(monkeypatch, tmp_path):
+    from app.api.routes import updates
+    from app.services import settings_store
+    from app.services import server_sync
+    from app.services.server_sync import DEVICE_TOKEN_ENV
+
+    runtime = RuntimeSettings(content_root=tmp_path, state_root=tmp_path, server_base_url="https://kit.example")
+    monkeypatch.setattr(updates, "get_settings", lambda: runtime)
+    monkeypatch.setattr(server_sync, "get_settings", lambda: runtime)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: runtime)
+    monkeypatch.setenv(DEVICE_TOKEN_ENV, "runtime-token")
+    client, _ = updates._client()
+    try:
+        assert str(client.base_url) == "https://kit.example/"
+        assert client.headers["authorization"] == "Bearer runtime-token"
+    finally:
+        client.close()
+
+
+def test_settings_route_keeps_token_for_same_origin_only(monkeypatch, tmp_path):
+    from app.api.routes import settings as settings_route
+    from app.services.settings_store import SettingsStore
+
+    store = SettingsStore()
+    store.path = tmp_path / "settings.json"
+    existing = AppSettingsPayload()
+    existing.server_sync.base_url = "https://same.example"
+    existing.server_sync.device_token = "saved-token"
+    store.save(existing)
+    monkeypatch.setattr(settings_route, "store", store)
+    same = existing.model_dump()
+    same["server_sync"]["base_url"] = "https://SAME.example/path"
+    same["server_sync"]["device_token"] = ""
+    assert client.put("/api/settings", json=same).status_code == 200
+    assert store.load().server_sync.device_token == "saved-token"
+    changed = existing.model_dump()
+    changed["server_sync"]["base_url"] = "https://other.example"
+    changed["server_sync"]["device_token"] = ""
+    assert client.put("/api/settings", json=changed).status_code == 200
+    assert store.load().server_sync.device_token == ""
 
 
 def test_update_latest_detects_newer_version(monkeypatch, tmp_path):

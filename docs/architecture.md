@@ -19,7 +19,7 @@ This document is the technical companion to the user-facing README.
 - `usb` for mounted removable storage
 - `serial-logs` for captured console sessions
 
-`data` contains the built-in `ontap`, `bes`, `cisco`, `nvidia`, and `fos`
+`data` contains the built-in `cisco`, `ontap`, `brocade`, `efos`, and `nvidia`
 subdirectories. Files retain the relative path supplied by the server manifest;
 Fieldkit does not infer a vendor from the filename. The Files page supports
 nested-folder navigation.
@@ -27,7 +27,9 @@ nested-folder navigation.
 ## External Service Boundaries
 
 - `fieldkit-web.service` runs the FastAPI app
-- `nginx` provides the front end; the live appliance serves HTTP and self-signed HTTPS, while the checked-in nginx template is HTTP-only
+- `nginx` provides the front end on HTTP port 80; Settings controls whether
+  the `/fieldkit` export is available while the normal web UI remains served.
+  The checked-in template uses a loopback-only HTTP upstream.
 - SSH provides SCP access and the system account used by the local shell
 - FTP and TFTP are optional transfer services managed from the Fieldkit UI
 - NetworkManager handles normal client-side networking

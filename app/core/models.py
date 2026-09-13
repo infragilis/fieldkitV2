@@ -1,4 +1,5 @@
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -52,6 +53,23 @@ class ServerSyncConfig(BaseModel):
     base_url: str = "https://fieldkit.infragilis.org"
     device_token: str = ""
     prune: bool = False
+
+    @field_validator("base_url")
+    @classmethod
+    def _validate_base_url(cls, value: str) -> str:
+        value = value.strip()
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("base_url must be an http or https URL")
+        if parsed.username or parsed.password or parsed.query or parsed.fragment:
+            raise ValueError("base_url must not contain credentials, query, or fragment")
+        try:
+            if not parsed.hostname:
+                raise ValueError
+            parsed.port
+        except ValueError as exc:
+            raise ValueError("base_url must contain a valid server host and port") from exc
+        return value.rstrip("/")
 
 
 class AppSettingsPayload(BaseModel):

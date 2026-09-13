@@ -41,8 +41,10 @@ An unfinished persisted run is marked interrupted after a web-service restart.
 
 Downloads are streamed into temporary files and verified against the manifest's
 size and checksum before replacing an existing file. The transfer export mirror
-is refreshed before finishing. No local files are deleted because they vanished
-from a manifest.
+is refreshed before finishing. With opt-in pruning, managed files under
+`data/` (and their export-mirror copies) are deleted when they vanish from a
+manifest; user-placed files and personal content are never touched. Without
+pruning, no local files are deleted.
 
 ## Data folders
 
@@ -157,10 +159,16 @@ downloaded (or confirmed present) from `data/` are removed together with their
 export-mirror copies when they disappear from the manifest. User-placed files
 and personal content are never touched.
 
+The HTTP export is independently controlled from Settings. Disabling it blocks
+`/fieldkit` with HTTP 404 while the nginx port-80 listener and normal UI remain
+available. Status verifies both the listener and a local export request.
+
 ## Storage planning and the disk-space check
 
-Synced files exist twice on the kit — the local library and the HTTP export
-mirror — so plan storage accordingly: a **64 GB microSD card is the minimum
+Synced files are exposed from the local library and HTTP export mirror. The
+mirror uses hardlinks on the same filesystem (no duplicate bytes) and falls
+back to a copy on filesystems that do not support hardlinks, so plan storage
+accordingly: a **64 GB microSD card is the minimum
 for kits that use Server Sync**; 32 GB remains fine for kits that do not.
 
 Before downloading anything, the sync estimates the space the library, the

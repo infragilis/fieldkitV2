@@ -30,7 +30,7 @@ async def set_config(payload: ServerSyncConfig):
     if job.status()["running"]:
         raise HTTPException(status_code=409, detail="Wait for the current sync to finish before changing its configuration.")
     settings = store.load()
-    if not payload.device_token:
+    if not payload.device_token and ServerSyncService.origins_match(payload.base_url, settings.server_sync.base_url):
         payload.device_token = settings.server_sync.device_token
     settings.server_sync = payload
     store.save(settings)

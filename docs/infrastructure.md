@@ -25,8 +25,8 @@ here or in any tracked file.
 
 ## Hosts & Services (appliance)
 
-- `fieldkit-web.service` — FastAPI/uvicorn on `0.0.0.0:8000`, user `service` (current shipped and verified deployed binding)
-- `nginx` — front end on port 80 (HTTP) and 443 (HTTPS, self-signed cert at `/etc/nginx/ssl/fieldkit.{crt,key}`); no HTTP→HTTPS redirect, so both work
+- `fieldkit-web.service` — FastAPI/uvicorn on `127.0.0.1:8000`, user `service`; nginx is the network-facing front end
+- `nginx` — HTTP front end on port 80; its `/fieldkit` export is enabled or blocked from Settings while the normal UI remains available
 - OpenSSH — SCP + the local-shell account
 - NetworkManager — primary network control plane
 - `fieldkit-ap-hostapd` + `fieldkit-ap-dnsmasq` — dedicated AP mode (SSID `fieldkit`)
@@ -45,7 +45,7 @@ here or in any tracked file.
 - `/opt/fieldkit` — app root (git checkout where credentials exist; copied tree on the current appliance)
 - `runtime/content` + `runtime/state` — mutable data and settings
 - Libraries: `data` (shared), `personal` (uploads), `usb`, `serial-logs` (GUI-only, excluded from the shared export tree)
-- Built-in data subdirectories: `ontap`, `bes`, `cisco`, `nvidia`, `fos`; server manifest paths determine placement
+- Built-in data subdirectories: `cisco`, `ontap`, `brocade`, `efos`, `nvidia`; server manifest paths determine placement
 - `runtime/state/server-sync-status.json` — persisted sync attempt/outcome; the Server Sync page polls in-memory job progress while running
 
 ## Deployment

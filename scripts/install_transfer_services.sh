@@ -30,7 +30,7 @@ cat >/etc/default/tftpd-hpa <<EOF
 TFTP_USERNAME="tftp"
 TFTP_DIRECTORY="${EXPORT_ROOT}"
 TFTP_ADDRESS=":69"
-TFTP_OPTIONS="--secure --create"
+TFTP_OPTIONS="--secure"
 EOF
 
 cat >/etc/vsftpd.conf <<EOF

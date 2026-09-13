@@ -1,5 +1,6 @@
 import os
 import shutil
+import stat
 from pathlib import Path
 from typing import BinaryIO
 
@@ -224,13 +225,17 @@ class StorageService:
             export_dir.unlink()
         export_dir.mkdir(parents=True, exist_ok=True)
 
+        source_root = source.resolve()
         seen_names: set[str] = set()
         for entry in sorted(source.iterdir(), key=lambda path: path.name.lower()):
             if entry.name.startswith("."):
                 continue
+            entry_stat = entry.lstat()
+            if os.path.islink(entry) or not self._is_under(entry.resolve(strict=False), source_root):
+                raise ValueError(f"Refusing to export unsafe path: {entry}")
             seen_names.add(entry.name)
             target = export_dir / entry.name
-            if entry.is_dir():
+            if stat_is_directory(entry_stat):
                 self._sync_export_directory(target, entry)
             else:
                 self._sync_export_file(target, entry)
@@ -240,10 +245,12 @@ class StorageService:
                 self._remove_tree(stale_entry)
 
     def _sync_export_file(self, export_path: Path, source: Path) -> None:
+        if source.is_symlink():
+            raise ValueError(f"Refusing to export symlink: {source}")
         if export_path.is_symlink() or export_path.is_dir():
             self._remove_tree(export_path)
         try:
-            source_stat = source.stat()
+            source_stat = source.lstat()
         except OSError:
             return
         if export_path.exists():
@@ -285,3 +292,12 @@ class StorageService:
         if any(part == ".." for part in parts):
             raise ValueError("Invalid path")
         return "/".join(parts)
+
+    @staticmethod
+    def _is_under(path: Path, root: Path) -> bool:
+        return path == root or root in path.parents
+
+
+def stat_is_directory(stat_result: os.stat_result) -> bool:
+    """Avoid following a symlink after the lstat safety check."""
+    return stat.S_ISDIR(stat_result.st_mode)

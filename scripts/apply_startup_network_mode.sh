@@ -39,11 +39,13 @@ fi
 case "${WIFI_MODE}" in
   ap)
     exec /bin/bash "${FIELDKIT_ROOT}/scripts/apply_wifi_mode.sh" \
-      ap "${WIFI_INTERFACE}" "${WIFI_SSID:-fieldkit}" "${WIFI_PASSWORD:-fieldkit}" "${WIFI_COUNTRY:-US}"
+      ap "${WIFI_INTERFACE}" "${WIFI_SSID:-fieldkit}" "${WIFI_COUNTRY:-US}" \
+      <<<"${WIFI_PASSWORD:-fieldkit}"
     ;;
   client)
     exec /bin/bash "${FIELDKIT_ROOT}/scripts/apply_wifi_mode.sh" \
-      client "${WIFI_INTERFACE}" "${WIFI_SSID:-}" "${WIFI_PASSWORD:-}" "${WIFI_COUNTRY:-US}" "${WIFI_SSID:-}" "${WIFI_PASSWORD:-}"
+      client "${WIFI_INTERFACE}" "${WIFI_SSID:-}" "${WIFI_COUNTRY:-US}" \
+      <<<"${WIFI_PASSWORD:-}"
     ;;
   disabled|"")
     exec /bin/bash "${FIELDKIT_ROOT}/scripts/apply_wifi_mode.sh" disabled "${WIFI_INTERFACE}"

@@ -14,6 +14,7 @@ class SettingsStore:
     def load(self) -> AppSettingsPayload:
         if not self.path.exists():
             payload = AppSettingsPayload()
+            payload.server_sync.base_url = self.runtime.server_base_url
             self.save(payload)
             return payload
         return AppSettingsPayload.model_validate_json(self.path.read_text())

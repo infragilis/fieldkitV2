@@ -8,3 +8,5 @@ service ALL=(root) NOPASSWD: /bin/systemctl enable --now vsftpd
 service ALL=(root) NOPASSWD: /bin/systemctl disable --now vsftpd
 service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/install_transfer_services.sh
 service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/install_export_http_mode.sh
+service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/install_export_http_mode.sh enable
+service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/install_export_http_mode.sh disable

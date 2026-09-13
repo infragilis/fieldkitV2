@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.core.models import AppSettingsPayload
+from app.services.server_sync import ServerSyncService
 from app.services.settings_store import SettingsStore
 
 router = APIRouter()
@@ -28,7 +29,8 @@ async def update_settings(payload: AppSettingsPayload):
         payload.server_sync = existing.server_sync
     else:
         # Blank secrets mean "keep the stored value" (the client never receives them).
-        if not payload.server_sync.device_token:
+        if (not payload.server_sync.device_token and
+                ServerSyncService.origins_match(payload.server_sync.base_url, existing.server_sync.base_url)):
             payload.server_sync.device_token = existing.server_sync.device_token
         if not payload.server_sync.base_url:
             payload.server_sync.base_url = existing.server_sync.base_url

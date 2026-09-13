@@ -9,6 +9,11 @@ if [[ ${EUID} -ne 0 ]]; then
   exit 1
 fi
 
+if [[ ${FIELDKIT_ROOT} != "/opt/fieldkit" ]]; then
+  echo "FIELDKIT_ROOT must be /opt/fieldkit because installed paths are canonical."
+  exit 1
+fi
+
 install -D -m 0644 deploy/systemd/fieldkit-web.service /etc/systemd/system/fieldkit-web.service
 install -D -m 0644 deploy/systemd/fieldkit-startup-network.service /etc/systemd/system/fieldkit-startup-network.service
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.service /etc/systemd/system/fieldkit-server-sync.service

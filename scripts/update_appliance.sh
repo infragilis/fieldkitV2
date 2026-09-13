@@ -38,14 +38,12 @@ STATE_DIR="${FIELDKIT_ROOT}/runtime/state"
 STATE_FILE="${STATE_DIR}/update-state.json"
 LOCK_FILE="${STATE_DIR}/update.lock"
 
-if [[ -f "${LOCK_FILE}" ]]; then
+mkdir -p "${STATE_DIR}"
+exec 9>"${LOCK_FILE}"
+if ! flock -n 9; then
   echo "An update is already in progress." >&2
   exit 1
 fi
-trap 'rm -f "${LOCK_FILE}"' EXIT
-touch "${LOCK_FILE}"
-
-mkdir -p "${STATE_DIR}"
 BUNDLE="${STATE_DIR}/fieldkit-update-${VERSION}.tgz"
 
 record_state() {
@@ -57,7 +55,7 @@ record_state() {
 }
 
 echo "Downloading ${VERSION} from ${URL}"
-curl -fSL --retry 2 -o "${BUNDLE}" "${URL}"
+curl -fSL --retry 2 --connect-timeout 10 --max-time 300 -o "${BUNDLE}" "${URL}"
 record_state downloading "downloaded ${VERSION}"
 
 echo "Verifying checksum"

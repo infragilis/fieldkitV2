@@ -1,9 +1,13 @@
 import io
+import threading
 
 import openpyxl
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services import cluster_parser
+from app.services.cluster_ansible import generate
+from app.core.models import ClusterConfig, ClusterSource, NodeConfig
 from app.services.cluster_parser import _matches_alias, split_value
 from app.services.cluster_validation import (
     classify_address,
@@ -175,6 +179,52 @@ def test_parse_missing_required_fields():
     codes = {(issue["field"], issue["code"]) for issue in response.json()["issues"]}
     assert ("cluster_name", "missing") in codes
     assert ("nodes", "missing") in codes
+
+
+def test_parse_rejects_xlsx_uncompressed_size_cap(monkeypatch):
+    monkeypatch.setattr(cluster_parser, "MAX_XLSX_UNCOMPRESSED_BYTES", 1)
+    response = parse_bytes(aff_variant_bytes())
+    assert response.status_code == 400
+    assert "uncompressed limit" in response.json()["detail"]
+
+
+def test_parse_rejects_worksheet_dimension_cap(monkeypatch):
+    monkeypatch.setattr(cluster_parser, "MAX_WORKSHEET_ROWS", 1)
+    response = parse_bytes(build_workbook([("NodeClusterInfo", "A2", "value")]))
+    assert response.status_code == 400
+    assert "worksheet" in response.json()["detail"].lower()
+
+
+def test_generated_ansible_files_are_valid_yaml_and_share_node_variable():
+    config = ClusterConfig(cluster_name="demo-cluster", nodes=[NodeConfig(name="node-01")], source=ClusterSource(filename="x.xlsx"))
+    result = generate(config)
+    yaml = __import__("yaml")
+    variables = yaml.safe_load(result.variables.content)
+    playbook = yaml.safe_load(result.playbook.content)
+    assert variables["nodes"] == ["node-01"]
+    assert "cluster_nodes" not in result.playbook.content
+    assert isinstance(playbook, list)
+
+
+def test_parse_timeout_is_bounded_and_releases_worker_slot(monkeypatch):
+    entered = threading.Event()
+    release = threading.Event()
+
+    def blocked_parse(*args):
+        entered.set()
+        release.wait(2)
+
+    monkeypatch.setattr(cluster_parser, "MAX_XLSX_UNCOMPRESSED_BYTES", 100 * 1024 * 1024)
+    from app.api.routes import cluster_import as route
+    monkeypatch.setattr(route, "_PARSE_TIMEOUT_SECONDS", 0.01)
+    monkeypatch.setattr(route.service, "parse", blocked_parse)
+    response = parse_bytes(aff_variant_bytes())
+    assert response.status_code == 408
+    assert entered.wait(1)
+    assert parse_bytes(aff_variant_bytes()).status_code == 503
+    release.set()
+    assert route._PARSE_SLOT.acquire(timeout=1)
+    route._PARSE_SLOT.release()
 
 
 def test_parse_deduplicates_and_flags_invalid_addresses():

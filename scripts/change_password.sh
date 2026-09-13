@@ -2,16 +2,18 @@
 set -euo pipefail
 
 TARGET_USER=${1:-service}
-CURRENT_PASSWORD=${2:-}
-NEW_PASSWORD=${3:-}
+CURRENT_PASSWORD=
+NEW_PASSWORD=
 
 if [[ ${EUID} -ne 0 ]]; then
   echo "Run as root."
   exit 1
 fi
 
+IFS= read -r CURRENT_PASSWORD || true
+IFS= read -r NEW_PASSWORD || true
 if [[ -z ${CURRENT_PASSWORD} || -z ${NEW_PASSWORD} ]]; then
-  echo "Usage: change_password.sh <user> <current_password> <new_password>"
+  echo "Usage: printf 'current\\nnew\\n' | change_password.sh <user>"
   exit 1
 fi
 
@@ -32,11 +34,12 @@ if [[ ${NEW_PASSWORD} == *[[:cntrl:]]* || ${NEW_PASSWORD} == *:* ]]; then
   exit 1
 fi
 
-if ! python3 - "${TARGET_USER}" "${CURRENT_PASSWORD}" <<'PY'
+if ! python3 - "${TARGET_USER}" 3<<<"${CURRENT_PASSWORD}" <<'PY'
 import ctypes
 import sys
 
-user, current = sys.argv[1], sys.argv[2]
+user = sys.argv[1]
+current = open(3, encoding="utf-8").readline().rstrip("\n")
 stored = None
 with open("/etc/shadow", encoding="utf-8") as handle:
     for line in handle:

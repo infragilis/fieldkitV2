@@ -1,7 +1,6 @@
 """In-place appliance updates: check the server for a new bundle and apply it."""
 
 import json
-import os
 import re
 import subprocess
 from pathlib import Path
@@ -10,8 +9,8 @@ from urllib.parse import urlparse
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from app.core.config import get_settings
-from app.services.server_sync import DEVICE_TOKEN_ENV
+from app.core.config import get_settings  # retained for route-test/runtime compatibility
+from app.services.server_sync import ServerSyncService
 from app.services.settings_store import SettingsStore
 
 router = APIRouter()
@@ -33,11 +32,11 @@ def local_version() -> str:
 
 
 def _client():
-    settings = get_settings()
+    service = ServerSyncService()
+    base_url, token = service.connection_config()
     config = SettingsStore().load().server_sync
-    token = os.environ.get(DEVICE_TOKEN_ENV) or config.device_token
     return httpx.Client(
-        base_url=(config.base_url or settings.server_base_url).rstrip("/") + "/",
+        base_url=base_url + "/",
         headers={"Authorization": f"Bearer {token}"},
         timeout=httpx.Timeout(30.0, connect=10.0),
     ), config

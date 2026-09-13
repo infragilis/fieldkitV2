@@ -9,7 +9,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import httpx
 
@@ -99,10 +99,42 @@ class ServerSyncService:
         return self._store.load().server_sync
 
     def _token(self) -> str:
-        return os.environ.get(DEVICE_TOKEN_ENV) or self._config().device_token
+        configured = self._config()
+        return self._token_for(configured)
+
+    def _token_for(self, configured) -> str:
+        environment_token = os.environ.get(DEVICE_TOKEN_ENV)
+        # The environment override is provisioned for the runtime's trusted
+        # server. Never carry it over when an operator changes the origin.
+        if environment_token and self.origins_match(self._base_url_for(configured), self._runtime.server_base_url):
+            return environment_token
+        return configured.device_token
 
     def _base_url(self) -> str:
-        return (self._config().base_url or self._runtime.server_base_url).rstrip("/")
+        return self._base_url_for(self._config())
+
+    def _base_url_for(self, configured) -> str:
+        return (configured.base_url or self._runtime.server_base_url).rstrip("/")
+
+    def connection_config(self) -> tuple[str, str]:
+        """Return one consistent URL/token snapshot for an outbound client."""
+        configured = self._config()
+        return self._base_url_for(configured), self._token_for(configured)
+
+    @staticmethod
+    def _origin(value: str) -> tuple[str, str, int] | None:
+        try:
+            parsed = urlsplit(value.strip())
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+                return None
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            return parsed.scheme.lower(), parsed.hostname.lower().rstrip("."), port
+        except ValueError:
+            return None
+
+    @classmethod
+    def origins_match(cls, left: str, right: str) -> bool:
+        return cls._origin(left) is not None and cls._origin(left) == cls._origin(right)
 
     @property
     def configured(self) -> bool:
@@ -236,9 +268,10 @@ class ServerSyncService:
         # Freeze URL and credentials for this run; share the connection pool.
         # Downloads of mirrored files are 307-redirected to object storage;
         # httpx follows them and strips Authorization on the cross-host hop.
+        base_url, token = self.connection_config()
         return httpx.Client(
-            base_url=self._base_url() + "/",
-            headers={"Authorization": f"Bearer {self._token()}"},
+            base_url=base_url + "/",
+            headers={"Authorization": f"Bearer {token}"},
             timeout=httpx.Timeout(120.0, connect=15.0),
             follow_redirects=True,
         )
@@ -270,6 +303,19 @@ class ServerSyncService:
                 or any(char not in "0123456789abcdef" for char in entry["sha256"])
             ):
                 raise ValueError("Server manifest contains an invalid file entry.")
+        ids: set[str] = set()
+        destinations: set[tuple[str, str]] = set()
+        for entry in manifest["files"]:
+            entry_id = entry["id"]
+            library = entry.get("library") or "data"
+            path = entry.get("path") or entry.get("name") or ""
+            if entry_id in ids:
+                raise ValueError("Server manifest contains duplicate file IDs.")
+            destination = (library, path)
+            if destination in destinations:
+                raise ValueError("Server manifest contains duplicate file destinations.")
+            ids.add(entry_id)
+            destinations.add(destination)
         return manifest
 
     def sync(self, progress=None) -> dict:

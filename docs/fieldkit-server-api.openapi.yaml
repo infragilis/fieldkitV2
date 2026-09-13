@@ -6,8 +6,8 @@ info:
     This is the public contract the Fieldkit appliance sync client implements;
     it contains no server internals or secrets. Device access is authenticated
     with a device token linked to a server user. The manifest includes that user's
-    personal files and subscribed shared data folders. Missing manifest entries
-    do not instruct the appliance to delete previously downloaded files.
+    personal files and subscribed shared data folders. The appliance only
+    removes managed data files when its opt-in prune setting is enabled.
   version: 1.0.0
 servers:
   - url: https://fieldkit.infragilis.org/api/v1
@@ -15,6 +15,36 @@ servers:
 security:
   - bearerAuth: []
 paths:
+  /device/update-latest:
+    get:
+      operationId: getDeviceUpdateLatest
+      summary: Get the latest published appliance update
+      responses:
+        "200":
+          description: Latest update metadata, or no available update.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateLatest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /device/report-requested:
+    get:
+      operationId: getDeviceReportRequested
+      summary: Check whether an inventory report was requested
+      responses:
+        "200":
+          description: Current report request flag.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requested]
+                properties:
+                  requested:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /device/manifest:
     get:
       operationId: getDeviceManifest
@@ -80,6 +110,10 @@ paths:
       responses:
         "202":
           description: Results accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResultsAccepted"
         "401":
           $ref: "#/components/responses/Unauthorized"
 components:
@@ -107,7 +141,7 @@ components:
       properties:
         id:
           type: string
-          description: Stable opaque identifier for the file version. Identical bytes at different paths may share an identifier.
+          description: Opaque identifier for this file version; IDs must be unique within a manifest. Identical bytes at different paths still have distinct IDs.
         name:
           type: string
           description: Full relative path on the server (e.g. `data/kits/x.txt` or `personal/<user>/y.txt`).
@@ -150,3 +184,30 @@ components:
               error:
                 type: string
                 description: Optional failure detail.
+        device_label:
+          type: string
+          description: Optional human-readable device label.
+    SyncResultsAccepted:
+      type: object
+      required: [accepted]
+      properties:
+        accepted:
+          type: boolean
+          description: Whether the report was accepted for processing.
+    UpdateLatest:
+      type: object
+      required: [available]
+      properties:
+        available:
+          type: boolean
+        version:
+          type: string
+        url:
+          type: string
+          format: uri
+        sha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        published_at:
+          type: string
+          format: date-time

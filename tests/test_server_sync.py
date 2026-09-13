@@ -32,6 +32,61 @@ def test_configured_requires_token_and_url(monkeypatch, tmp_path):
     assert ss_module.ServerSyncService().configured is False
 
 
+def test_environment_token_is_not_reused_for_changed_origin(monkeypatch, tmp_path):
+    from app.core.models import AppSettingsPayload
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state", server_base_url="https://trusted.example")
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "retained-token")
+    service = ss_module.ServerSyncService()
+    service._store.path = tmp_path / "settings.json"
+    payload = AppSettingsPayload()
+    payload.server_sync.base_url = "https://new.example"
+    service._store.save(payload)
+    assert service._token() == ""
+
+
+def test_explicit_token_is_used_for_changed_origin(monkeypatch, tmp_path):
+    from app.core.models import AppSettingsPayload
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state", server_base_url="https://trusted.example")
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "retained-token")
+    service = ss_module.ServerSyncService()
+    service._store.path = tmp_path / "settings.json"
+    payload = AppSettingsPayload()
+    payload.server_sync.base_url = "https://new.example"
+    payload.server_sync.device_token = "new-token"
+    service._store.save(payload)
+    assert service._token() == "new-token"
+
+
+def test_missing_settings_use_custom_runtime_origin_and_environment_token(monkeypatch, tmp_path):
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state", server_base_url="https://custom.example")
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "runtime-token")
+    service = ss_module.ServerSyncService()
+    assert service.connection_config() == ("https://custom.example", "runtime-token")
+
+
+def test_persisted_builtin_origin_keeps_saved_token_on_custom_runtime(monkeypatch, tmp_path):
+    from app.core.models import AppSettingsPayload
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state", server_base_url="https://custom.example")
+    monkeypatch.setattr(ss_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(settings_store, "get_settings", lambda: settings)
+    monkeypatch.setenv(ss_module.DEVICE_TOKEN_ENV, "runtime-token")
+    service = ss_module.ServerSyncService()
+    service._store.path = tmp_path / "settings.json"
+    payload = AppSettingsPayload()
+    payload.server_sync.device_token = "saved-token"
+    service._store.save(payload)
+    assert service.connection_config() == ("https://fieldkit.infragilis.org", "saved-token")
+
+
 def test_device_identity_is_stable_and_not_the_hostname(monkeypatch, tmp_path):
     import socket
 
@@ -198,6 +253,22 @@ def test_malformed_manifest_fails_cleanly(monkeypatch, tmp_path, entry):
         service.sync()
 
 
+@pytest.mark.parametrize("duplicate_kind", ["id", "destination"])
+def test_duplicate_manifest_entries_are_rejected_before_planning(monkeypatch, tmp_path, duplicate_kind):
+    content = b"duplicate"
+    sha = hashlib.sha256(content).hexdigest()
+    first = {"id": sha, "path": "kits/a.bin", "library": "data", "size": len(content), "sha256": sha}
+    second = dict(first)
+    if duplicate_kind == "id":
+        second["path"] = "kits/b.bin"
+    else:
+        second["id"] = "different-id"
+    service = _service(monkeypatch, tmp_path, {"files": [first, second]}, content)
+    monkeypatch.setattr(service, "_plan_entries", lambda *args: pytest.fail("planning must not start"))
+    with pytest.raises(ValueError, match="duplicate"):
+        service.sync()
+
+
 def test_result_report_failure_is_visible(monkeypatch, tmp_path):
     service = _service(monkeypatch, tmp_path, {"files": []}, b"")
     class DeniedClient:
@@ -311,6 +382,36 @@ def test_unconfigured_scheduled_run_is_skipped(monkeypatch, tmp_path):
     assert not scheduled.json()["running"]
 
 
+def test_server_sync_config_rejects_non_http_url():
+    from app.core.models import ServerSyncConfig
+
+    with pytest.raises(ValueError, match="http or https"):
+        ServerSyncConfig(base_url="ftp://server.example")
+
+
+def test_server_sync_api_does_not_retain_token_on_changed_origin(monkeypatch, tmp_path):
+    from app.api.routes import server_sync as routes
+    from app.core.models import AppSettingsPayload
+    from app.main import app
+
+    store = settings_store.SettingsStore()
+    store.path = tmp_path / "settings.json"
+    original = AppSettingsPayload()
+    original.server_sync.base_url = "https://old.example"
+    original.server_sync.device_token = "old-token"
+    store.save(original)
+    service = FakeSyncService(tmp_path)
+    monkeypatch.setattr(routes, "store", store)
+    monkeypatch.setattr(routes, "service", service)
+    monkeypatch.setattr(routes, "job", ServerSyncJob(service))
+    response = TestClient(app).put(
+        "/api/server-sync/config",
+        json={"base_url": "https://new.example", "device_token": ""},
+    )
+    assert response.status_code == 200
+    assert store.load().server_sync.device_token == ""
+
+
 def test_unrelated_settings_save_preserves_sync_token(monkeypatch, tmp_path):
     from app.api.routes import settings as routes
     from app.core.models import AppSettingsPayload
@@ -340,7 +441,7 @@ def test_blank_config_token_keeps_saved_token(monkeypatch, tmp_path):
     monkeypatch.setattr(routes, "store", store)
     monkeypatch.setattr(routes, "service", service)
     monkeypatch.setattr(routes, "job", ServerSyncJob(service))
-    response = TestClient(app).put("/api/server-sync/config", json={"base_url": "https://example.com", "device_token": ""})
+    response = TestClient(app).put("/api/server-sync/config", json={"base_url": "https://fieldkit.infragilis.org", "device_token": ""})
     assert response.status_code == 200
     assert store.load().server_sync.device_token == "synthetic-token"
 
@@ -588,7 +689,7 @@ def test_config_prune_roundtrip(monkeypatch, tmp_path):
     monkeypatch.setattr(routes, "job", ServerSyncJob(service))
     service.prune_enabled = lambda: True
     response = TestClient(app).put("/api/server-sync/config", json={
-        "base_url": "https://example.com", "device_token": "", "prune": True,
+        "base_url": "https://fieldkit.infragilis.org", "device_token": "", "prune": True,
     })
     assert response.status_code == 200
     assert response.json()["prune"] is True

@@ -4,10 +4,20 @@ set -euo pipefail
 MODE=${1:-${MODE:-disabled}}
 WIFI_INTERFACE=${2:-${WIFI_INTERFACE:-wlan0}}
 WIFI_SSID=${3:-${WIFI_SSID:-fieldkit}}
-WIFI_PASSWORD=${4:-${WIFI_PASSWORD:-fieldkit}}
-WIFI_COUNTRY=${5:-${WIFI_COUNTRY:-US}}
-CLIENT_SSID=${6:-${CLIENT_SSID:-}}
-CLIENT_PASSWORD=${7:-${CLIENT_PASSWORD:-}}
+WIFI_COUNTRY=${4:-${WIFI_COUNTRY:-US}}
+WIFI_PASSWORD=${WIFI_PASSWORD:-}
+CLIENT_SSID=${WIFI_SSID}
+CLIENT_PASSWORD=${WIFI_PASSWORD}
+if [[ ${MODE} == "ap" && -z ${WIFI_PASSWORD} ]]; then
+  WIFI_PASSWORD=fieldkit
+fi
+if [[ ${MODE} == "ap" || ${MODE} == "client" ]]; then
+  PASSWORD_INPUT=
+  if IFS= read -r PASSWORD_INPUT; then
+    WIFI_PASSWORD=${PASSWORD_INPUT}
+  fi
+  CLIENT_PASSWORD=${WIFI_PASSWORD}
+fi
 AP_ADDRESS=${AP_ADDRESS:-10.42.0.1/24}
 AP_DHCP_START=${AP_DHCP_START:-10.42.0.10}
 AP_DHCP_END=${AP_DHCP_END:-10.42.0.150}
@@ -31,8 +41,12 @@ if ! command -v ip >/dev/null 2>&1; then
 fi
 
 ensure_ap_configs() {
-  install -d -m 0755 "${AP_CONFIG_DIR}"
-  cat >"${AP_CONFIG_DIR}/hostapd.conf" <<EOF
+  install -d -m 0700 "${AP_CONFIG_DIR}"
+  local hostapd_tmp dnsmasq_tmp
+  hostapd_tmp=$(mktemp "${AP_CONFIG_DIR}/hostapd.conf.XXXXXX")
+  dnsmasq_tmp=$(mktemp "${AP_CONFIG_DIR}/dnsmasq.conf.XXXXXX")
+  chmod 0600 "${hostapd_tmp}" "${dnsmasq_tmp}"
+  cat >"${hostapd_tmp}" <<EOF
 country_code=${WIFI_COUNTRY}
 interface=${WIFI_INTERFACE}
 driver=nl80211
@@ -48,7 +62,7 @@ wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
 wpa_passphrase=${WIFI_PASSWORD}
 EOF
-  cat >"${AP_CONFIG_DIR}/dnsmasq.conf" <<EOF
+  cat >"${dnsmasq_tmp}" <<EOF
 interface=${WIFI_INTERFACE}
 bind-interfaces
 domain-needed
@@ -60,6 +74,8 @@ dhcp-option=option:dns-server,${AP_ADDRESS%/*}
 port=53
 listen-address=${AP_ADDRESS%/*}
 EOF
+  mv -f "${hostapd_tmp}" "${AP_CONFIG_DIR}/hostapd.conf"
+  mv -f "${dnsmasq_tmp}" "${AP_CONFIG_DIR}/dnsmasq.conf"
 }
 
 stop_ap_services() {
@@ -136,7 +152,8 @@ start_client_mode() {
   ip link set "${WIFI_INTERFACE}" up >/dev/null 2>&1 || true
   if [[ -n ${CLIENT_SSID} ]]; then
     if [[ -n ${CLIENT_PASSWORD} ]]; then
-      nmcli device wifi connect "${CLIENT_SSID}" password "${CLIENT_PASSWORD}" ifname "${WIFI_INTERFACE}"
+      # --ask reads the PSK from stdin, keeping it out of nmcli's argv.
+      printf '%s\n' "${CLIENT_PASSWORD}" | nmcli --ask device wifi connect "${CLIENT_SSID}" ifname "${WIFI_INTERFACE}"
     else
       nmcli device wifi connect "${CLIENT_SSID}" ifname "${WIFI_INTERFACE}"
     fi

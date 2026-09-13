@@ -23,33 +23,43 @@ install -d -o "${FIELDKIT_USER}" -g "${FIELDKIT_USER}" "${FIELDKIT_ROOT}"
 install -d -o "${FIELDKIT_USER}" -g "${FIELDKIT_USER}" "${FIELDKIT_ROOT}/runtime/content/data"
 install -d -o "${FIELDKIT_USER}" -g "${FIELDKIT_USER}" "${FIELDKIT_ROOT}/runtime/content/personal"
 install -d -o "${FIELDKIT_USER}" -g "${FIELDKIT_USER}" "${FIELDKIT_ROOT}/runtime/content/usb"
-install -d -o "${FIELDKIT_USER}" -g "${FIELDKIT_USER}" "${FIELDKIT_ROOT}/runtime/state"
+install -d -m 0700 -o "${FIELDKIT_USER}" -g "${FIELDKIT_USER}" "${FIELDKIT_ROOT}/runtime/state"
 
 SETTINGS_PATH="${FIELDKIT_ROOT}/runtime/state/settings.json"
 if [[ ! -f "${SETTINGS_PATH}" ]]; then
-  python3 - "${SETTINGS_PATH}" "${FIELDKIT_HOSTNAME}" "${FIELDKIT_DEFAULT_WIFI_MODE}" <<'PY'
+  SETTINGS_PATH="${SETTINGS_PATH}" FIELDKIT_HOSTNAME="${FIELDKIT_HOSTNAME}" FIELDKIT_DEFAULT_WIFI_MODE="${FIELDKIT_DEFAULT_WIFI_MODE}" python3 - <<'PY'
 import json
+import os
+import tempfile
 from pathlib import Path
-import sys
 
-Path(sys.argv[1]).write_text(
-    json.dumps(
-        {
-            "hostname": sys.argv[2],
-            "wifi": {
-                "mode": sys.argv[3],
-                "ssid": "fieldkit",
-                "password": "fieldkit",
-                "country_code": "US",
-            },
+path = Path(os.environ["SETTINGS_PATH"])
+payload = json.dumps(
+    {
+        "hostname": os.environ["FIELDKIT_HOSTNAME"],
+        "wifi": {
+            "mode": os.environ["FIELDKIT_DEFAULT_WIFI_MODE"],
+            "ssid": "fieldkit",
+            "password": "fieldkit",
+            "country_code": "US",
         },
-        indent=2,
-    )
-    + "\n",
-    encoding="utf-8",
-)
+    }, indent=2) + "\n"
+descriptor, temp_name = tempfile.mkstemp(dir=path.parent, prefix="." + path.name + ".", suffix=".tmp")
+temp = Path(temp_name)
+try:
+    os.fchmod(descriptor, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temp, path)
+finally:
+    temp.unlink(missing_ok=True)
 PY
   chown "${FIELDKIT_USER}:${FIELDKIT_USER}" "${SETTINGS_PATH}"
+  chmod 0600 "${SETTINGS_PATH}"
+else
+  chmod 0600 "${SETTINGS_PATH}"
 fi
 
 cat <<EOF

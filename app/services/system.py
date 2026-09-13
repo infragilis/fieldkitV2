@@ -46,8 +46,8 @@ class SystemService:
         if not self._runner.available("sudo"):
             return False
         result = self._runner.run_with_input(
-            ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/change_password.sh", "service", current_password, new_password],
-            None,
+            ["sudo", "-n", "/bin/bash", "/opt/fieldkit/scripts/change_password.sh", "service"],
+            f"{current_password}\n{new_password}\n",
         )
         return result.ok
 

@@ -46,15 +46,17 @@ class NetworkService:
             if result.ok:
                 networks = []
                 for line in result.stdout.splitlines():
-                    parts = line.split(":")
-                    if len(parts) < 3:
+                    parts = self._parse_nmcli_line(line, 3)
+                    if parts is None:
                         continue
-                    ssid, signal, security = parts[0], parts[1], ":".join(parts[2:])
+                    ssid, signal, security = parts
                     if not ssid:
                         continue
-                    networks.append(
-                        {"ssid": ssid, "signal": int(signal or "0"), "secure": bool(security.strip())}
-                    )
+                    try:
+                        signal_value = int(signal or "0")
+                    except ValueError:
+                        continue
+                    networks.append({"ssid": ssid, "signal": signal_value, "secure": bool(security.strip())})
                 return networks
         return []
 
@@ -173,7 +175,8 @@ class NetworkService:
         return interface
 
     def _apply_wifi_mode(self, settings: AppSettingsPayload):
-        return self._runner.run(self._wifi_apply_command(settings))
+        password = settings.wifi.password or ("fieldkit" if settings.wifi.mode == "ap" else "")
+        return self._runner.run_with_input(self._wifi_apply_command(settings), password + "\n")
 
     def _wifi_apply_command(self, settings: AppSettingsPayload) -> list[str]:
         command = [
@@ -188,17 +191,13 @@ class NetworkService:
             command.extend(
                 [
                     settings.wifi.ssid,
-                    settings.wifi.password or "",
                     settings.wifi.country_code,
-                    settings.wifi.ssid,
-                    settings.wifi.password or "",
                 ]
             )
         elif settings.wifi.mode == "ap":
             command.extend(
                 [
                     settings.wifi.ssid or "fieldkit",
-                    settings.wifi.password or "fieldkit",
                     settings.wifi.country_code,
                 ]
             )
@@ -239,15 +238,37 @@ class NetworkService:
             return []
         connections = []
         for line in result.stdout.splitlines():
-            parts = line.split(":")
-            if len(parts) < 4:
+            parts = self._parse_nmcli_line(line, 4)
+            if parts is None:
                 continue
             connections.append(
                 {
                     "name": parts[0],
                     "device": parts[1],
                     "type": parts[2],
-                    "state": ":".join(parts[3:]),
+                    "state": parts[3],
                 }
             )
         return connections
+
+    @staticmethod
+    def _parse_nmcli_line(line: str, fields: int) -> list[str] | None:
+        """Parse nmcli terse output, where backslash escapes delimiters."""
+        values: list[str] = []
+        current: list[str] = []
+        escaped = False
+        for char in line:
+            if escaped:
+                current.append(char)
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == ":":
+                values.append("".join(current))
+                current = []
+            else:
+                current.append(char)
+        if escaped:
+            return None
+        values.append("".join(current))
+        return values if len(values) == fields else None

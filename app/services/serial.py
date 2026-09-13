@@ -1,4 +1,5 @@
 import asyncio
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -161,12 +162,25 @@ class SerialService:
 
     def _create_session_log_path(self, profile, active_device: str | None = None) -> Path:
         self._log_root.mkdir(parents=True, exist_ok=True)
+        try:
+            os.chmod(self._log_root, 0o700)
+        except OSError:
+            pass
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         safe_label = self._sanitize_path_part(profile.label)
         device_name = active_device or profile.device_hint
         safe_device = self._sanitize_path_part(Path(device_name).name or device_name)
         log_path = self._log_root / f"{timestamp}-{safe_label}-{safe_device}.log"
-        with log_path.open("a", encoding="utf-8") as handle:
+        suffix = 0
+        while True:
+            candidate = log_path if suffix == 0 else self._log_root / f"{timestamp}-{safe_label}-{safe_device}-{suffix}.log"
+            try:
+                descriptor = os.open(candidate, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                log_path = candidate
+                break
+            except FileExistsError:
+                suffix += 1
+        with os.fdopen(descriptor, "a", encoding="utf-8") as handle:
             self._append_log_entry(
                 handle,
                 "system",

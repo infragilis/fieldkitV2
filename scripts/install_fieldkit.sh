@@ -26,6 +26,11 @@ if [[ ${EUID} -ne 0 ]]; then
   exit 1
 fi
 
+if [[ ${FIELDKIT_ROOT} != "/opt/fieldkit" ]]; then
+  echo "FIELDKIT_ROOT must be /opt/fieldkit because the installed sudoers policy is canonical."
+  exit 1
+fi
+
 if [[ ! -f "${FIELDKIT_ROOT}/pyproject.toml" || ! -d "${FIELDKIT_ROOT}/app" ]]; then
   echo "FIELDKIT_ROOT must point at a Fieldkit checkout. Current value: ${FIELDKIT_ROOT}"
   exit 1
@@ -114,7 +119,20 @@ if [[ "${INSTALL_AP_SUPPORT}" == "1" ]]; then
 fi
 
 log "Installing nginx plain HTTP mode"
-bash scripts/install_export_http_mode.sh
+HTTP_EXPORT_MODE=$(FIELDKIT_ROOT="${FIELDKIT_ROOT}" "${FIELDKIT_ROOT}/.venv/bin/python" - <<'PY'
+import json
+import os
+from pathlib import Path
+
+path = Path(os.environ["FIELDKIT_ROOT"]) / "runtime/state/settings.json"
+try:
+    enabled = json.loads(path.read_text()).get("transfer_services", {}).get("http_export_enabled", True)
+except (OSError, ValueError, TypeError):
+    enabled = True
+print("enable" if enabled else "disable")
+PY
+)
+bash scripts/install_export_http_mode.sh "${HTTP_EXPORT_MODE}"
 
 if [[ "${START_SERVICES}" == "1" ]]; then
   log "Starting Fieldkit services"

@@ -5,6 +5,7 @@ their cached values, never executes macros, and never follows external links.
 """
 
 import io
+import zipfile
 
 from openpyxl import load_workbook
 from openpyxl.workbook import Workbook
@@ -20,6 +21,11 @@ from app.services.cluster_mappings import (
 
 class WorkbookParseError(Exception):
     """Raised for unsupported, malformed, or password-protected workbooks."""
+
+
+MAX_XLSX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024
+MAX_WORKSHEET_ROWS = 100_000
+MAX_WORKSHEET_COLUMNS = 1_000
 
 
 def normalize_label(text: object) -> str:
@@ -71,7 +77,16 @@ def split_value(raw: object, separators: list[str]) -> list[str]:
 def open_workbook(data: bytes, filename: str) -> Workbook:
     """Open workbook bytes, raising a clear error for unsupported files."""
     try:
-        return load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            if sum(info.file_size for info in archive.infolist()) > MAX_XLSX_UNCOMPRESSED_BYTES:
+                raise WorkbookParseError(
+                    f"Workbook exceeds the {MAX_XLSX_UNCOMPRESSED_BYTES // (1024 * 1024)} MB uncompressed limit."
+                )
+        workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+        validate_dimensions(workbook)
+        return workbook
+    except WorkbookParseError:
+        raise
     except Exception as exc:  # noqa: BLE001 - normalize all openpyxl failures
         raise WorkbookParseError(f"Could not open workbook '{filename}': {exc}") from exc
 
@@ -81,6 +96,15 @@ def detect_template(workbook: Workbook) -> str:
     if "NodeClusterInfo" in sheets:
         return "netapp-configbuilder"
     return "unknown"
+
+
+def validate_dimensions(workbook: Workbook) -> None:
+    for worksheet in workbook.worksheets:
+        if (worksheet.max_row or 0) > MAX_WORKSHEET_ROWS or (worksheet.max_column or 0) > MAX_WORKSHEET_COLUMNS:
+            raise WorkbookParseError(
+                f"Worksheet '{worksheet.title}' exceeds the {MAX_WORKSHEET_ROWS} row / "
+                f"{MAX_WORKSHEET_COLUMNS} column limit."
+            )
 
 
 def _sheet_names(workbook: Workbook) -> list[str]:
