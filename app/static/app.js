@@ -727,7 +727,7 @@ async function applyUpdate() {
 function initializeShellControls() {
   renderTopbar();
   bindTopbarBurger();
-  applyTheme(window.localStorage.getItem(STORAGE_KEYS.theme) || "dark");
+  applyTheme(window.localStorage.getItem(STORAGE_KEYS.theme) || "light");
   translateStaticContent();
   document.getElementById("theme-toggle")?.addEventListener("click", () => {
     applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");

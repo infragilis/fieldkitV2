@@ -9,7 +9,7 @@ here or in any tracked file.
 
 - Remote: `git@github-fieldkit:infragilis/fieldkitV2.git` (public: `https://github.com/infragilis/fieldkitV2`)
 - License: MIT (`LICENSE`)
-- Owner: Infragilis. Public Fieldkit email: `info@infragilis.org`.
+- Owner: Infragilis. Public Fieldkit email: `info@infragilis.tech`.
 - CI/CD: none — deployment is manual (scripts + copy).
 - Two repositories: this **public** Fieldkit repo (app/UI/tool) and a separate **private** server repo (VM/server code — never public). See `## Secrets` for the split.
 - Explicitly requested work may span both repositories. Read each repository's own `AGENTS.md` and deployment instructions before working there; keep code, operational context, and memory in the repository that owns them. Unrelated projects/infrastructure remain out of scope.
