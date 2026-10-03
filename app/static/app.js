@@ -118,11 +118,18 @@ const TRANSLATIONS = {
     docs_intro: "Starter command references for common vendor platforms.",
     back_to_docs: "Back to docs index",
     serial_profiles_title: "Serial Profiles",
-    serial_profiles_note: "Serial adapters are auto-detected by default. Only set a device preference when you need to pin a console to a specific adapter.",
+    serial_profiles_note: "Serial adapters are auto-detected by default. Pin a console to a stable adapter so it keeps the same cable across reboots and re-plugs.",
     label: "Label",
     device_preference: "Device Preference",
     device_optional_0: "Optional: /dev/ttyUSB0",
     device_optional_1: "Optional: /dev/ttyUSB1",
+    device_auto: "Auto-detect (lowest port)",
+    device_not_detected: "(not detected)",
+    device_not_present: "No adapter detected for this console.",
+    resolved_to: "Resolved",
+    pinned: "pinned",
+    pin_console: "Pin",
+    unpinned: "auto",
     baud_rate: "Baud Rate",
     data_bits: "Data Bits",
     parity: "Parity",
@@ -140,6 +147,13 @@ const TRANSLATIONS = {
     no_entries: "No entries",
     directory_path: "directory: {path}",
     download: "Download",
+    copy_to_usb: "Copy to USB",
+    copying_to_usb: "Copying {name} to USB…",
+    copied_to_usb: "Copied {name} to USB ({destination}).",
+    on_usb: "On USB",
+    copy_failed: "Copy failed",
+    usb_not_mounted: "No USB storage is mounted on the kit.",
+    usb_copy_running: "A copy is already running.",
     delete: "Delete",
     reset: "Reset",
     delete_confirm: "Delete {path} from {library}?",
@@ -202,183 +216,762 @@ const TRANSLATIONS = {
     input_voltage_unavailable: "Input voltage unavailable",
   },
 };
-TRANSLATIONS.es = { ...TRANSLATIONS.en, nav_home: "Inicio", nav_console: "Consola", nav_files: "Archivos", nav_docs: "Docs", nav_settings: "Configuracion", theme_dark: "Oscuro", theme_light: "Claro", serial_consoles: "Consolas seriales", open_console_1: "Abrir Consola 1", open_console_2: "Abrir Consola 2", popup_note: "Cada consola se abre en su propia ventana movible para trabajo en campo.", quick_access: "Acceso rapido", jump_console: "Ir a consola", browse_files: "Explorar archivos", raw_exports: "Exportaciones", open_settings: "Abrir ajustes", reference_docs: "Documentacion", docs_note: "Temas de referencia de fabricantes guardados localmente en el kit.", docs_index: "Abrir indice de docs", upload_title: "Subir", destination: "Destino", upload_file: "Subir archivo", settings_title: "Configuracion", settings_subhead: "Estado de conectividad, red, cambio de contrasena y ajustes de consola serial.", networking: "Red", transfer_services: "Servicios de transferencia", serial_presets: "Perfiles seriales", password: "Contrasena", operational_notes: "Notas operativas", export_browser: "Explorador de exportaciones", open_local_shell: "Abrir shell local", full_serial_profiles: "Perfiles seriales completos", open_readme: "Abrir README", back_to_console: "Volver a consola", connectivity: "Conectividad", active_links: "Enlaces activos", nearby_wifi: "Wi-Fi cercano", hostname: "Hostname", ethernet_mode: "Modo Ethernet", ethernet_address: "Direccion Ethernet", wifi_mode: "Modo Wi-Fi", wifi_ssid: "SSID Wi-Fi", ap: "AP", client: "Cliente", save_network_settings: "Guardar red", apply_network_settings: "Aplicar red", network_apply_note: "Aplicar red guarda los valores actuales y ejecuta el cambio de red real en el appliance.", applying_network_settings: "Aplicando ajustes de red...", network_apply_failed: "La aplicacion de red fallo: {message}", transfer_services_title: "Servicios de transferencia", http_export_access: "Acceso HTTP de exportacion", tftp_access: "Acceso TFTP", ftp_access: "Acceso FTP", apply_transfer_services: "Aplicar servicios", transfer_services_note: "La exportacion HTTP expone solo /fieldkit en puerto 80 para descargas. FTP y TFTP quedan apagados hasta activarlos aqui. SCP sigue disponible por SSH.", serial_settings: "Ajustes seriales", console_1_preset: "Perfil Consola 1", console_2_preset: "Perfil Consola 2", custom: "Personalizado", save_serial_settings: "Guardar ajustes seriales", serial_settings_note: "Para valores no estandar use Serial Profiles.", change_password: "Cambiar contrasena", current_password: "Contrasena actual", new_password: "Nueva contrasena", files_title: "Archivos", files_note: "Explora las bibliotecas locales del kit.", upload_from_desktop: "Subir desde escritorio", upload_current_library: "Subir a biblioteca actual", exports_title: "Exportaciones Fieldkit", up_one_level: "Subir un nivel", readme_title: "README", docs_title: "Notas de referencia Fieldkit", docs_intro: "Referencias iniciales para plataformas comunes.", back_to_docs: "Volver al indice", serial_profiles_title: "Perfiles seriales", serial_profiles_note: "Los adaptadores seriales se detectan automaticamente. Solo fije un dispositivo si hace falta.", label: "Etiqueta", device_preference: "Preferencia de dispositivo", device_optional_0: "Opcional: /dev/ttyUSB0", device_optional_1: "Opcional: /dev/ttyUSB1", baud_rate: "Baudios", data_bits: "Bits de datos", parity: "Paridad", stop_bits: "Bits de parada", none: "Ninguna", even: "Par", odd: "Impar", console_1: "Consola 1", console_2: "Consola 2", save_serial_profiles: "Guardar perfiles seriales", upload_failed: "Fallo de carga", saved_to: "Guardado {name} en {library}", uploads_not_allowed: "No se permiten cargas en {library}.", no_entries: "Sin entradas", directory_path: "directorio: {path}", download: "Descargar", delete: "Borrar", reset: "Reiniciar", delete_confirm: "Borrar {path} de {library}?", delete_failed: "Fallo al borrar", no_files: "Sin archivos", directory: "Directorio", bytes: "{size} bytes", secure: "segura", preferred: "preferido", auto_detect: "deteccion automatica", unavailable: "no disponible", yes: "si", no: "no", http_label: "HTTP", root_label: "Raiz", http_export_label: "Exportacion HTTP", tftp_label: "TFTP", ftp_label: "FTP", scp_label: "SCP", usb_gadget_label: "Exportacion USB Gadget", configured: "configurado", active: "activo", enabled: "habilitado", built_in_over_ssh: "integrado por SSH", local_shell_title: "Shell local del Pi", local_shell_note: "Este terminal se ejecuta directamente en el appliance Fieldkit como la cuenta local service.", password_change_accepted: "Contrasena cambiada para la cuenta local service." };
-TRANSLATIONS.es.export_path = "HTTP: /fieldkit{path}";
-TRANSLATIONS.es.export_root_note = "TFTP, FTP y SCP usan la misma estructura de bibliotecas con raiz en {root}.";
-TRANSLATIONS.es.reconnect = "Reconectar";
-TRANSLATIONS.es.opening_session = "Abriendo sesion...";
-TRANSLATIONS.es.connecting = "Conectando...";
-TRANSLATIONS.es.reconnecting = "Reconectando";
-TRANSLATIONS.es.connected = "Conectado";
-TRANSLATIONS.es.disconnected = "Desconectado";
-TRANSLATIONS.es.connecting_to_console = "Conectando a la consola {index}...";
-TRANSLATIONS.es.console_disconnected = "Consola desconectada";
-TRANSLATIONS.es.console_window_title = "Consola {index}";
-TRANSLATIONS.es.console_move_note = "Esta ventana puede moverse de forma independiente por el ingeniero de campo.";
-TRANSLATIONS.es.console_capture_note = "La entrada del teclado se captura directamente en esta ventana. Haga clic en el terminal si se pierde el foco.";
-TRANSLATIONS.es.nav_tools = "Herramientas";
-TRANSLATIONS.es.subnet_calculator = "Calculadora de subred";
-TRANSLATIONS.es.subnet_note = "Calcula detalles IPv4 para direccionamiento en campo y notas de traspaso.";
-TRANSLATIONS.es.ip_address = "Direccion IP";
-TRANSLATIONS.es.cidr_prefix = "Prefijo CIDR";
-TRANSLATIONS.es.calculate = "Calcular";
-TRANSLATIONS.es.subnet_invalid_ip = "Introduzca una direccion IPv4 como 192.168.200.120.";
-TRANSLATIONS.es.subnet_invalid_prefix = "Introduzca un prefijo CIDR de 0 a 32.";
-TRANSLATIONS.es.subnet_network = "Red";
-TRANSLATIONS.es.subnet_netmask = "Mascara de red";
-TRANSLATIONS.es.subnet_wildcard = "Wildcard";
-TRANSLATIONS.es.subnet_broadcast = "Broadcast";
-TRANSLATIONS.es.subnet_host_range = "Rango util";
-TRANSLATIONS.es.subnet_hosts = "Hosts utiles";
-TRANSLATIONS.es.subnet_single_host = "Ruta de host unico";
-TRANSLATIONS.es.subnet_point_to_point = "Rango punto a punto";
-TRANSLATIONS.de = { ...TRANSLATIONS.en, nav_home: "Start", nav_console: "Konsole", nav_files: "Dateien", nav_docs: "Docs", nav_settings: "Einstellungen", theme_dark: "Dunkel", theme_light: "Hell", serial_consoles: "Serielle Konsolen", open_console_1: "Konsole 1 offnen", open_console_2: "Konsole 2 offnen", popup_note: "Jede Konsole offnet sich in einem eigenen verschiebbaren Fenster.", quick_access: "Schnellzugriff", jump_console: "Zur Konsole", browse_files: "Dateien offnen", raw_exports: "Exporte", open_settings: "Einstellungen offnen", reference_docs: "Referenzdokumente", docs_note: "Herstellerreferenzen lokal auf dem Kit gespeichert.", docs_index: "Dokumentindex offnen", upload_title: "Upload", destination: "Ziel", upload_file: "Datei hochladen", settings_title: "Einstellungen", appliance_controls: "Geraetesteuerung", settings_subhead: "Konnektivitat, Netzwerk, Passwortanderung und serielle Einstellungen.", networking: "Netzwerk", transfer_services: "Transferdienste", serial_presets: "Serielle Vorgaben", password: "Passwort", operational_notes: "Betriebshinweise", export_browser: "Export-Browser", full_serial_profiles: "Volle serielle Profile", open_readme: "README offnen", back_to_console: "Zuruck zur Konsole", connectivity: "Konnektivitat", active_links: "Aktive Verbindungen", nearby_wifi: "Nahe WLANs", hostname: "Hostname", ethernet_mode: "Ethernet-Modus", ethernet_address: "Ethernet-Adresse", wifi_mode: "WLAN-Modus", wifi_ssid: "WLAN-SSID", disabled: "Deaktiviert", ap: "AP", client: "Client", save_network_settings: "Netzwerk speichern", network_apply_note: "Zeigt nur die geplanten Netzwerkbefehle vor echten Anderungen.", transfer_services_title: "Transferdienste", http_export_access: "HTTP-Exportzugang", tftp_access: "TFTP-Zugang", ftp_access: "FTP-Zugang", apply_transfer_services: "Transferdienste anwenden", transfer_services_note: "HTTP exportiert nur /fieldkit uber Port 80. FTP und TFTP bleiben aus, bis sie hier aktiviert werden. SCP bleibt uber SSH verfugbar.", serial_settings: "Serielle Einstellungen", console_1_preset: "Vorgabe Konsole 1", console_2_preset: "Vorgabe Konsole 2", custom: "Benutzerdefiniert", save_serial_settings: "Serielle Einstellungen speichern", serial_settings_note: "Fur Sonderwerte bitte Serial Profiles verwenden.", change_password: "Passwort andern", current_password: "Aktuelles Passwort", new_password: "Neues Passwort", files_title: "Dateien", files_note: "Lokale Dateibibliotheken des Kits durchsuchen.", upload_from_desktop: "Vom Desktop hochladen", upload_current_library: "In aktuelle Bibliothek hochladen", exports_title: "Fieldkit-Exporte", up_one_level: "Eine Ebene hoch", docs_title: "Fieldkit-Referenznotizen", docs_intro: "Startreferenzen fur gangige Plattformen.", back_to_docs: "Zuruck zum Index", serial_profiles_title: "Serielle Profile", serial_profiles_note: "Serielle Adapter werden standardmassig automatisch erkannt.", label: "Bezeichnung", device_preference: "Geraetevorgabe", device_optional_0: "Optional: /dev/ttyUSB0", device_optional_1: "Optional: /dev/ttyUSB1", baud_rate: "Baudrate", data_bits: "Datenbits", parity: "Paritat", stop_bits: "Stoppbits", none: "Keine", even: "Gerade", odd: "Ungerade", console_1: "Konsole 1", console_2: "Konsole 2", save_serial_profiles: "Serielle Profile speichern", upload_failed: "Upload fehlgeschlagen", saved_to: "{name} nach {library} gespeichert", uploads_not_allowed: "Uploads nach {library} sind nicht erlaubt.", no_entries: "Keine Eintrage", directory_path: "Verzeichnis: {path}", download: "Herunterladen", delete: "Loschen", reset: "Zurucksetzen", delete_confirm: "{path} aus {library} loschen?", delete_failed: "Loschen fehlgeschlagen", no_files: "Keine Dateien", bytes: "{size} Byte", secure: "gesichert", preferred: "bevorzugt", auto_detect: "automatisch", unavailable: "nicht verfugbar", yes: "ja", no: "nein", root_label: "Wurzel", http_export_label: "HTTP-Export", usb_gadget_label: "USB-Gadget-Export", configured: "konfiguriert", active: "aktiv", enabled: "aktiviert", built_in_over_ssh: "integriert uber SSH" };
-TRANSLATIONS.de.open_local_shell = "Lokale Shell offnen";
-TRANSLATIONS.de.local_shell_title = "Lokale Pi-Shell";
-TRANSLATIONS.de.local_shell_note = "Dieses Terminal laeuft direkt auf der Fieldkit-Appliance als lokales service-Konto.";
-TRANSLATIONS.de.password_change_accepted = "Passwort fuer das lokale service-Konto geaendert.";
-TRANSLATIONS.de.export_path = "HTTP: /fieldkit{path}";
-TRANSLATIONS.de.export_root_note = "TFTP, FTP und SCP verwenden dieselbe Bibliotheksstruktur mit Wurzel in {root}.";
-TRANSLATIONS.de.reconnect = "Neu verbinden";
-TRANSLATIONS.de.opening_session = "Sitzung wird geoffnet...";
-TRANSLATIONS.de.connecting = "Verbinden...";
-TRANSLATIONS.de.reconnecting = "Erneut verbinden";
-TRANSLATIONS.de.connected = "Verbunden";
-TRANSLATIONS.de.disconnected = "Getrennt";
-TRANSLATIONS.de.connecting_to_console = "Verbinde mit Konsole {index}...";
-TRANSLATIONS.de.console_disconnected = "Konsole getrennt";
-TRANSLATIONS.de.console_window_title = "Konsole {index}";
-TRANSLATIONS.de.console_move_note = "Dieses Popup kann vom Feldeinsatztechniker unabhangig verschoben werden.";
-TRANSLATIONS.de.console_capture_note = "Tastatureingaben werden direkt in diesem Fenster erfasst. Klicken Sie auf das Terminal, wenn der Fokus verloren geht.";
-TRANSLATIONS.de.apply_network_settings = "Netzwerk anwenden";
-TRANSLATIONS.de.network_apply_note = "Netzwerk anwenden speichert die aktuellen Werte und fuhrt die echte Netzwerkanderung auf der Appliance aus.";
-TRANSLATIONS.de.applying_network_settings = "Netzwerkeinstellungen werden angewendet...";
-TRANSLATIONS.de.network_apply_failed = "Netzwerkanwendung fehlgeschlagen: {message}";
-TRANSLATIONS.de.nav_tools = "Werkzeuge";
-TRANSLATIONS.de.subnet_calculator = "Subnetzrechner";
-TRANSLATIONS.de.subnet_note = "Berechnet IPv4-Netzwerkdetails fuer Feldadressierung und Uebergabenotizen.";
-TRANSLATIONS.de.ip_address = "IP-Adresse";
-TRANSLATIONS.de.cidr_prefix = "CIDR-Praefix";
-TRANSLATIONS.de.calculate = "Berechnen";
-TRANSLATIONS.de.subnet_invalid_ip = "Geben Sie eine IPv4-Adresse wie 192.168.200.120 ein.";
-TRANSLATIONS.de.subnet_invalid_prefix = "Geben Sie ein CIDR-Praefix von 0 bis 32 ein.";
-TRANSLATIONS.de.subnet_network = "Netzwerk";
-TRANSLATIONS.de.subnet_netmask = "Netzmaske";
-TRANSLATIONS.de.subnet_wildcard = "Wildcard";
-TRANSLATIONS.de.subnet_broadcast = "Broadcast";
-TRANSLATIONS.de.subnet_host_range = "Nutzbarer Bereich";
-TRANSLATIONS.de.subnet_hosts = "Nutzbare Hosts";
-TRANSLATIONS.de.subnet_single_host = "Einzelhost-Route";
-TRANSLATIONS.de.subnet_point_to_point = "Punkt-zu-Punkt-Bereich";
-TRANSLATIONS.nl = { ...TRANSLATIONS.en, nav_home: "Home", nav_console: "Console", nav_files: "Bestanden", nav_docs: "Docs", nav_settings: "Instellingen", theme_dark: "Donker", theme_light: "Licht", serial_consoles: "Seriele consoles", open_console_1: "Open Console 1", open_console_2: "Open Console 2", popup_note: "Elke console opent in een eigen verplaatsbaar venster.", quick_access: "Snelle toegang", jump_console: "Ga naar console", browse_files: "Bestanden bekijken", raw_exports: "Exports", open_settings: "Open instellingen", reference_docs: "Referentiedocs", docs_note: "Leveranciersreferenties lokaal op de kit opgeslagen.", docs_index: "Open docs-index", upload_title: "Upload", destination: "Doel", upload_file: "Bestand uploaden", settings_title: "Instellingen", appliance_controls: "Apparaatbediening", settings_subhead: "Connectiviteit, netwerk, wachtwoord en seriele instellingen.", networking: "Netwerk", transfer_services: "Overdrachtsdiensten", serial_presets: "Seriele presets", password: "Wachtwoord", operational_notes: "Operationele notities", export_browser: "Exportbrowser", full_serial_profiles: "Volledige seriele profielen", open_readme: "Open README", back_to_console: "Terug naar console", connectivity: "Connectiviteit", active_links: "Actieve links", nearby_wifi: "Nabije wifi", hostname: "Hostnaam", ethernet_mode: "Ethernet-modus", ethernet_address: "Ethernet-adres", wifi_mode: "Wifi-modus", wifi_ssid: "Wifi-SSID", disabled: "Uitgeschakeld", ap: "AP", client: "Client", save_network_settings: "Netwerkinstellingen opslaan", network_apply_note: "Toont alleen de geplande netwerkcommando's voor echte wijzigingen.", transfer_services_title: "Overdrachtsdiensten", http_export_access: "HTTP-exporttoegang", tftp_access: "TFTP-toegang", ftp_access: "FTP-toegang", apply_transfer_services: "Overdrachtsdiensten toepassen", transfer_services_note: "HTTP exporteert alleen /fieldkit via poort 80. FTP en TFTP blijven uit totdat je ze hier aanzet. SCP blijft beschikbaar via SSH.", serial_settings: "Seriele instellingen", console_1_preset: "Preset Console 1", console_2_preset: "Preset Console 2", custom: "Aangepast", save_serial_settings: "Seriele instellingen opslaan", serial_settings_note: "Gebruik Serial Profiles voor afwijkende waarden.", change_password: "Wachtwoord wijzigen", current_password: "Huidig wachtwoord", new_password: "Nieuw wachtwoord", files_title: "Bestanden", files_note: "Blader door de lokale bestandsbibliotheken op de kit.", upload_from_desktop: "Upload vanaf desktop", upload_current_library: "Upload naar huidige bibliotheek", exports_title: "Fieldkit-exports", up_one_level: "Een niveau omhoog", docs_title: "Fieldkit-referentienotities", docs_intro: "Startreferenties voor gangbare platforms.", back_to_docs: "Terug naar docs-index", serial_profiles_title: "Seriele profielen", serial_profiles_note: "Seriele adapters worden standaard automatisch gedetecteerd.", label: "Label", device_preference: "Apparaatvoorkeur", device_optional_0: "Optioneel: /dev/ttyUSB0", device_optional_1: "Optioneel: /dev/ttyUSB1", baud_rate: "Baudrate", data_bits: "Databits", parity: "Pariteit", stop_bits: "Stopbits", none: "Geen", even: "Even", odd: "Oneven", console_1: "Console 1", console_2: "Console 2", save_serial_profiles: "Seriele profielen opslaan", upload_failed: "Upload mislukt", saved_to: "{name} opgeslagen naar {library}", uploads_not_allowed: "Uploads naar {library} zijn niet toegestaan.", no_entries: "Geen items", directory_path: "map: {path}", download: "Downloaden", delete: "Verwijderen", reset: "Reset", delete_confirm: "{path} verwijderen uit {library}?", delete_failed: "Verwijderen mislukt", no_files: "Geen bestanden", bytes: "{size} bytes", secure: "beveiligd", preferred: "voorkeur", auto_detect: "auto-detectie", unavailable: "niet beschikbaar", yes: "ja", no: "nee", root_label: "Root", http_export_label: "HTTP-export", usb_gadget_label: "USB-gadget-export", configured: "geconfigureerd", active: "actief", enabled: "ingeschakeld", built_in_over_ssh: "ingebouwd via SSH" };
-TRANSLATIONS.nl.open_local_shell = "Open lokale shell";
-TRANSLATIONS.nl.local_shell_title = "Lokale Pi-shell";
-TRANSLATIONS.nl.local_shell_note = "Deze terminal draait rechtstreeks op de Fieldkit-appliance als het lokale service-account.";
-TRANSLATIONS.nl.password_change_accepted = "Wachtwoord gewijzigd voor het lokale service-account.";
-TRANSLATIONS.nl.export_path = "HTTP: /fieldkit{path}";
-TRANSLATIONS.nl.export_root_note = "TFTP, FTP en SCP gebruiken dezelfde bibliotheekstructuur met root in {root}.";
-TRANSLATIONS.nl.reconnect = "Opnieuw verbinden";
-TRANSLATIONS.nl.opening_session = "Sessie openen...";
-TRANSLATIONS.nl.connecting = "Verbinden...";
-TRANSLATIONS.nl.reconnecting = "Opnieuw verbinden";
-TRANSLATIONS.nl.connected = "Verbonden";
-TRANSLATIONS.nl.disconnected = "Verbroken";
-TRANSLATIONS.nl.connecting_to_console = "Verbinding maken met console {index}...";
-TRANSLATIONS.nl.console_disconnected = "Console verbroken";
-TRANSLATIONS.nl.console_window_title = "Console {index}";
-TRANSLATIONS.nl.console_move_note = "Deze popup kan onafhankelijk door de field engineer worden verplaatst.";
-TRANSLATIONS.nl.console_capture_note = "Toetsenbordinvoer wordt direct in dit venster vastgelegd. Klik op het terminalgebied als de focus verloren gaat.";
-TRANSLATIONS.nl.apply_network_settings = "Netwerk toepassen";
-TRANSLATIONS.nl.network_apply_note = "Netwerk toepassen slaat de huidige waarden op en voert de echte netwerkwijziging op het apparaat uit.";
-TRANSLATIONS.nl.applying_network_settings = "Netwerkinstellingen worden toegepast...";
-TRANSLATIONS.nl.network_apply_failed = "Netwerktoepassing mislukt: {message}";
-TRANSLATIONS.nl.nav_tools = "Hulpmiddelen";
-TRANSLATIONS.nl.subnet_calculator = "Subnetcalculator";
-TRANSLATIONS.nl.subnet_note = "Bereken IPv4-netwerkdetails voor veldadressering en overdrachtsnotities.";
-TRANSLATIONS.nl.ip_address = "IP-adres";
-TRANSLATIONS.nl.cidr_prefix = "CIDR-prefix";
-TRANSLATIONS.nl.calculate = "Berekenen";
-TRANSLATIONS.nl.subnet_invalid_ip = "Voer een IPv4-adres in zoals 192.168.200.120.";
-TRANSLATIONS.nl.subnet_invalid_prefix = "Voer een CIDR-prefix van 0 tot 32 in.";
-TRANSLATIONS.nl.subnet_network = "Netwerk";
-TRANSLATIONS.nl.subnet_netmask = "Netmasker";
-TRANSLATIONS.nl.subnet_wildcard = "Wildcard";
-TRANSLATIONS.nl.subnet_broadcast = "Broadcast";
-TRANSLATIONS.nl.subnet_host_range = "Bruikbaar bereik";
-TRANSLATIONS.nl.subnet_hosts = "Bruikbare hosts";
-TRANSLATIONS.nl.subnet_single_host = "Enkele hostroute";
-TRANSLATIONS.nl.subnet_point_to_point = "Punt-naar-punt-bereik";
-TRANSLATIONS.fr = { ...TRANSLATIONS.en, nav_home: "Accueil", nav_console: "Console", nav_files: "Fichiers", nav_docs: "Docs", nav_settings: "Parametres", theme_dark: "Sombre", theme_light: "Clair", serial_consoles: "Consoles serie", open_console_1: "Ouvrir Console 1", open_console_2: "Ouvrir Console 2", popup_note: "Chaque console s'ouvre dans sa propre fenetre deplacable.", quick_access: "Acces rapide", jump_console: "Aller a la console", browse_files: "Parcourir les fichiers", raw_exports: "Exports", open_settings: "Ouvrir les parametres", reference_docs: "Docs de reference", docs_note: "Sujets de reference fournisseurs stockes localement sur le kit.", docs_index: "Ouvrir l'index docs", upload_title: "Envoi", destination: "Destination", upload_file: "Envoyer le fichier", settings_title: "Parametres", appliance_controls: "Controles de l'appliance", settings_subhead: "Etat reseau, configuration, mot de passe et parametres serie.", networking: "Reseau", transfer_services: "Services de transfert", serial_presets: "Presets serie", password: "Mot de passe", operational_notes: "Notes operationnelles", export_browser: "Navigateur d'exports", full_serial_profiles: "Profils serie complets", open_readme: "Ouvrir README", back_to_console: "Retour a la console", connectivity: "Connectivite", active_links: "Liens actifs", nearby_wifi: "Wi-Fi proche", hostname: "Nom d'hote", ethernet_mode: "Mode Ethernet", ethernet_address: "Adresse Ethernet", wifi_mode: "Mode Wi-Fi", wifi_ssid: "SSID Wi-Fi", disabled: "Desactive", ap: "AP", client: "Client", save_network_settings: "Enregistrer le reseau", network_apply_note: "Affiche uniquement les commandes prevues avant tout changement reel.", transfer_services_title: "Services de transfert", http_export_access: "Acces export HTTP", tftp_access: "Acces TFTP", ftp_access: "Acces FTP", apply_transfer_services: "Appliquer les services", transfer_services_note: "HTTP expose seulement /fieldkit sur le port 80. FTP et TFTP restent desactives jusqu'a activation ici. SCP reste disponible via SSH.", serial_settings: "Parametres serie", console_1_preset: "Preset Console 1", console_2_preset: "Preset Console 2", custom: "Personnalise", save_serial_settings: "Enregistrer les parametres serie", serial_settings_note: "Pour les valeurs non standard, utilisez Serial Profiles.", change_password: "Changer le mot de passe", current_password: "Mot de passe actuel", new_password: "Nouveau mot de passe", files_title: "Fichiers", files_note: "Parcourez les bibliotheques locales du kit.", upload_from_desktop: "Envoyer depuis le bureau", upload_current_library: "Envoyer vers la bibliotheque courante", exports_title: "Exports Fieldkit", up_one_level: "Niveau superieur", docs_title: "Notes de reference Fieldkit", docs_intro: "References de depart pour les plateformes courantes.", back_to_docs: "Retour a l'index", serial_profiles_title: "Profils serie", serial_profiles_note: "Les adaptateurs serie sont detectes automatiquement par defaut.", label: "Libelle", device_preference: "Preference de peripherique", device_optional_0: "Optionnel : /dev/ttyUSB0", device_optional_1: "Optionnel : /dev/ttyUSB1", baud_rate: "Debit", data_bits: "Bits de donnees", parity: "Parite", stop_bits: "Bits d'arret", none: "Aucune", even: "Pair", odd: "Impair", console_1: "Console 1", console_2: "Console 2", save_serial_profiles: "Enregistrer les profils serie", upload_failed: "Echec de l'envoi", saved_to: "{name} enregistre dans {library}", uploads_not_allowed: "Les envois vers {library} ne sont pas autorises.", no_entries: "Aucune entree", directory_path: "repertoire : {path}", download: "Telecharger", delete: "Supprimer", reset: "Reinitialiser", delete_confirm: "Supprimer {path} de {library} ?", delete_failed: "Echec de suppression", no_files: "Aucun fichier", bytes: "{size} octets", secure: "securise", preferred: "prefere", auto_detect: "auto-detection", unavailable: "indisponible", yes: "oui", no: "non", root_label: "Racine", http_export_label: "Export HTTP", usb_gadget_label: "Export USB Gadget", configured: "configure", active: "actif", enabled: "active", built_in_over_ssh: "integre via SSH" };
-TRANSLATIONS.fr.open_local_shell = "Ouvrir le shell local";
-TRANSLATIONS.fr.local_shell_title = "Shell local du Pi";
-TRANSLATIONS.fr.local_shell_note = "Ce terminal s'execute directement sur l'appliance Fieldkit avec le compte local service.";
-TRANSLATIONS.fr.password_change_accepted = "Mot de passe modifie pour le compte local service.";
-TRANSLATIONS.fr.export_path = "HTTP: /fieldkit{path}";
-TRANSLATIONS.fr.export_root_note = "TFTP, FTP et SCP utilisent la meme structure de bibliotheques racinee dans {root}.";
-TRANSLATIONS.fr.reconnect = "Reconnecter";
-TRANSLATIONS.fr.opening_session = "Ouverture de session...";
-TRANSLATIONS.fr.connecting = "Connexion...";
-TRANSLATIONS.fr.reconnecting = "Reconnexion";
-TRANSLATIONS.fr.connected = "Connecte";
-TRANSLATIONS.fr.disconnected = "Deconnecte";
-TRANSLATIONS.fr.connecting_to_console = "Connexion a la console {index}...";
-TRANSLATIONS.fr.console_disconnected = "Console deconnectee";
-TRANSLATIONS.fr.console_window_title = "Console {index}";
-TRANSLATIONS.fr.console_move_note = "Cette fenetre peut etre deplacee independamment par l'ingenieur terrain.";
-TRANSLATIONS.fr.console_capture_note = "La saisie clavier est capturee directement dans cette fenetre. Cliquez dans la zone terminal si le focus est perdu.";
-TRANSLATIONS.fr.apply_network_settings = "Appliquer le reseau";
-TRANSLATIONS.fr.network_apply_note = "Appliquer le reseau enregistre les valeurs actuelles et execute le vrai changement reseau sur l'appliance.";
-TRANSLATIONS.fr.applying_network_settings = "Application des parametres reseau...";
-TRANSLATIONS.fr.network_apply_failed = "Echec de l'application reseau : {message}";
-TRANSLATIONS.fr.nav_tools = "Outils";
-TRANSLATIONS.fr.subnet_calculator = "Calculateur de sous-reseau";
-TRANSLATIONS.fr.subnet_note = "Calcule les details IPv4 pour l'adressage terrain et les notes de transfert.";
-TRANSLATIONS.fr.ip_address = "Adresse IP";
-TRANSLATIONS.fr.cidr_prefix = "Prefixe CIDR";
-TRANSLATIONS.fr.calculate = "Calculer";
-TRANSLATIONS.fr.subnet_invalid_ip = "Entrez une adresse IPv4 comme 192.168.200.120.";
-TRANSLATIONS.fr.subnet_invalid_prefix = "Entrez un prefixe CIDR de 0 a 32.";
-TRANSLATIONS.fr.subnet_network = "Reseau";
-TRANSLATIONS.fr.subnet_netmask = "Masque reseau";
-TRANSLATIONS.fr.subnet_wildcard = "Wildcard";
-TRANSLATIONS.fr.subnet_broadcast = "Broadcast";
-TRANSLATIONS.fr.subnet_host_range = "Plage utilisable";
-TRANSLATIONS.fr.subnet_hosts = "Hosts utilisables";
-TRANSLATIONS.fr.subnet_single_host = "Route host unique";
-TRANSLATIONS.fr.subnet_point_to_point = "Plage point a point";
-TRANSLATIONS.es.hero_kicker = "Aparato de servicio de campo";
-TRANSLATIONS.es.hero_subhead = "Consolas serie, bibliotecas de archivos, servicios de transferencia y notas de referencia - para trabajo en equipos de red en cualquier lugar.";
-TRANSLATIONS.es.kicker_live = "En vivo";
-TRANSLATIONS.de.hero_kicker = "Feldservice-Geraet";
-TRANSLATIONS.de.hero_subhead = "Serielle Konsolen, Dateibibliotheken, Transferdienste und Referenznotizen - fuer Netzwerkgeraete-Arbeit an jedem Ort.";
-TRANSLATIONS.de.kicker_live = "Live";
-TRANSLATIONS.nl.hero_kicker = "Veldservice-apparaat";
-TRANSLATIONS.nl.hero_subhead = "Seriele consoles, bestandsbibliotheken, overdrachtsdiensten en referentienotities - voor netwerkapparatuurwerk op elke locatie.";
-TRANSLATIONS.nl.kicker_live = "Live";
-TRANSLATIONS.fr.hero_kicker = "Appareil de service terrain";
-TRANSLATIONS.fr.hero_subhead = "Consoles serie, bibliotheques de fichiers, services de transfert et notes de reference - pour travailler sur des equipements reseau partout.";
-TRANSLATIONS.fr.kicker_live = "En direct";
-TRANSLATIONS.es.preset = "Ajuste rapido";
-TRANSLATIONS.es.preset_title = "Ajuste rapido de la linea serial {label}";
-TRANSLATIONS.es.reset_session = "Reiniciar sesion";
-TRANSLATIONS.es.reset_session_title = "Reiniciar la sesion de {label}";
-TRANSLATIONS.de.preset = "Vorgabe";
-TRANSLATIONS.de.preset_title = "Serielle Leitungsvorgabe fuer {label}";
-TRANSLATIONS.de.reset_session = "Sitzung zuruecksetzen";
-TRANSLATIONS.de.reset_session_title = "Sitzung von {label} zuruecksetzen";
-TRANSLATIONS.nl.preset = "Preset";
-TRANSLATIONS.nl.preset_title = "Seriele lijnpreset voor {label}";
-TRANSLATIONS.nl.reset_session = "Sessie resetten";
-TRANSLATIONS.nl.reset_session_title = "Sessie van {label} resetten";
-TRANSLATIONS.fr.preset = "Preset";
-TRANSLATIONS.fr.preset_title = "Preset de ligne serie de {label}";
-TRANSLATIONS.fr.reset_session = "Reinitialiser la session";
-TRANSLATIONS.fr.reset_session_title = "Reinitialiser la session de {label}";
-TRANSLATIONS.es.uploads_managed_by_server = "Las subidas de datos de fabricantes se gestionan desde el servidor.";
-TRANSLATIONS.de.uploads_managed_by_server = "Uploads fuer Herstellerdaten werden vom Server verwaltet.";
-TRANSLATIONS.nl.uploads_managed_by_server = "Uploads voor leveranciersgegevens worden door de server beheerd.";
-TRANSLATIONS.fr.uploads_managed_by_server = "Les envois de donnees fournisseurs sont geres par le serveur.";
-
+TRANSLATIONS.es = { ...TRANSLATIONS.en,
+  nav_home: "Inicio",
+  nav_console: "Consola",
+  nav_files: "Archivos",
+  nav_tools: "Herramientas",
+  nav_settings: "Configuración",
+  hero_kicker: "Aparato de servicio de campo",
+  hero_subhead: "Consolas serie, bibliotecas de archivos, servicios de transferencia y notas de referencia - para trabajar con equipos de red en cualquier lugar.",
+  kicker_live: "En vivo",
+  theme_dark: "Oscuro",
+  theme_light: "Claro",
+  serial_consoles: "Consolas serie",
+  open_console_1: "Abrir Consola 1",
+  open_console_2: "Abrir Consola 2",
+  popup_note: "Cada consola se abre en su propia ventana emergente móvil para uso en campo.",
+  quick_access: "Acceso rápido",
+  jump_console: "Ir a consola",
+  browse_files: "Explorar archivos",
+  raw_exports: "Exportaciones",
+  open_settings: "Abrir ajustes",
+  reference_docs: "Documentación",
+  docs_note: "Temas de referencia de fabricantes guardados localmente en el kit.",
+  docs_index: "Abrir índice de documentos",
+  upload_title: "Subir",
+  destination: "Destino",
+  upload_file: "Subir archivo",
+  subnet_calculator: "Calculadora de subred",
+  subnet_note: "Calcula detalles IPv4 para direccionamiento en campo y notas de traspaso.",
+  ip_address: "Dirección IP",
+  cidr_prefix: "Prefijo CIDR",
+  calculate: "Calcular",
+  subnet_invalid_ip: "Introduzca una dirección IPv4 como 192.168.200.120.",
+  subnet_invalid_prefix: "Introduzca un prefijo CIDR de 0 a 32.",
+  subnet_network: "Red",
+  subnet_netmask: "Máscara de red",
+  subnet_wildcard: "Comodín",
+  subnet_broadcast: "Difusión",
+  subnet_host_range: "Rango útil",
+  subnet_hosts: "Hosts útiles",
+  subnet_single_host: "Ruta de host único",
+  subnet_point_to_point: "Rango punto a punto",
+  settings_title: "Configuración",
+  appliance_controls: "Controles del aparato",
+  settings_subhead: "Estado de conectividad, configuración de red, cambio de contraseña y ajustes de consola serie.",
+  networking: "Red",
+  transfer_services: "Servicios de transferencia",
+  serial_presets: "Perfiles serie",
+  password: "Contraseña",
+  operational_notes: "Notas operativas",
+  export_browser: "Explorador de exportaciones",
+  open_local_shell: "Abrir shell local",
+  full_serial_profiles: "Perfiles serie completos",
+  open_readme: "Abrir README",
+  back_to_console: "Volver a consola",
+  connectivity: "Conectividad",
+  active_links: "Enlaces activos",
+  nearby_wifi: "Wi-Fi cercano",
+  hostname: "Nombre de host",
+  ethernet_mode: "Modo Ethernet",
+  static: "Estática",
+  ethernet_address: "Dirección Ethernet",
+  wifi_mode: "Modo Wi-Fi",
+  wifi_ssid: "SSID de Wi-Fi",
+  wifi_password: "Contraseña del AP Wi-Fi",
+  wifi_access_note: "Los dispositivos Apple pueden acceder a la interfaz en http://{hostname}.local/ mientras están conectados al AP Fieldkit. Alternativa directa: http://10.42.0.1/",
+  disabled: "Deshabilitado",
+  client: "Cliente",
+  save_network_settings: "Guardar red",
+  apply_network_settings: "Aplicar red",
+  network_apply_note: "Aplicar red guarda los valores del formulario y ejecuta el cambio de red real en el aparato.",
+  applying_network_settings: "Aplicando ajustes de red...",
+  network_apply_failed: "La aplicación de red falló: {message}",
+  transfer_services_title: "Servicios de transferencia",
+  http_export_access: "Acceso HTTP de exportación",
+  tftp_access: "Acceso TFTP",
+  ftp_access: "Acceso FTP",
+  apply_transfer_services: "Aplicar servicios",
+  transfer_services_note: "El acceso HTTP de exportación expone solo /fieldkit en el puerto 80 para descargas de dispositivos. FTP y TFTP permanecen apagados hasta activarlos aquí. SCP sigue disponible mediante el servicio SSH normal.",
+  serial_settings: "Ajustes serie",
+  console_1_preset: "Perfil Consola 1",
+  console_2_preset: "Perfil Consola 2",
+  custom: "Personalizado",
+  save_serial_settings: "Guardar ajustes serie",
+  serial_settings_note: "Para baudios, paridad, bits de parada o rutas de dispositivo no estándar, use Perfiles serie.",
+  change_password: "Cambiar contraseña",
+  current_password: "Contraseña actual",
+  new_password: "Nueva contraseña",
+  files_title: "Archivos",
+  files_note: "Explore las bibliotecas de archivos locales del kit.",
+  upload_from_desktop: "Subir desde el escritorio",
+  upload_current_library: "Subir a la biblioteca actual",
+  exports_title: "Exportaciones de Fieldkit",
+  export_root_note: "TFTP, FTP y SCP usan la misma estructura de bibliotecas con raíz en {root}.",
+  up_one_level: "Subir un nivel",
+  docs_title: "Notas de referencia de Fieldkit",
+  docs_intro: "Referencias de comandos iniciales para plataformas de fabricantes comunes.",
+  back_to_docs: "Volver al índice de documentos",
+  serial_profiles_title: "Perfiles serie",
+  serial_profiles_note: "Los adaptadores serie se detectan automáticamente de forma predeterminada. Fije una consola a un adaptador estable para que conserve el mismo cable tras reinicios y reconexiones.",
+  label: "Etiqueta",
+  device_preference: "Preferencia de dispositivo",
+  device_auto: "Detección automática (puerto más bajo)",
+  device_not_detected: "(no detectado)",
+  device_not_present: "No se detectó ningún adaptador para esta consola.",
+  resolved_to: "Resuelto",
+  pinned: "fijado",
+  pin_console: "Fijar",
+  unpinned: "automático",
+  baud_rate: "Velocidad en baudios",
+  data_bits: "Bits de datos",
+  parity: "Paridad",
+  stop_bits: "Bits de parada",
+  none: "Ninguna",
+  even: "Par",
+  odd: "Impar",
+  console_1: "Consola 1",
+  console_2: "Consola 2",
+  save_serial_profiles: "Guardar perfiles serie",
+  upload_failed: "Error al subir",
+  saved_to: "Guardado {name} en {library}",
+  uploads_not_allowed: "No se permiten subidas a {library}.",
+  uploads_managed_by_server: "Las subidas de datos de fabricantes se gestionan desde el servidor.",
+  no_entries: "Sin entradas",
+  directory_path: "directorio: {path}",
+  download: "Descargar",
+  copy_to_usb: "Copiar a USB",
+  copying_to_usb: "Copiando {name} a USB…",
+  copied_to_usb: "Copiado {name} a USB ({destination}).",
+  on_usb: "En USB",
+  copy_failed: "Error al copiar",
+  usb_not_mounted: "No hay almacenamiento USB montado en el kit.",
+  usb_copy_running: "Ya hay una copia en curso.",
+  delete: "Borrar",
+  reset: "Restablecer",
+  delete_confirm: "¿Borrar {path} de {library}?",
+  delete_failed: "Error al borrar",
+  no_files: "Sin archivos",
+  directory: "Directorio",
+  preset: "Perfil",
+  preset_title: "Perfil de línea serie de {label}",
+  reset_session: "Restablecer sesión",
+  reset_session_title: "Restablecer la sesión de {label}",
+  bytes: "{size} bytes",
+  secure: "segura",
+  preferred: "preferido",
+  auto_detect: "detección automática",
+  unavailable: "no disponible",
+  yes: "sí",
+  no: "no",
+  root_label: "Raíz",
+  http_export_label: "Exportación HTTP",
+  usb_gadget_label: "Exportación USB Gadget",
+  configured: "configurado",
+  active: "activo",
+  enabled: "habilitado",
+  built_in_over_ssh: "integrado por SSH",
+  popup_blocked: "Se bloqueó la ventana emergente de la Consola {index}. Permita las ventanas emergentes para este sitio.",
+  serial_preset_saving: "Guardando perfil serie...",
+  serial_set: "{label} ajustada a {baud} 8N1.",
+  serial_preset_save_failed: "Error al guardar el perfil serie: {message}",
+  resetting_console: "Restableciendo la Consola {index}...",
+  console_reset: "Sesión de la Consola {index} restablecida.",
+  console_no_session: "La Consola {index} no tenía una sesión activa que restablecer.",
+  console_reset_failed: "Error al restablecer la consola: {message}",
+  reconnect: "Reconectar",
+  opening_session: "Abriendo sesión...",
+  connecting: "Conectando...",
+  reconnecting: "Reconectando",
+  connected: "Conectado",
+  disconnected: "Desconectado",
+  connecting_to_console: "Conectando a la consola {index}...",
+  console_disconnected: "Consola desconectada",
+  console_window_title: "Consola {index}",
+  console_move_note: "El ingeniero de campo puede mover esta ventana de forma independiente.",
+  console_capture_note: "La entrada del teclado se captura directamente en esta ventana. Haga clic en el área del terminal si se pierde el foco.",
+  applying_transfer_services: "Aplicando los ajustes de servicios de transferencia...",
+  transfer_apply_failed: "Error al aplicar los servicios de transferencia: {message}",
+  password_change_accepted: "Contraseña cambiada para la cuenta de servicio local.",
+  password_change_rejected: "Cambio de contraseña rechazado.",
+  local_shell_title: "Shell local del Pi",
+  local_shell_note: "Este terminal se ejecuta directamente en el aparato Fieldkit como la cuenta de servicio local.",
+  serial_profiles_saved: "Perfiles serie guardados.",
+  serial_profile_save_failed: "Error al guardar el perfil serie.",
+  failed_load_profiles: "Error al cargar los perfiles serie: {message}",
+  input_voltage_ok: "Voltaje de entrada: OK",
+  input_voltage_low_now: "Voltaje de entrada: BAJO",
+  input_voltage_low_seen: "Voltaje de entrada: BAJO DETECTADO",
+  input_voltage_unavailable: "Voltaje de entrada no disponible",
+};
+TRANSLATIONS.de = { ...TRANSLATIONS.en,
+  nav_home: "Start",
+  nav_console: "Konsole",
+  nav_files: "Dateien",
+  nav_tools: "Werkzeuge",
+  nav_settings: "Einstellungen",
+  hero_kicker: "Feldservice-Gerät",
+  hero_subhead: "Serielle Konsolen, Dateibibliotheken, Transferdienste und Referenznotizen - für Arbeiten an Netzwerkgeräten überall.",
+  kicker_live: "Live",
+  theme_dark: "Dunkel",
+  theme_light: "Hell",
+  serial_consoles: "Serielle Konsolen",
+  open_console_1: "Konsole 1 öffnen",
+  open_console_2: "Konsole 2 öffnen",
+  popup_note: "Jede Konsole öffnet sich in einem eigenen verschiebbaren Popup-Fenster für den Feldeinsatz.",
+  quick_access: "Schnellzugriff",
+  jump_console: "Zur Konsole",
+  browse_files: "Dateien durchsuchen",
+  raw_exports: "Roh-Exporte",
+  open_settings: "Einstellungen öffnen",
+  reference_docs: "Referenzdokumente",
+  docs_note: "Lokal auf dem Kit gespeicherte Hersteller-Kurzreferenzen.",
+  docs_index: "Dokumentindex öffnen",
+  upload_title: "Hochladen",
+  destination: "Ziel",
+  upload_file: "Datei hochladen",
+  subnet_calculator: "Subnetz-Rechner",
+  subnet_note: "IPv4-Netzwerkdetails für Feldadressierung und Übergabenotizen berechnen.",
+  ip_address: "IP-Adresse",
+  cidr_prefix: "CIDR-Präfix",
+  calculate: "Berechnen",
+  subnet_invalid_ip: "Geben Sie eine IPv4-Adresse wie 192.168.200.120 ein.",
+  subnet_invalid_prefix: "Geben Sie ein CIDR-Präfix von 0 bis 32 ein.",
+  subnet_network: "Netzwerk",
+  subnet_netmask: "Netzmaske",
+  subnet_wildcard: "Wildcard",
+  subnet_broadcast: "Broadcast",
+  subnet_host_range: "Nutzbarer Bereich",
+  subnet_hosts: "Nutzbare Hosts",
+  subnet_single_host: "Einzelhost-Route",
+  subnet_point_to_point: "Punkt-zu-Punkt-Bereich",
+  settings_title: "Einstellungen",
+  appliance_controls: "Gerätesteuerung",
+  settings_subhead: "Konnektivitätsstatus, Netzwerkkonfiguration, Passwortänderungen und serielle Einstellungen.",
+  networking: "Netzwerk",
+  transfer_services: "Transferdienste",
+  serial_presets: "Serielle Vorgaben",
+  password: "Passwort",
+  operational_notes: "Betriebshinweise",
+  export_browser: "Export-Browser",
+  open_local_shell: "Lokale Shell öffnen",
+  full_serial_profiles: "Vollständige serielle Profile",
+  open_readme: "README öffnen",
+  back_to_console: "Zurück zur Konsole",
+  connectivity: "Konnektivität",
+  active_links: "Aktive Verbindungen",
+  nearby_wifi: "WLAN in der Nähe",
+  hostname: "Hostname",
+  ethernet_mode: "Ethernet-Modus",
+  static: "Statisch",
+  ethernet_address: "Ethernet-Adresse",
+  wifi_mode: "WLAN-Modus",
+  wifi_ssid: "WLAN-SSID",
+  wifi_password: "WLAN-AP-Passwort",
+  wifi_access_note: "Apple-Geräte erreichen die Oberfläche unter http://{hostname}.local/, während sie mit dem Fieldkit-AP verbunden sind. Direkter Fallback: http://10.42.0.1/",
+  disabled: "Deaktiviert",
+  client: "Client",
+  save_network_settings: "Netzwerk speichern",
+  apply_network_settings: "Netzwerk anwenden",
+  network_apply_note: "Netzwerk anwenden speichert die aktuellen Formularwerte und führt die echte Netzwerkänderung am Gerät aus.",
+  applying_network_settings: "Netzwerkeinstellungen werden angewendet...",
+  network_apply_failed: "Netzwerkanwendung fehlgeschlagen: {message}",
+  transfer_services_title: "Transferdienste",
+  http_export_access: "HTTP-Exportzugang",
+  tftp_access: "TFTP-Zugang",
+  ftp_access: "FTP-Zugang",
+  apply_transfer_services: "Transferdienste anwenden",
+  transfer_services_note: "Der HTTP-Exportzugang stellt nur /fieldkit auf Port 80 für Geräte-Downloads bereit. FTP und TFTP bleiben deaktiviert, bis sie hier aktiviert werden. SCP bleibt über den normalen SSH-Dienst verfügbar.",
+  serial_settings: "Serielle Einstellungen",
+  console_1_preset: "Vorgabe Konsole 1",
+  console_2_preset: "Vorgabe Konsole 2",
+  custom: "Benutzerdefiniert",
+  save_serial_settings: "Serielle Einstellungen speichern",
+  serial_settings_note: "Verwenden Sie für abweichende Baudrate, Parität, Stoppbits oder Gerätepfade die seriellen Profile.",
+  change_password: "Passwort ändern",
+  current_password: "Aktuelles Passwort",
+  new_password: "Neues Passwort",
+  files_title: "Dateien",
+  files_note: "Durchsuchen Sie die lokalen Dateibibliotheken des Kits.",
+  upload_from_desktop: "Vom Desktop hochladen",
+  upload_current_library: "In aktuelle Bibliothek hochladen",
+  exports_title: "Fieldkit-Exporte",
+  export_root_note: "TFTP, FTP und SCP verwenden dieselbe Bibliotheksstruktur mit Wurzel {root}.",
+  up_one_level: "Eine Ebene höher",
+  docs_title: "Fieldkit-Referenznotizen",
+  docs_intro: "Erste Befehlsreferenzen für gängige Herstellerplattformen.",
+  back_to_docs: "Zurück zum Dokumentindex",
+  serial_profiles_title: "Serielle Profile",
+  serial_profiles_note: "Serielle Adapter werden standardmäßig automatisch erkannt. Fixieren Sie eine Konsole an einen stabilen Adapter, damit sie nach Neustarts und erneutem Anstecken dasselbe Kabel behält.",
+  label: "Bezeichnung",
+  device_preference: "Geräteauswahl",
+  device_auto: "Automatisch erkennen (niedrigster Port)",
+  device_not_detected: "(nicht erkannt)",
+  device_not_present: "Für diese Konsole wurde kein Adapter erkannt.",
+  resolved_to: "Aufgelöst",
+  pinned: "fixiert",
+  pin_console: "Fixieren",
+  unpinned: "automatisch",
+  baud_rate: "Baudrate",
+  data_bits: "Datenbits",
+  parity: "Parität",
+  stop_bits: "Stoppbits",
+  none: "Keine",
+  even: "Gerade",
+  odd: "Ungerade",
+  console_1: "Konsole 1",
+  console_2: "Konsole 2",
+  save_serial_profiles: "Serielle Profile speichern",
+  upload_failed: "Upload fehlgeschlagen",
+  saved_to: "{name} nach {library} gespeichert",
+  uploads_not_allowed: "Uploads nach {library} sind nicht erlaubt.",
+  uploads_managed_by_server: "Uploads für Herstellerdaten werden vom Server verwaltet.",
+  no_entries: "Keine Einträge",
+  directory_path: "Verzeichnis: {path}",
+  download: "Herunterladen",
+  copy_to_usb: "Auf USB kopieren",
+  copying_to_usb: "{name} wird auf USB kopiert…",
+  copied_to_usb: "{name} auf USB kopiert ({destination}).",
+  on_usb: "Auf USB",
+  copy_failed: "Kopieren fehlgeschlagen",
+  usb_not_mounted: "Auf dem Kit ist kein USB-Speicher eingebunden.",
+  usb_copy_running: "Es läuft bereits eine Kopie.",
+  delete: "Löschen",
+  reset: "Zurücksetzen",
+  delete_confirm: "{path} aus {library} löschen?",
+  delete_failed: "Löschen fehlgeschlagen",
+  no_files: "Keine Dateien",
+  directory: "Verzeichnis",
+  preset: "Vorgabe",
+  preset_title: "Serielle Vorgabe für {label}",
+  reset_session: "Sitzung zurücksetzen",
+  reset_session_title: "Sitzung {label} zurücksetzen",
+  bytes: "{size} Bytes",
+  secure: "sicher",
+  preferred: "bevorzugt",
+  auto_detect: "Automatisch",
+  unavailable: "nicht verfügbar",
+  yes: "Ja",
+  no: "Nein",
+  root_label: "Wurzel",
+  http_export_label: "HTTP-Export",
+  usb_gadget_label: "USB-Gadget-Export",
+  configured: "konfiguriert",
+  active: "aktiv",
+  enabled: "aktiviert",
+  built_in_over_ssh: "per SSH integriert",
+  popup_blocked: "Popup für Konsole {index} blockiert. Erlauben Sie Popups für diese Seite.",
+  serial_preset_saving: "Serielle Vorgabe wird gespeichert...",
+  serial_set: "{label} auf {baud} 8N1 gesetzt.",
+  serial_preset_save_failed: "Speichern der seriellen Vorgabe fehlgeschlagen: {message}",
+  resetting_console: "Konsole {index} wird zurückgesetzt...",
+  console_reset: "Sitzung der Konsole {index} zurückgesetzt.",
+  console_no_session: "Konsole {index} hatte keine aktive Sitzung zum Zurücksetzen.",
+  console_reset_failed: "Zurücksetzen der Konsole fehlgeschlagen: {message}",
+  reconnect: "Neu verbinden",
+  opening_session: "Sitzung wird geöffnet...",
+  connecting: "Verbinden...",
+  reconnecting: "Neu verbinden...",
+  connected: "Verbunden",
+  disconnected: "Getrennt",
+  connecting_to_console: "Verbindung mit Konsole {index}...",
+  console_disconnected: "Konsole getrennt",
+  console_window_title: "Konsole {index}",
+  console_move_note: "Dieses Popup kann vom Feldeinsatztechniker unabhängig verschoben werden.",
+  console_capture_note: "Tastatureingaben werden direkt in diesem Fenster erfasst. Klicken Sie auf den Terminalbereich, wenn der Fokus verloren geht.",
+  applying_transfer_services: "Transferdienst-Einstellungen werden angewendet...",
+  transfer_apply_failed: "Anwenden der Transferdienste fehlgeschlagen: {message}",
+  password_change_accepted: "Passwort für das lokale Dienstkonto geändert.",
+  password_change_rejected: "Passwortänderung abgelehnt.",
+  local_shell_title: "Lokale Pi-Shell",
+  local_shell_note: "Dieses Terminal läuft direkt auf dem Fieldkit-Gerät als lokales Dienstkonto.",
+  serial_profiles_saved: "Serielle Profile gespeichert.",
+  serial_profile_save_failed: "Speichern des seriellen Profils fehlgeschlagen.",
+  failed_load_profiles: "Serielle Profile konnten nicht geladen werden: {message}",
+  input_voltage_ok: "Eingangsspannung: OK",
+  input_voltage_low_now: "Eingangsspannung: NIEDRIG",
+  input_voltage_low_seen: "Eingangsspannung: NIEDRIG ERKANNT",
+  input_voltage_unavailable: "Eingangsspannung nicht verfügbar",
+};
+TRANSLATIONS.nl = { ...TRANSLATIONS.en,
+  nav_home: "Home",
+  nav_console: "Console",
+  nav_files: "Bestanden",
+  nav_tools: "Hulpmiddelen",
+  nav_settings: "Instellingen",
+  hero_kicker: "Apparaat voor buitendienst",
+  hero_subhead: "Seriële consoles, bestandsbibliotheken, overdrachtsdiensten en referentienotities - voor werk aan netwerkapparatuur, overal.",
+  kicker_live: "Live",
+  theme_dark: "Donker",
+  theme_light: "Licht",
+  serial_consoles: "Seriële consoles",
+  open_console_1: "Console 1 openen",
+  open_console_2: "Console 2 openen",
+  popup_note: "Elke console opent in een eigen verplaatsbaar pop-upvenster voor gebruik in het veld.",
+  quick_access: "Snelle toegang",
+  jump_console: "Naar console",
+  browse_files: "Bestanden bekijken",
+  raw_exports: "Ruwe exports",
+  open_settings: "Instellingen openen",
+  reference_docs: "Referentiedocumentatie",
+  docs_note: "Lokaal op de kit opgeslagen beknopte leveranciersreferenties.",
+  docs_index: "Documentatie-index openen",
+  upload_title: "Uploaden",
+  destination: "Bestemming",
+  upload_file: "Bestand uploaden",
+  subnet_calculator: "Subnetcalculator",
+  subnet_note: "Bereken IPv4-netwerkdetails voor veldadressering en overdrachtsnotities.",
+  ip_address: "IP-adres",
+  cidr_prefix: "CIDR-prefix",
+  calculate: "Berekenen",
+  subnet_invalid_ip: "Voer een IPv4-adres in zoals 192.168.200.120.",
+  subnet_invalid_prefix: "Voer een CIDR-prefix in van 0 tot 32.",
+  subnet_network: "Netwerk",
+  subnet_netmask: "Netmasker",
+  subnet_wildcard: "Wildcard",
+  subnet_broadcast: "Broadcast",
+  subnet_host_range: "Bruikbaar bereik",
+  subnet_hosts: "Bruikbare hosts",
+  subnet_single_host: "Route voor één host",
+  subnet_point_to_point: "Point-to-pointbereik",
+  settings_title: "Instellingen",
+  appliance_controls: "Apparaatbediening",
+  settings_subhead: "Verbindingsstatus, netwerkconfiguratie, wachtwoordwijzigingen en seriële console-instellingen.",
+  networking: "Netwerk",
+  transfer_services: "Overdrachtsdiensten",
+  serial_presets: "Seriële presets",
+  password: "Wachtwoord",
+  operational_notes: "Operationele notities",
+  export_browser: "Exportbrowser",
+  open_local_shell: "Lokale shell openen",
+  full_serial_profiles: "Volledige seriële profielen",
+  open_readme: "README openen",
+  back_to_console: "Terug naar console",
+  connectivity: "Connectiviteit",
+  active_links: "Actieve verbindingen",
+  nearby_wifi: "Wifi in de buurt",
+  hostname: "Hostnaam",
+  ethernet_mode: "Ethernet-modus",
+  static: "Statisch",
+  ethernet_address: "Ethernet-adres",
+  wifi_mode: "Wifi-modus",
+  wifi_ssid: "Wifi-SSID",
+  wifi_password: "Wifi-AP-wachtwoord",
+  wifi_access_note: "Apple-apparaten bereiken de interface op http://{hostname}.local/ terwijl ze verbonden zijn met het Fieldkit-AP. Directe terugvaloptie: http://10.42.0.1/",
+  disabled: "Uitgeschakeld",
+  client: "Client",
+  save_network_settings: "Netwerk opslaan",
+  apply_network_settings: "Netwerk toepassen",
+  network_apply_note: "Netwerk toepassen slaat de huidige formulierwaarden op en voert de echte netwerkwijziging op het apparaat uit.",
+  applying_network_settings: "Netwerkinstellingen worden toegepast...",
+  network_apply_failed: "Toepassen van netwerk mislukt: {message}",
+  transfer_services_title: "Overdrachtsdiensten",
+  http_export_access: "HTTP-exporttoegang",
+  tftp_access: "TFTP-toegang",
+  ftp_access: "FTP-toegang",
+  apply_transfer_services: "Overdrachtsdiensten toepassen",
+  transfer_services_note: "HTTP-exporttoegang biedt alleen /fieldkit op poort 80 voor apparaatdownloads. FTP en TFTP blijven uit totdat ze hier worden ingeschakeld. SCP blijft beschikbaar via de normale SSH-dienst.",
+  serial_settings: "Seriële instellingen",
+  console_1_preset: "Preset Console 1",
+  console_2_preset: "Preset Console 2",
+  custom: "Aangepast",
+  save_serial_settings: "Seriële instellingen opslaan",
+  serial_settings_note: "Gebruik voor afwijkende baudrate, pariteit, stopbits of apparaatpaden de seriële profielen.",
+  change_password: "Wachtwoord wijzigen",
+  current_password: "Huidig wachtwoord",
+  new_password: "Nieuw wachtwoord",
+  files_title: "Bestanden",
+  files_note: "Blader door de lokale bestandsbibliotheken op de kit.",
+  upload_from_desktop: "Uploaden vanaf desktop",
+  upload_current_library: "Naar huidige bibliotheek uploaden",
+  exports_title: "Fieldkit-exports",
+  export_root_note: "TFTP, FTP en SCP gebruiken dezelfde bibliotheekstructuur met root {root}.",
+  up_one_level: "Een niveau omhoog",
+  docs_title: "Fieldkit-referentienotities",
+  docs_intro: "Beginners-commandoreferenties voor gangbare leveranciersplatforms.",
+  back_to_docs: "Terug naar documentatie-index",
+  serial_profiles_title: "Seriële profielen",
+  serial_profiles_note: "Seriële adapters worden standaard automatisch gedetecteerd. Zet een console vast op een stabiele adapter zodat deze hetzelfde snoer behoudt na herstarts en opnieuw aansluiten.",
+  label: "Label",
+  device_preference: "Apparaatvoorkeur",
+  device_auto: "Automatisch detecteren (laagste poort)",
+  device_not_detected: "(niet gedetecteerd)",
+  device_not_present: "Geen adapter gedetecteerd voor deze console.",
+  resolved_to: "Opgelost",
+  pinned: "vastgezet",
+  pin_console: "Vastzetten",
+  unpinned: "automatisch",
+  baud_rate: "Baudsnelheid",
+  data_bits: "Databits",
+  parity: "Pariteit",
+  stop_bits: "Stopbits",
+  none: "Geen",
+  even: "Even",
+  odd: "Oneven",
+  console_1: "Console 1",
+  console_2: "Console 2",
+  save_serial_profiles: "Seriële profielen opslaan",
+  upload_failed: "Upload mislukt",
+  saved_to: "{name} opgeslagen naar {library}",
+  uploads_not_allowed: "Uploads naar {library} zijn niet toegestaan.",
+  uploads_managed_by_server: "Uploads voor leveranciersgegevens worden door de server beheerd.",
+  no_entries: "Geen items",
+  directory_path: "map: {path}",
+  download: "Downloaden",
+  copy_to_usb: "Naar USB kopiëren",
+  copying_to_usb: "{name} wordt naar USB gekopieerd…",
+  copied_to_usb: "{name} naar USB gekopieerd ({destination}).",
+  on_usb: "Op USB",
+  copy_failed: "Kopiëren mislukt",
+  usb_not_mounted: "Er is geen USB-opslag op de kit gekoppeld.",
+  usb_copy_running: "Er loopt al een kopie.",
+  delete: "Verwijderen",
+  reset: "Resetten",
+  delete_confirm: "{path} uit {library} verwijderen?",
+  delete_failed: "Verwijderen mislukt",
+  no_files: "Geen bestanden",
+  directory: "Map",
+  preset: "Preset",
+  preset_title: "Seriële lijnpreset voor {label}",
+  reset_session: "Sessie resetten",
+  reset_session_title: "Sessie {label} resetten",
+  bytes: "{size} bytes",
+  secure: "beveiligd",
+  preferred: "voorkeur",
+  auto_detect: "automatisch",
+  unavailable: "niet beschikbaar",
+  yes: "Ja",
+  no: "Nee",
+  root_label: "Root",
+  http_export_label: "HTTP-export",
+  usb_gadget_label: "USB-gadget-export",
+  configured: "geconfigureerd",
+  active: "actief",
+  enabled: "ingeschakeld",
+  built_in_over_ssh: "ingebouwd via SSH",
+  popup_blocked: "Pop-up geblokkeerd voor Console {index}. Sta pop-ups toe voor deze site.",
+  serial_preset_saving: "Seriële preset wordt opgeslagen...",
+  serial_set: "{label} ingesteld op {baud} 8N1.",
+  serial_preset_save_failed: "Opslaan van seriële preset mislukt: {message}",
+  resetting_console: "Console {index} wordt gereset...",
+  console_reset: "Sessie van Console {index} gereset.",
+  console_no_session: "Console {index} had geen actieve sessie om te resetten.",
+  console_reset_failed: "Resetten van console mislukt: {message}",
+  reconnect: "Opnieuw verbinden",
+  opening_session: "Sessie wordt geopend...",
+  connecting: "Verbinden...",
+  reconnecting: "Opnieuw verbinden...",
+  connected: "Verbonden",
+  disconnected: "Verbroken",
+  connecting_to_console: "Verbinden met console {index}...",
+  console_disconnected: "Console verbroken",
+  console_window_title: "Console {index}",
+  console_move_note: "Deze pop-up kan onafhankelijk door de field engineer worden verplaatst.",
+  console_capture_note: "Toetsenbordinvoer wordt direct in dit venster vastgelegd. Klik op het terminalgebied als de focus verloren gaat.",
+  applying_transfer_services: "Instellingen voor overdrachtsdiensten worden toegepast...",
+  transfer_apply_failed: "Toepassen van overdrachtsdiensten mislukt: {message}",
+  password_change_accepted: "Wachtwoord gewijzigd voor het lokale serviceaccount.",
+  password_change_rejected: "Wachtwoordwijziging geweigerd.",
+  local_shell_title: "Lokale Pi-shell",
+  local_shell_note: "Deze terminal draait rechtstreeks op het Fieldkit-apparaat als het lokale serviceaccount.",
+  serial_profiles_saved: "Seriële profielen opgeslagen.",
+  serial_profile_save_failed: "Opslaan van serieel profiel mislukt.",
+  failed_load_profiles: "Seriële profielen konden niet worden geladen: {message}",
+  input_voltage_ok: "Ingangsspanning: OK",
+  input_voltage_low_now: "Ingangsspanning: LAAG",
+  input_voltage_low_seen: "Ingangsspanning: LAAG GEZIEN",
+  input_voltage_unavailable: "Ingangsspanning niet beschikbaar",
+};
+TRANSLATIONS.fr = { ...TRANSLATIONS.en,
+  nav_home: "Accueil",
+  nav_console: "Console",
+  nav_files: "Fichiers",
+  nav_tools: "Outils",
+  nav_settings: "Paramètres",
+  hero_kicker: "Appareil de service terrain",
+  hero_subhead: "Consoles série, bibliothèques de fichiers, services de transfert et notes de référence - pour travailler sur des équipements réseau partout.",
+  kicker_live: "En direct",
+  theme_dark: "Sombre",
+  theme_light: "Clair",
+  serial_consoles: "Consoles série",
+  open_console_1: "Ouvrir la console 1",
+  open_console_2: "Ouvrir la console 2",
+  popup_note: "Chaque console s'ouvre dans sa propre fenêtre contextuelle mobile pour le terrain.",
+  quick_access: "Accès rapide",
+  jump_console: "Aller à la console",
+  browse_files: "Parcourir les fichiers",
+  raw_exports: "Exports bruts",
+  open_settings: "Ouvrir les paramètres",
+  reference_docs: "Documentation de référence",
+  docs_note: "Sujets de référence fournisseurs stockés localement sur le kit.",
+  docs_index: "Ouvrir l'index de documentation",
+  upload_title: "Envoyer",
+  destination: "Destination",
+  upload_file: "Envoyer un fichier",
+  subnet_calculator: "Calculateur de sous-réseau",
+  subnet_note: "Calculez les détails IPv4 pour l'adressage terrain et les notes de passation.",
+  ip_address: "Adresse IP",
+  cidr_prefix: "Préfixe CIDR",
+  calculate: "Calculer",
+  subnet_invalid_ip: "Saisissez une adresse IPv4 comme 192.168.200.120.",
+  subnet_invalid_prefix: "Saisissez un préfixe CIDR de 0 à 32.",
+  subnet_network: "Réseau",
+  subnet_netmask: "Masque de sous-réseau",
+  subnet_wildcard: "Joker",
+  subnet_broadcast: "Diffusion",
+  subnet_host_range: "Plage utilisable",
+  subnet_hosts: "Hôtes utilisables",
+  subnet_single_host: "Route d'hôte unique",
+  subnet_point_to_point: "Plage point à point",
+  settings_title: "Paramètres",
+  appliance_controls: "Contrôles de l'appareil",
+  settings_subhead: "État de connectivité, configuration réseau, changement de mot de passe et paramètres des consoles série.",
+  networking: "Réseau",
+  transfer_services: "Services de transfert",
+  serial_presets: "Préréglages série",
+  password: "Mot de passe",
+  operational_notes: "Notes opérationnelles",
+  export_browser: "Navigateur d'exports",
+  open_local_shell: "Ouvrir le shell local",
+  full_serial_profiles: "Profils série complets",
+  open_readme: "Ouvrir le README",
+  back_to_console: "Retour à la console",
+  connectivity: "Connectivité",
+  active_links: "Liens actifs",
+  nearby_wifi: "Wi-Fi à proximité",
+  hostname: "Nom d'hôte",
+  ethernet_mode: "Mode Ethernet",
+  static: "Statique",
+  ethernet_address: "Adresse Ethernet",
+  wifi_mode: "Mode Wi-Fi",
+  wifi_ssid: "SSID Wi-Fi",
+  wifi_password: "Mot de passe du point d'accès Wi-Fi",
+  wifi_access_note: "Les appareils Apple peuvent accéder à l'interface via http://{hostname}.local/ lorsqu'ils sont connectés au point d'accès Fieldkit. Solution directe : http://10.42.0.1/",
+  disabled: "Désactivé",
+  client: "Client",
+  save_network_settings: "Enregistrer le réseau",
+  apply_network_settings: "Appliquer le réseau",
+  network_apply_note: "Appliquer le réseau enregistre les valeurs du formulaire et exécute le changement réseau réel sur l'appareil.",
+  applying_network_settings: "Application des paramètres réseau...",
+  network_apply_failed: "Échec de l'application du réseau : {message}",
+  transfer_services_title: "Services de transfert",
+  http_export_access: "Accès export HTTP",
+  tftp_access: "Accès TFTP",
+  ftp_access: "Accès FTP",
+  apply_transfer_services: "Appliquer les services",
+  transfer_services_note: "L'accès export HTTP n'expose que /fieldkit sur le port 80 pour les téléchargements d'appareils. FTP et TFTP restent désactivés jusqu'à leur activation ici. SCP reste disponible via le service SSH normal.",
+  serial_settings: "Paramètres série",
+  console_1_preset: "Préréglage console 1",
+  console_2_preset: "Préréglage console 2",
+  custom: "Personnalisé",
+  save_serial_settings: "Enregistrer les paramètres série",
+  serial_settings_note: "Pour un débit, une parité, des bits d'arrêt ou des chemins d'appareil non standard, utilisez les profils série.",
+  change_password: "Changer le mot de passe",
+  current_password: "Mot de passe actuel",
+  new_password: "Nouveau mot de passe",
+  files_title: "Fichiers",
+  files_note: "Parcourez les bibliothèques de fichiers locales du kit.",
+  upload_from_desktop: "Envoyer depuis le bureau",
+  upload_current_library: "Envoyer vers la bibliothèque actuelle",
+  exports_title: "Exports Fieldkit",
+  export_root_note: "TFTP, FTP et SCP utilisent la même structure de bibliothèques avec la racine {root}.",
+  up_one_level: "Niveau supérieur",
+  docs_title: "Notes de référence Fieldkit",
+  docs_intro: "Références de commandes de départ pour les plateformes fournisseurs courantes.",
+  back_to_docs: "Retour à l'index de documentation",
+  serial_profiles_title: "Profils série",
+  serial_profiles_note: "Les adaptateurs série sont détectés automatiquement par défaut. Fixez une console à un adaptateur stable pour qu'elle conserve le même câble après les redémarrages et rebranchements.",
+  label: "Libellé",
+  device_preference: "Préférence d'appareil",
+  device_auto: "Détection automatique (port le plus bas)",
+  device_not_detected: "(non détecté)",
+  device_not_present: "Aucun adaptateur détecté pour cette console.",
+  resolved_to: "Résolu",
+  pinned: "épinglé",
+  pin_console: "Épingler",
+  unpinned: "automatique",
+  baud_rate: "Débit en bauds",
+  data_bits: "Bits de données",
+  parity: "Parité",
+  stop_bits: "Bits d'arrêt",
+  none: "Aucune",
+  even: "Pair",
+  odd: "Impair",
+  console_1: "Console 1",
+  console_2: "Console 2",
+  save_serial_profiles: "Enregistrer les profils série",
+  upload_failed: "Échec de l'envoi",
+  saved_to: "{name} enregistré dans {library}",
+  uploads_not_allowed: "Les envois vers {library} ne sont pas autorisés.",
+  uploads_managed_by_server: "Les envois de données fournisseurs sont gérés par le serveur.",
+  no_entries: "Aucune entrée",
+  directory_path: "répertoire : {path}",
+  download: "Télécharger",
+  copy_to_usb: "Copier vers USB",
+  copying_to_usb: "Copie de {name} vers USB…",
+  copied_to_usb: "{name} copié vers USB ({destination}).",
+  on_usb: "Sur USB",
+  copy_failed: "Échec de la copie",
+  usb_not_mounted: "Aucun stockage USB n'est monté sur le kit.",
+  usb_copy_running: "Une copie est déjà en cours.",
+  delete: "Supprimer",
+  reset: "Réinitialiser",
+  delete_confirm: "Supprimer {path} de {library} ?",
+  delete_failed: "Échec de la suppression",
+  no_files: "Aucun fichier",
+  directory: "Répertoire",
+  preset: "Préréglage",
+  preset_title: "Préréglage de ligne série {label}",
+  reset_session: "Réinitialiser la session",
+  reset_session_title: "Réinitialiser la session {label}",
+  bytes: "{size} octets",
+  secure: "sécurisé",
+  preferred: "préféré",
+  auto_detect: "automatique",
+  unavailable: "indisponible",
+  yes: "Oui",
+  no: "Non",
+  root_label: "Racine",
+  http_export_label: "Export HTTP",
+  usb_gadget_label: "Export USB Gadget",
+  configured: "configuré",
+  active: "actif",
+  enabled: "activé",
+  built_in_over_ssh: "intégré via SSH",
+  popup_blocked: "Fenêtre contextuelle bloquée pour la console {index}. Autorisez les fenêtres contextuelles pour ce site.",
+  serial_preset_saving: "Enregistrement du préréglage série...",
+  serial_set: "{label} réglée sur {baud} 8N1.",
+  serial_preset_save_failed: "Échec de l'enregistrement du préréglage série : {message}",
+  resetting_console: "Réinitialisation de la console {index}...",
+  console_reset: "Session de la console {index} réinitialisée.",
+  console_no_session: "La console {index} n'avait aucune session active à réinitialiser.",
+  console_reset_failed: "Échec de la réinitialisation de la console : {message}",
+  reconnect: "Reconnecter",
+  opening_session: "Ouverture de la session...",
+  connecting: "Connexion...",
+  reconnecting: "Reconnexion...",
+  connected: "Connecté",
+  disconnected: "Déconnecté",
+  connecting_to_console: "Connexion à la console {index}...",
+  console_disconnected: "Console déconnectée",
+  console_window_title: "Console {index}",
+  console_move_note: "Cette fenêtre peut être déplacée indépendamment par l'ingénieur terrain.",
+  console_capture_note: "La saisie clavier est capturée directement dans cette fenêtre. Cliquez dans la zone du terminal si le focus est perdu.",
+  applying_transfer_services: "Application des paramètres des services de transfert...",
+  transfer_apply_failed: "Échec de l'application des services de transfert : {message}",
+  password_change_accepted: "Mot de passe modifié pour le compte de service local.",
+  password_change_rejected: "Changement de mot de passe refusé.",
+  local_shell_title: "Shell local du Pi",
+  local_shell_note: "Ce terminal s'exécute directement sur l'appareil Fieldkit en tant que compte de service local.",
+  serial_profiles_saved: "Profils série enregistrés.",
+  serial_profile_save_failed: "Échec de l'enregistrement du profil série.",
+  failed_load_profiles: "Échec du chargement des profils série : {message}",
+  input_voltage_ok: "Tension d'entrée : OK",
+  input_voltage_low_now: "Tension d'entrée : FAIBLE",
+  input_voltage_low_seen: "Tension d'entrée : FAIBLE DÉTECTÉE",
+  input_voltage_unavailable: "Tension d'entrée indisponible",
+};
 function flagEmoji(countryCode) {
   return countryCode
     .toUpperCase()
@@ -885,8 +1478,9 @@ function renderList(target, items, formatter) {
 }
 
 function serialDeviceLabel(session) {
-  if (session.active_device) {
-    return session.active_device;
+  const tty = session.tty_device || session.active_device;
+  if (tty) {
+    return session.serial ? `${session.serial} · ${tty}` : tty;
   }
   if (session.device_hint) {
     return `${session.device_hint} (${t("preferred")})`;
@@ -1046,6 +1640,7 @@ function renderSerial(serial) {
             <span class="console-sub">
               <span class="mono">${deviceLabel}</span>
               <span class="chip">${framing}</span>
+              ${session.present ? `<span class="chip">${session.bound ? t("pinned") : t("auto_detect")}</span>` : ""}
               ${session.present ? "" : `<span class="chip warn">${t("unavailable")}</span>`}
             </span>
           </div>

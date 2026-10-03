@@ -13,9 +13,10 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.2.1-20260923" />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.2.2-20261003" />
     <style>
       main { width: min(1040px, calc(100vw - 32px)); margin: 0 auto; padding: 0 0 48px; }
+      .device-resolved { margin: -2px 0 8px; font-size: 0.82rem; }
     </style>
   </head>
   <body>
@@ -28,7 +29,7 @@
             <h1 class="panel-title" data-i18n="serial_profiles_title">Serial Profiles</h1>
           </div>
         </div>
-        <p class="muted" data-i18n="serial_profiles_note">Serial adapters are auto-detected by default. Only set a device preference when you need to pin a console to a specific adapter.</p>
+        <p class="muted" data-i18n="serial_profiles_note">Serial adapters are auto-detected by default. Pin a console to a stable adapter so it keeps the same cable across reboots and re-plugs.</p>
         <form id="serial-profiles-form">
           <div class="profiles">
             <section class="profile">
@@ -39,8 +40,9 @@
               </label>
               <label>
                 <span data-i18n="device_preference">Device Preference</span>
-                <input type="text" name="console1_device_hint" placeholder="Optional: /dev/ttyUSB0" data-i18n-placeholder="device_optional_0" />
+                <select name="console1_device_hint" data-device-select="console1"></select>
               </label>
+              <p class="muted device-resolved" data-resolved-for="console1"></p>
               <label>
                 <span data-i18n="baud_rate">Baud Rate</span>
                 <input type="number" name="console1_baud_rate" min="50" step="1" />
@@ -78,8 +80,9 @@
               </label>
               <label>
                 <span data-i18n="device_preference">Device Preference</span>
-                <input type="text" name="console2_device_hint" placeholder="Optional: /dev/ttyUSB1" data-i18n-placeholder="device_optional_1" />
+                <select name="console2_device_hint" data-device-select="console2"></select>
               </label>
+              <p class="muted device-resolved" data-resolved-for="console2"></p>
               <label>
                 <span data-i18n="baud_rate">Baud Rate</span>
                 <input type="number" name="console2_baud_rate" min="50" step="1" />
@@ -117,7 +120,7 @@
         </form>
       </article>
     </main>
-    <script src="/static/app.js?v=ui-0.2.1-20260923"></script>
+    <script src="/static/app.js?v=ui-0.2.2-20261003"></script>
     <script>
       function defaultProfiles() {
         return [
@@ -158,16 +161,75 @@
         };
       }
 
+      function uiT(key, fallback, vars = {}) {
+        return window.fieldkitUi ? window.fieldkitUi.t(key, vars) : fallback;
+      }
+
+      function escapeAttr(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        })[ch]);
+      }
+
+      function populateDeviceSelect(form, prefix, currentHint, adapters) {
+        const select = form.elements.namedItem(`${prefix}_device_hint`);
+        if (!select) {
+          return;
+        }
+        const options = [`<option value="">${escapeAttr(uiT("device_auto", "Auto-detect (lowest port)"))}</option>`];
+        let matched = false;
+        (adapters || []).forEach((adapter) => {
+          const value = adapter.by_id || adapter.tty;
+          if (value === currentHint) {
+            matched = true;
+          }
+          options.push(`<option value="${escapeAttr(value)}">${escapeAttr(adapter.label || value)}</option>`);
+        });
+        if (currentHint && !matched) {
+          options.push(`<option value="${escapeAttr(currentHint)}">${escapeAttr(currentHint)} ${escapeAttr(uiT("device_not_detected", "(not detected)"))}</option>`);
+        }
+        select.innerHTML = options.join("");
+        select.value = currentHint || "";
+      }
+
+      function renderResolved(sessions) {
+        document.querySelectorAll("[data-resolved-for]").forEach((node) => {
+          const index = node.dataset.resolvedFor === "console2" ? 1 : 0;
+          const session = (sessions || []).find((item) => item.index === index);
+          if (!session) {
+            node.textContent = "";
+            return;
+          }
+          if (!session.present) {
+            node.textContent = uiT("device_not_present", "No adapter detected for this console.");
+            return;
+          }
+          const serial = session.serial ? `${session.serial} · ` : "";
+          const tty = session.tty_device || session.active_device || "";
+          const mode = session.bound ? uiT("pinned", "pinned") : uiT("auto_detect", "auto-detect");
+          node.textContent = `${uiT("resolved_to", "Resolved")}: ${serial}${tty} (${mode})`;
+        });
+      }
+
       async function loadProfiles() {
         const target = document.getElementById("save-result");
         try {
-          const response = await fetch("/api/settings");
-          const settings = await response.json();
+          const [settingsResponse, adaptersResponse, sessionsResponse] = await Promise.all([
+            fetch("/api/settings"),
+            fetch("/api/serial/adapters"),
+            fetch("/api/serial/sessions"),
+          ]);
+          const settings = await settingsResponse.json();
+          const adaptersPayload = await adaptersResponse.json();
+          const sessionsPayload = await sessionsResponse.json();
           const form = document.getElementById("serial-profiles-form");
           const defaults = defaultProfiles();
           const profiles = settings.serial_ports?.length ? settings.serial_ports : defaults;
+          populateDeviceSelect(form, "console1", profiles[0]?.device_hint || "", adaptersPayload.adapters);
+          populateDeviceSelect(form, "console2", profiles[1]?.device_hint || "", adaptersPayload.adapters);
           writeProfile(form, "console1", profiles[0] || defaults[0]);
           writeProfile(form, "console2", profiles[1] || defaults[1]);
+          renderResolved(sessionsPayload.sessions);
           target.textContent = "";
         } catch (error) {
           target.textContent = window.fieldkitUi ? window.fieldkitUi.t("failed_load_profiles", { message: error.message }) : `Failed to load serial profiles: ${error.message}`;
@@ -194,7 +256,17 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          target.textContent = response.ok ? (window.fieldkitUi ? window.fieldkitUi.t("serial_profiles_saved") : "Serial profiles saved.") : (window.fieldkitUi ? window.fieldkitUi.t("serial_profile_save_failed") : "Serial profile save failed.");
+          if (response.ok) {
+            target.textContent = window.fieldkitUi ? window.fieldkitUi.t("serial_profiles_saved") : "Serial profiles saved.";
+            try {
+              const sessions = await (await fetch("/api/serial/sessions")).json();
+              renderResolved(sessions.sessions);
+            } catch (_) {
+              /* resolved status is informational only */
+            }
+          } else {
+            target.textContent = window.fieldkitUi ? window.fieldkitUi.t("serial_profile_save_failed") : "Serial profile save failed.";
+          }
         } catch (error) {
           target.textContent = window.fieldkitUi ? window.fieldkitUi.t("serial_profile_save_failed", { message: error.message }) : `Serial profile save failed: ${error.message}`;
         }

@@ -1117,6 +1117,13 @@ pre {
   align-items: center;
 }
 
+.usb-ok {
+  color: var(--ok);
+  font-weight: 600;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
 .library-list {
   list-style: none;
   padding: 0;

@@ -14,7 +14,7 @@ from app.services.transfers import TransferService
 client = TestClient(app)
 
 
-TEST_FILE_NAMES = {"delete-me.txt", "usb-test.txt", "duplicate.txt", "download-check.txt"}
+TEST_FILE_NAMES = {"delete-me.txt", "usb-test.txt", "duplicate.txt", "download-check.txt", "usb-delete-me.txt"}
 
 
 def test_default_settings_enable_fieldkit_access_point():
@@ -116,8 +116,20 @@ def test_upload_to_data_disallowed():
 
 
 def test_delete_disallowed_library_fails():
-    response = client.delete("/api/files", params={"library": "usb", "path": "firmware.bin"})
+    response = client.delete("/api/files", params={"library": "data", "path": "firmware.bin"})
     assert response.status_code == 400
+
+
+def test_delete_usb_file():
+    upload = client.post(
+        "/api/files/upload",
+        params={"library": "usb"},
+        files={"file": ("usb-delete-me.txt", b"content", "text/plain")},
+    )
+    assert upload.status_code == 200
+    response = client.delete("/api/files", params={"library": "usb", "path": "usb-delete-me.txt"})
+    assert response.status_code == 200
+    assert response.json()["deleted"] is True
 
 
 def test_serial_log_download_uses_actual_filename():
@@ -135,6 +147,36 @@ def test_serial_log_download_uses_actual_filename():
 
     assert response.status_code == 200
     assert 'filename="download-check.txt"' in response.headers["content-disposition"]
+
+
+def test_copy_to_usb_route(tmp_path, monkeypatch):
+    from app.api.routes import files as files_module
+    from app.services.storage import StorageService
+    from app.services.usb_copy_job import UsbCopyJob
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    storage = StorageService(settings)
+    usb = tmp_path / "usb"
+    usb.mkdir()
+    monkeypatch.setattr(storage, "_detect_usb_mount", lambda: usb)
+    source = storage.library_paths()["data"] / "brocade" / "route-fw.bin"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_bytes(b"route")
+    job = UsbCopyJob(storage)
+    monkeypatch.setattr(files_module, "storage_service", storage)
+    monkeypatch.setattr(files_module, "usb_copy_job", job)
+    try:
+        response = client.post(
+            "/api/files/copy-to-usb", params={"library": "data", "path": "brocade/route-fw.bin"}
+        )
+        assert response.status_code == 202
+        job.stop()
+        state = job.status()
+        assert state["running"] is False
+        assert state["last"]["outcome"] == "success"
+        assert (usb / "brocade" / "route-fw.bin").read_bytes() == b"route"
+    finally:
+        job.stop()
 
 
 def test_personal_listing_marks_files_deletable(tmp_path):
@@ -164,10 +206,12 @@ def test_tools_page_includes_subnet_calculator():
     assert response.status_code == 200
     assert "Subnet Calculator" in response.text
     assert 'id="subnet-form"' in response.text
-    assert "/static/app.js?v=ui-0.2.1-20260923" in response.text
+    assert "/static/app.js?v=ui-0.2.2-20261003" in response.text
 
 
 def test_subnet_calculator_has_supported_language_strings():
+    import re
+
     app_js = Path("app/static/app.js").read_text(encoding="utf-8")
     keys = [
         "nav_tools",
@@ -188,8 +232,11 @@ def test_subnet_calculator_has_supported_language_strings():
         "subnet_point_to_point",
     ]
     for language in ("es", "de", "nl", "fr"):
+        match = re.search(rf"TRANSLATIONS\.{language} = \{{(.*?)\n\}};", app_js, re.S)
+        assert match, f"missing {language} translation block"
+        block = match.group(1)
         for key in keys:
-            assert f"TRANSLATIONS.{language}.{key} =" in app_js
+            assert f"{key}:" in block, f"{language} is missing {key}"
 
 
 def test_settings_page_route():
@@ -315,7 +362,7 @@ def test_transfer_status_route():
     assert response.status_code == 200
     payload = response.json()
     assert payload["http_base"] == "/fieldkit"
-    assert payload["libraries"] == ["/fieldkit/data", "/fieldkit/personal", "/fieldkit/usb"]
+    assert payload["libraries"] == ["/fieldkit/data", "/fieldkit/personal"]
     assert "tftp" in payload
     assert "ftp" in payload
     assert "scp" in payload
@@ -366,6 +413,62 @@ def test_serial_profiles_blank_device_hint_still_auto_resolves(monkeypatch):
 
     assert statuses[0]["active_device"] == "/dev/ttyUSB4"
     assert statuses[1]["active_device"] == "/dev/ttyACM0"
+
+
+def test_serial_detected_adapters_include_stable_by_id(monkeypatch, tmp_path):
+    service = SerialService()
+    tty0 = tmp_path / "ttyUSB0"
+    tty0.write_text("")
+    by_id = tmp_path / "by-id"
+    by_id.mkdir()
+    link = by_id / "usb-FTDI_FT232R_USB_UART_A9O86941-if00-port0"
+    link.symlink_to(tty0)
+    monkeypatch.setattr(service, "_detected_devices", lambda: [str(tty0)])
+    monkeypatch.setattr(service, "_serial_by_id_root", by_id)
+    monkeypatch.setattr(service, "_serial_by_path_root", tmp_path / "by-path")
+
+    adapters = service.list_adapters()
+
+    assert len(adapters) == 1
+    assert adapters[0]["by_id"] == str(link)
+    assert adapters[0]["tty"] == str(tty0)
+    assert "ttyUSB0" in adapters[0]["label"]
+
+
+def test_serial_profile_by_id_pin_survives_tty_renumber(monkeypatch, tmp_path):
+    service = SerialService()
+    tty0 = tmp_path / "ttyUSB0"
+    tty0.write_text("")
+    tty1 = tmp_path / "ttyUSB1"
+    tty1.write_text("")
+    by_id = tmp_path / "by-id"
+    by_id.mkdir()
+    link_a = by_id / "usb-FTDI_FT232R_USB_UART_A9O86941-if00-port0"
+    link_b = by_id / "usb-FTDI_FT232R_USB_UART_A95HRISR-if00-port0"
+    link_a.symlink_to(tty1)
+    link_b.symlink_to(tty0)
+    monkeypatch.setattr(service, "_detected_devices", lambda: [str(tty0), str(tty1)])
+    monkeypatch.setattr(service, "_serial_by_id_root", by_id)
+    monkeypatch.setattr(service, "_serial_by_path_root", tmp_path / "by-path")
+
+    settings = service._store.load()
+    settings.serial_ports[0].device_hint = str(link_a)
+    settings.serial_ports[1].device_hint = str(link_b)
+    monkeypatch.setattr(service._store, "load", lambda: settings)
+
+    statuses = service.profile_status()
+
+    assert statuses[0]["active_device"] == str(link_a)
+    assert statuses[0]["tty_device"] == str(tty1)
+    assert statuses[0]["bound"] is True
+    assert statuses[1]["active_device"] == str(link_b)
+    assert statuses[1]["tty_device"] == str(tty0)
+
+
+def test_serial_adapters_route():
+    response = client.get("/api/serial/adapters")
+    assert response.status_code == 200
+    assert "adapters" in response.json()
 
 
 def test_serial_log_path_uses_timestamped_filename(tmp_path):
@@ -474,7 +577,7 @@ def test_export_tree_contains_library_links(tmp_path):
 
     assert (export_root / "data").is_dir()
     assert (export_root / "personal").is_dir()
-    assert (export_root / "usb").is_dir()
+    assert not (export_root / "usb").exists()
     assert not (export_root / "serial-logs").exists()
 
 

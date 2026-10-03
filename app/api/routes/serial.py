@@ -11,6 +11,11 @@ async def serial_ports():
     return {"ports": serial_service.list_ports()}
 
 
+@router.get("/adapters")
+async def serial_adapters():
+    return {"adapters": serial_service.list_adapters()}
+
+
 @router.get("/sessions")
 async def serial_sessions():
     return {"sessions": serial_service.session_status()}

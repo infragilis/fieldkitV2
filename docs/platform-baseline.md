@@ -78,6 +78,7 @@ These packages are part of the planned Fieldkit feature set and are now installe
 - Pi 3 and newer should expose Wi-Fi client and AP flows in Fieldkit.
 - Older models should keep Wi-Fi features disabled unless explicit adapter support is implemented.
 - Fieldkit code should continue to discover both `ttyUSB*` and `ttyACM*` serial adapters.
+- Console slots are pinned to a stable adapter identity (`/dev/serial/by-id/...`, keyed by the adapter's unique USB serial), not to a `ttyUSBn` number, because kernel enumeration order changes across reboots and re-plugs. Prefer FTDI/CP210x-style adapters that expose a unique serial; adapters without one fall back to `/dev/serial/by-path` (physical port).
 - Field console workflows require compatible USB-to-serial console cables or USB serial adapters.
 - The current Raspberry Pi 3 Model B reference appliance does not expose a usable USB gadget controller, so it cannot emulate a USB storage device over cable.
 - USB gadget export should be considered a hardware-driven enhancement path that requires a different Raspberry Pi choice.

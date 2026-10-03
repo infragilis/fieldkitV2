@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
+from app.api.routes.files import usb_copy_job
 from app.api.routes.server_sync import job as server_sync_job
 from app.api.routes.server_sync import service as server_sync_service
 from app.core.config import get_settings
@@ -55,9 +56,10 @@ async def lifespan(_: FastAPI):
     finally:
         report_poller.stop()
         await asyncio.to_thread(server_sync_job.stop)
+        await asyncio.to_thread(usb_copy_job.stop)
 
 
-app = FastAPI(title="Fieldkit", version="0.2.1", lifespan=lifespan)
+app = FastAPI(title="Fieldkit", version="0.2.2", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 storage_service = StorageService(get_settings())

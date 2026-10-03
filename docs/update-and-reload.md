@@ -17,7 +17,16 @@ The currently deployed web UI includes:
 Server sync runs in the background, automatically 10 minutes after boot and
 hourly thereafter, with manual **Sync now**, live progress/ETA, and persisted
 last results. See [Server Sync](server-sync.md) for its timer installation,
-asynchronous API, and the `data/{ontap,bes,cisco,nvidia,fos}` directory layout.
+asynchronous API, and the `data/{cisco,ontap,brocade,efos,nvidia}` directory layout.
+
+The **Files** page browses the `data`, `personal`, `usb`, and `serial-logs`
+libraries. `personal`/`usb` accept uploads; `personal`/`usb`/`serial-logs` files
+can be deleted. Each `data`/`personal` file and folder also has a **Copy to USB**
+action that writes it to the inserted stick (ONTAP payloads to the USB root,
+everything else keeping its library folder); a green **On USB** marker shows when
+a listing item is already on the stick. The shared `/fieldkit` HTTP/TFTP/FTP
+export serves `data` and `personal` only — `usb` is a copy destination, not an
+export source, so it is never mirrored onto the boot card.
 
 All page HTML lives in `app/static/*.html` templates. `app/main.py` only serves files and fills in small placeholders (export listing, docs topics, console index). The topbar is rendered once by `renderTopbar()` in `app/static/app.js`; the version badge is fetched from `/openapi.json`, so bump the version only in `pyproject.toml` and `app/main.py`.
 

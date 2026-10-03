@@ -12,6 +12,21 @@ DATA_SUBDIRECTORIES = ("cisco", "ontap", "brocade", "efos", "nvidia")
 # are placed directly on the server, not through this client upload path.
 MAX_UPLOAD_BYTES = int(os.environ.get("FIELDKIT_MAX_UPLOAD_BYTES", str(10 * 1024**3)) or "0")
 
+# Headroom kept free on a removable device so the final write cannot fill it.
+USB_COPY_MARGIN = 64 * 1024 * 1024
+
+
+class UsbError(RuntimeError):
+    """Base class for USB copy failures surfaced to the UI."""
+
+
+class UsbNotMounted(UsbError):
+    pass
+
+
+class UsbSpaceError(UsbError):
+    pass
+
 
 def ensure_runtime_layout(settings: RuntimeSettings) -> None:
     for path in (
@@ -42,8 +57,12 @@ class StorageService:
         }
 
     def export_library_paths(self) -> dict[str, Path]:
+        # Removable storage (`usb`) is a copy *destination*, not an export
+        # source: mirroring it would copy the whole stick onto the appliance's
+        # boot card, and a cross-device copy cannot be hardlinked. serial-logs
+        # are diagnostics and are likewise never exported.
         paths = self.library_paths()
-        return {name: path for name, path in paths.items() if name != "serial-logs"}
+        return {name: path for name, path in paths.items() if name not in {"serial-logs", "usb"}}
 
     def export_root(self) -> Path:
         return self.settings.content_root / self.settings.export_dir_name
@@ -116,6 +135,7 @@ class StorageService:
             raise NotADirectoryError(relative_path)
         items = []
         seen_paths: set[str] = set()
+        usb_root = self._detect_usb_mount() if library in {"data", "personal"} else None
         for entry in sorted(base.iterdir(), key=lambda path: (not path.is_dir(), path.name.lower())):
             if entry.name.startswith("."):
                 continue
@@ -125,6 +145,10 @@ class StorageService:
                 continue
             seen_paths.add(dedupe_key)
             seen_paths.add(relative_entry_path)
+            on_usb = False
+            if usb_root is not None:
+                destination = self._usb_destination(usb_root, library, tuple(Path(relative_entry_path).parts))
+                on_usb = destination.is_dir() if entry.is_dir() else destination.is_file()
             items.append(
                 {
                     "name": entry.name,
@@ -132,6 +156,7 @@ class StorageService:
                     "size": entry.stat().st_size,
                     "path": relative_entry_path,
                     "deletable": self._is_deletable_library(library) and entry.is_file(),
+                    "on_usb": on_usb,
                 }
             )
         return {"library": library, "path": str(base.relative_to(root)), "items": items}
@@ -189,6 +214,106 @@ class StorageService:
         if library in self.export_library_paths():
             self.sync_export_tree()
 
+    def usb_mounted(self) -> bool:
+        """True when a real removable device is mounted (not the local fallback)."""
+        return self._detect_usb_mount() is not None
+
+    def usb_destination_parts(self, library: str, rel_parts: tuple[str, ...]) -> tuple[str, ...]:
+        """Map a library-relative path to its path on the USB device.
+
+        The library path is preserved, except ONTAP payloads, which are placed in
+        the USB root (``data/ontap/x`` -> ``x``).
+        """
+        if library == "data" and rel_parts and rel_parts[0] == "ontap":
+            return rel_parts[1:]
+        return rel_parts
+
+    def _usb_destination(self, usb_root: Path, library: str, rel_parts: tuple[str, ...]) -> Path:
+        parts = self.usb_destination_parts(library, rel_parts)
+        return usb_root.joinpath(*parts) if parts else usb_root
+
+    def copy_to_usb(self, library: str, relative_path: str, progress=None) -> dict:
+        """Copy a file or folder from a library onto the mounted USB device.
+
+        The source path under its library root is preserved on the USB
+        (``data/brocade/x`` -> ``<usb>/brocade/x``), except ONTAP payloads, which
+        land in the USB root (``data/ontap/x`` -> ``<usb>/x``). Files are copied
+        to a temporary name and atomically renamed, so a partial copy never
+        replaces a good file. The export mirror is not touched: ``usb`` is not an
+        export source, so a copy is not written back onto the appliance's card.
+        """
+        if library not in {"data", "personal"}:
+            raise ValueError("Choose the data or personal library as the source")
+        source_root = self._library_root(library).resolve()
+        source = self.resolve_download(library, relative_path)
+        if not source.exists():
+            raise FileNotFoundError(relative_path)
+        if source.is_symlink():
+            raise ValueError("Refusing to copy a symlink")
+        usb_root = self._detect_usb_mount()
+        if usb_root is None:
+            raise UsbNotMounted("No USB storage is mounted on the kit.")
+        usb_root = usb_root.resolve()
+
+        rel_parts = self.usb_destination_parts(library, source.relative_to(source_root).parts)
+
+        planned = self._plan_usb_copy(source, rel_parts)
+        if not planned:
+            raise ValueError("Nothing to copy (the folder is empty or holds only hidden files)")
+        total_bytes = sum(size for _, _, size in planned)
+        if total_bytes and shutil.disk_usage(usb_root).free < total_bytes + USB_COPY_MARGIN:
+            raise UsbSpaceError("Not enough free space on the USB device.")
+
+        copied = 0
+        replaced = 0
+        for src, dest_rel, size in planned:
+            target = usb_root.joinpath(*dest_rel)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists():
+                replaced += 1
+            temp = target.parent / f".{target.name}.copy-{os.getpid()}"
+            try:
+                shutil.copyfile(src, temp)
+                with temp.open("rb") as handle:
+                    os.fsync(handle.fileno())
+                os.replace(temp, target)
+            finally:
+                temp.unlink(missing_ok=True)
+            copied += size
+            if progress is not None:
+                progress({
+                    "copied_bytes": copied,
+                    "total_bytes": total_bytes,
+                    "current_file": src.name,
+                })
+        return {
+            "library": library,
+            "path": relative_path,
+            "usb_root": str(usb_root),
+            "destination": str(Path(*rel_parts)) if rel_parts else "USB root",
+            "files": len(planned),
+            "bytes": total_bytes,
+            "replaced": replaced,
+        }
+
+    def _plan_usb_copy(self, source: Path, rel_parts: tuple[str, ...]) -> list[tuple[Path, tuple[str, ...], int]]:
+        """Return ``(source_file, destination_parts, size)`` rows for a copy."""
+        if source.is_file():
+            dest = rel_parts if rel_parts else (source.name,)
+            return [(source, dest, source.stat().st_size)]
+        base = Path(*rel_parts).parts if rel_parts else ()
+        planned: list[tuple[Path, tuple[str, ...], int]] = []
+        for path in sorted(source.rglob("*")):
+            if path.is_symlink():
+                raise ValueError(f"Refusing to copy symlink: {path.name}")
+            if not path.is_file():
+                continue
+            parts = path.relative_to(source).parts
+            if any(part.startswith(".") for part in parts):
+                continue
+            planned.append((path, base + parts, path.stat().st_size))
+        return planned
+
     def _library_root(self, library: str) -> Path:
         paths = self.library_paths()
         if library not in paths:
@@ -196,7 +321,7 @@ class StorageService:
         return paths[library]
 
     def _is_deletable_library(self, library: str) -> bool:
-        return library in {"personal", "serial-logs"}
+        return library in {"personal", "usb", "serial-logs"}
 
     def _is_uploadable_library(self, library: str) -> bool:
         return library in {"personal", "usb"}

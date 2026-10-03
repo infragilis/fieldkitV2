@@ -6,9 +6,11 @@ from fastapi.responses import FileResponse
 
 from app.core.config import get_settings
 from app.services.storage import StorageService
+from app.services.usb_copy_job import UsbCopyJob
 
 router = APIRouter()
 storage_service = StorageService(get_settings())
+usb_copy_job = UsbCopyJob(storage_service)
 
 
 @router.get("")
@@ -61,5 +63,31 @@ async def delete_file(library: str = Query(...), path: str = Query(...)):
 async def libraries():
     libraries = []
     for name, path in (await asyncio.to_thread(storage_service.library_paths)).items():
-        libraries.append({"name": name, "path": str(path), "exists": Path(path).exists()})
+        libraries.append({
+            "name": name,
+            "path": str(path),
+            "exists": Path(path).exists(),
+            "mounted": name != "usb" or storage_service.usb_mounted(),
+        })
     return {"libraries": libraries}
+
+
+@router.post("/copy-to-usb", status_code=202)
+async def copy_to_usb(library: str = Query(...), path: str = Query(...)):
+    if library not in {"data", "personal"}:
+        raise HTTPException(status_code=400, detail="Choose the data or personal library as the source.")
+    try:
+        source = await asyncio.to_thread(storage_service.resolve_download, library, path)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    started, error = usb_copy_job.start(library, path)
+    if not started:
+        raise HTTPException(status_code=409, detail=error)
+    return usb_copy_job.status()
+
+
+@router.get("/copy-to-usb/status")
+async def copy_to_usb_status():
+    return usb_copy_job.status()
