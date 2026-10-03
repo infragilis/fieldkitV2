@@ -88,6 +88,10 @@ sysprep() {
     done
   fi
   install_growroot
+  # Keep the journal across boots so a failed first boot can be diagnosed from
+  # the SD card.
+  mkdir -p /etc/systemd/journald.conf.d
+  printf '[Journal]\nStorage=persistent\n' > /etc/systemd/journald.conf.d/fieldkit.conf
   touch /etc/cloud/cloud-init.disabled 2>/dev/null || true
   find /var/log -type f -delete 2>/dev/null || true
   rm -rf /tmp/* /var/tmp/* 2>/dev/null || true

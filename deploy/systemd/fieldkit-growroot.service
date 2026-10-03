@@ -5,7 +5,8 @@ ConditionPathExists=/etc/fieldkit-growroot
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/fieldkit-growroot.sh
+TimeoutStartSec=300
+ExecStart=-/usr/local/sbin/fieldkit-growroot.sh
 RemainAfterExit=yes
 
 [Install]

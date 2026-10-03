@@ -32,5 +32,12 @@ systemctl daemon-reload
 systemctl disable --now fieldkit-ap-hostapd >/dev/null 2>&1 || true
 systemctl disable --now fieldkit-ap-dnsmasq >/dev/null 2>&1 || true
 
+# Fieldkit uses its own fieldkit-ap-* units. Mask the distro hostapd/dnsmasq so
+# they cannot start at boot with no/conflicting config and fight the AP unit.
+systemctl disable --now hostapd >/dev/null 2>&1 || true
+systemctl disable --now dnsmasq >/dev/null 2>&1 || true
+systemctl mask hostapd >/dev/null 2>&1 || true
+systemctl mask dnsmasq >/dev/null 2>&1 || true
+
 echo "Wi-Fi AP support installed."
-echo "Dedicated AP services are installed disabled by default."
+echo "Dedicated AP services are installed disabled by default; system hostapd/dnsmasq masked."

@@ -30,5 +30,7 @@ systemctl daemon-reload
 systemctl enable fieldkit-web.service
 systemctl enable fieldkit-startup-network.service
 systemctl enable fieldkit-server-sync.timer
+# Ensure a getty on the HDMI/VT console so the keyboard works on first boot.
+systemctl enable getty@tty1.service 2>/dev/null || true
 
 echo "Installed Fieldkit web/startup services and automatic server-sync timer"
