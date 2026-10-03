@@ -93,6 +93,23 @@ sysprep() {
   rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
   rm -f /root/.bash_history /home/service/.bash_history 2>/dev/null || true
   rm -rf "${FIELDKIT_ROOT}/runtime/content"/* "${FIELDKIT_ROOT}/runtime/state"/* 2>/dev/null || true
+  # Seed a default settings.json so the first boot brings up the Wi-Fi AP and
+  # applies the hostname (the startup-network unit needs this file). Without
+  # it the unit skips and a fresh kit is unreachable until a UI visit.
+  FIELDKIT_ROOT="${FIELDKIT_ROOT}" "${FIELDKIT_ROOT}/.venv/bin/python" - <<'PY' 2>/dev/null || true
+import json
+import os
+from pathlib import Path
+
+from app.core.models import AppSettingsPayload
+
+root = Path(os.environ["FIELDKIT_ROOT"])
+path = root / "runtime/state/settings.json"
+path.parent.mkdir(parents=True, exist_ok=True)
+path.write_text(json.dumps(AppSettingsPayload().model_dump(), indent=2))
+PY
+  chown service:service "${FIELDKIT_ROOT}/runtime/state/settings.json" 2>/dev/null || true
+  chmod 0600 "${FIELDKIT_ROOT}/runtime/state/settings.json" 2>/dev/null || true
   find "${FIELDKIT_ROOT}" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
   sync
 }

@@ -10,11 +10,6 @@ if [[ ${EUID} -ne 0 ]]; then
   exit 1
 fi
 
-if [[ ! -f ${SETTINGS_PATH} ]]; then
-  echo "No settings file at ${SETTINGS_PATH}; skipping startup network apply."
-  exit 0
-fi
-
 read_setting() {
   local expression=$1
   python3 -c 'import json,sys
@@ -26,11 +21,23 @@ for key in sys.argv[2].split("."):
 print(value if value is not None else "")' "${SETTINGS_PATH}" "${expression}"
 }
 
-WIFI_MODE=$(read_setting "wifi.mode")
-WIFI_SSID=$(read_setting "wifi.ssid")
-WIFI_PASSWORD=$(read_setting "wifi.password")
-WIFI_COUNTRY=$(read_setting "wifi.country_code")
-HOSTNAME=$(read_setting "hostname")
+if [[ -f ${SETTINGS_PATH} ]]; then
+  WIFI_MODE=$(read_setting "wifi.mode")
+  WIFI_SSID=$(read_setting "wifi.ssid")
+  WIFI_PASSWORD=$(read_setting "wifi.password")
+  WIFI_COUNTRY=$(read_setting "wifi.country_code")
+  HOSTNAME=$(read_setting "hostname")
+else
+  # Fresh image or cleared state: default to the field AP so the kit is
+  # reachable on first boot (matches the flash-and-go documentation) instead
+  # of silently skipping network setup.
+  echo "No settings file at ${SETTINGS_PATH}; defaulting to AP mode."
+  WIFI_MODE=ap
+  WIFI_SSID=fieldkit
+  WIFI_PASSWORD=fieldkit
+  WIFI_COUNTRY=US
+  HOSTNAME=fieldkit
+fi
 
 if [[ -n ${HOSTNAME} ]]; then
   /bin/bash "${FIELDKIT_ROOT}/scripts/set_appliance_hostname.sh" "${HOSTNAME}"

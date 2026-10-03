@@ -371,6 +371,15 @@ def test_update_rollback_reports_not_installed(monkeypatch, tmp_path):
     assert response.status_code == 501
 
 
+def test_first_boot_defaults_to_ap_and_seeds_settings():
+    startup = Path("scripts/apply_startup_network_mode.sh").read_text(encoding="utf-8")
+    sysprep = Path("scripts/golden-chroot-install.sh").read_text(encoding="utf-8")
+    # No settings file -> bring up the AP instead of skipping networking.
+    assert "defaulting to AP mode" in startup
+    # The image seeds a default settings.json in sysprep for first boot.
+    assert "AppSettingsPayload" in sysprep
+
+
 def test_update_bundle_ships_version_and_health_check():
     build = Path("scripts/build_update_bundle.sh").read_text(encoding="utf-8")
     updater = Path("scripts/update_appliance.sh").read_text(encoding="utf-8")
