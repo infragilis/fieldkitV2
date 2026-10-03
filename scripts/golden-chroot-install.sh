@@ -15,33 +15,23 @@ log() {
   printf '\n==> %s\n' "$*"
 }
 
-# systemctl shim: daemon-reload/enable/disable work on unit symlinks; the rest
-# are no-ops because nothing is running inside the chroot.
+# systemctl shim: offline unit-state operations (enable/disable/mask/...) are
+# delegated to the real systemctl in --root mode, which resolves units from
+# /usr/lib/systemd/system, handles templates/aliases, and implements masking.
+# Operations that need a running systemd are no-ops inside the chroot.
 systemctl() {
   local cmd="$1"
   shift || true
   case "${cmd}" in
     daemon-reload) return 0 ;;
-    enable)
-      for unit in "$@"; do
-        if [[ -f "/etc/systemd/system/${unit}" ]]; then
-          local wanted
-          while read -r line; do
-            case "${line}" in
-              WantedBy=*)
-                wanted="${line#WantedBy=}"
-                mkdir -p "/etc/systemd/system/${wanted}.wants"
-                ln -sf "/etc/systemd/system/${unit}" "/etc/systemd/system/${wanted}.wants/${unit}"
-                ;;
-            esac
-          done < "/etc/systemd/system/${unit}"
-        fi
+    enable|disable|mask|unmask|preset|is-enabled)
+      local args=()
+      local a
+      for a in "$@"; do
+        [[ "${a}" == "--now" ]] && continue
+        args+=("${a}")
       done
-      return 0 ;;
-    disable)
-      for unit in "$@"; do
-        find /etc/systemd/system -name "${unit}" -delete 2>/dev/null || true
-      done
+      /usr/bin/systemctl --root=/ "${cmd}" "${args[@]}" 2>/dev/null || true
       return 0 ;;
     *) return 0 ;;
   esac
@@ -79,15 +69,63 @@ install_fieldkit() {
   fi
 }
 
+enforce_image_state() {
+  log "Enforcing offline service state"
+  # Real offline systemd operations (the shim delegates to --root=/).
+  systemctl enable \
+    ssh.service sshd-keygen.service nginx.service NetworkManager.service \
+    avahi-daemon.service getty@tty1.service fieldkit-web.service \
+    fieldkit-server-sync.timer fieldkit-startup-network.timer \
+    fieldkit-growroot.timer
+  # One network manager only: NetworkManager (Fieldkit's UI uses nmcli).
+  systemctl disable systemd-networkd.service systemd-networkd-wait-online.service
+  # Fieldkit uses its own fieldkit-ap-* units; block the distro daemons.
+  systemctl mask hostapd.service dnsmasq.service
+}
+
+seed_nm_wired() {
+  # Explicit DHCP profile for the wired NIC (interface is eth0: net.ifnames=0),
+  # so Ethernet works even with networkd disabled and netplan unused.
+  mkdir -p /etc/NetworkManager/system-connections
+  cat > /etc/NetworkManager/system-connections/fieldkit-wired.nmconnection <<'EOF'
+[connection]
+id=fieldkit-wired
+type=ethernet
+interface-name=eth0
+autoconnect=true
+autoconnect-priority=100
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+EOF
+  chmod 0600 /etc/NetworkManager/system-connections/fieldkit-wired.nmconnection
+}
+
+patch_boot_config() {
+  # Ensure an HDMI login on tty1 and a model-independent serial console.
+  for cmdline in /boot/firmware/cmdline.txt /boot/cmdline.txt; do
+    [[ -f "${cmdline}" ]] || continue
+    sed -i 's/console=tty0/console=tty1/' "${cmdline}"
+    sed -i 's/console=ttyS1,115200/console=serial0,115200/' "${cmdline}"
+    grep -q 'console=tty1' "${cmdline}" || sed -i '1s/^/console=tty1 /' "${cmdline}"
+  done
+  for config in /boot/firmware/config.txt /boot/config.txt; do
+    [[ -f "${config}" ]] || continue
+    grep -q '^enable_uart=1' "${config}" || printf '\n# Fieldkit serial console\nenable_uart=1\n' >> "${config}"
+  done
+}
+
 sysprep() {
   log "Sysprep"
+  # Remove host keys so the first boot regenerates unique ones via sshd-keygen.
   rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
-  if [[ -d /etc/systemd/system/multi-user.target.wants ]]; then
-    for unit in ssh.service sshd.service regenerate_ssh_host_keys.service; do
-      [[ -f "/etc/systemd/system/${unit}" ]] && ln -sf "/etc/systemd/system/${unit}" "/etc/systemd/system/multi-user.target.wants/${unit}"
-    done
-  fi
   install_growroot
+  enforce_image_state
+  seed_nm_wired
+  patch_boot_config
   # Keep the journal across boots so a failed first boot can be diagnosed from
   # the SD card.
   mkdir -p /etc/systemd/journald.conf.d
@@ -122,7 +160,8 @@ install_growroot() {
   log "Arming first-boot root partition grow"
   install -D -m 0755 "${FIELDKIT_ROOT}/scripts/fieldkit-growroot.sh" /usr/local/sbin/fieldkit-growroot.sh
   install -D -m 0644 "${FIELDKIT_ROOT}/deploy/systemd/fieldkit-growroot.service" /etc/systemd/system/fieldkit-growroot.service
-  systemctl enable fieldkit-growroot.service
+  install -D -m 0644 "${FIELDKIT_ROOT}/deploy/systemd/fieldkit-growroot.timer" /etc/systemd/system/fieldkit-growroot.timer
+  systemctl enable fieldkit-growroot.timer
   touch /etc/fieldkit-growroot
 }
 

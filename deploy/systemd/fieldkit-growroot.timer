@@ -1,0 +1,10 @@
+[Unit]
+Description=Grow Fieldkit root partition shortly after boot
+
+[Timer]
+OnBootSec=15s
+Persistent=false
+Unit=fieldkit-growroot.service
+
+[Install]
+WantedBy=timers.target

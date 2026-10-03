@@ -1,7 +1,7 @@
 [Unit]
 Description=Fieldkit Web Service
-After=network-online.target
-Wants=network-online.target
+# Bind loopback only; nginx fronts it. No need to wait for DHCP/online.
+After=network.target
 
 [Service]
 Type=simple

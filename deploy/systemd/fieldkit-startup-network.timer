@@ -1,0 +1,10 @@
+[Unit]
+Description=Apply the stored Fieldkit network mode shortly after boot
+
+[Timer]
+OnBootSec=5s
+Persistent=false
+Unit=fieldkit-startup-network.service
+
+[Install]
+WantedBy=timers.target

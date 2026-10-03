@@ -380,6 +380,18 @@ def test_first_boot_defaults_to_ap_and_seeds_settings():
     assert "AppSettingsPayload" in sysprep
 
 
+def test_golden_image_offline_unit_state_and_console():
+    chroot = Path("scripts/golden-chroot-install.sh").read_text(encoding="utf-8")
+    web = Path("deploy/systemd/fieldkit-web.service").read_text(encoding="utf-8")
+    assert "systemctl --root=/" in chroot          # real offline enable/mask
+    assert "enforce_image_state" in chroot
+    assert "fieldkit-startup-network.timer" in chroot
+    assert "After=network.target" in web           # web server is not gated on DHCP
+    assert "network-online.target" not in web
+    assert Path("deploy/systemd/fieldkit-startup-network.timer").is_file()
+    assert Path("deploy/systemd/fieldkit-growroot.timer").is_file()
+
+
 def test_update_bundle_ships_version_and_health_check():
     build = Path("scripts/build_update_bundle.sh").read_text(encoding="utf-8")
     updater = Path("scripts/update_appliance.sh").read_text(encoding="utf-8")

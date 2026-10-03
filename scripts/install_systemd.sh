@@ -16,6 +16,7 @@ fi
 
 install -D -m 0644 deploy/systemd/fieldkit-web.service /etc/systemd/system/fieldkit-web.service
 install -D -m 0644 deploy/systemd/fieldkit-startup-network.service /etc/systemd/system/fieldkit-startup-network.service
+install -D -m 0644 deploy/systemd/fieldkit-startup-network.timer /etc/systemd/system/fieldkit-startup-network.timer
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.service /etc/systemd/system/fieldkit-server-sync.service
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.timer /etc/systemd/system/fieldkit-server-sync.timer
 install -D -m 0644 deploy/systemd/fieldkit-post-update.service /etc/systemd/system/fieldkit-post-update.service
@@ -28,7 +29,9 @@ sed -i "s#User=service#User=${SERVICE_USER}#g" /etc/systemd/system/fieldkit-serv
 
 systemctl daemon-reload
 systemctl enable fieldkit-web.service
-systemctl enable fieldkit-startup-network.service
+# The startup-network service is timer-triggered (after boot) so it cannot block
+# multi-user / the console / the web UI.
+systemctl enable fieldkit-startup-network.timer
 systemctl enable fieldkit-server-sync.timer
 # Ensure a getty on the HDMI/VT console so the keyboard works on first boot.
 systemctl enable getty@tty1.service 2>/dev/null || true

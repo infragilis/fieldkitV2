@@ -1,8 +1,9 @@
 [Unit]
 Description=Fieldkit Startup Network Apply
-# Run AFTER the system is up so a slow/failed AP bring-up can never block the
-# console, sshd, nginx, or the web UI. Failure is non-fatal.
-After=NetworkManager.service multi-user.target
+# Triggered by fieldkit-startup-network.timer (not wanted by multi-user) so it
+# can run after the system is up WITHOUT an ordering cycle. A slow or failed AP
+# bring-up can never block the console, sshd, nginx, or the web UI.
+After=multi-user.target NetworkManager.service
 Wants=NetworkManager.service
 
 [Service]
@@ -10,6 +11,3 @@ Type=oneshot
 TimeoutStartSec=120
 ExecStart=-/bin/bash /opt/fieldkit/scripts/apply_startup_network_mode.sh
 RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target

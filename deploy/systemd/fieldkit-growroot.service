@@ -1,13 +1,10 @@
 [Unit]
 Description=Grow Fieldkit root partition to fill the boot media
-After=local-fs.target
+After=multi-user.target
 ConditionPathExists=/etc/fieldkit-growroot
 
 [Service]
 Type=oneshot
-TimeoutStartSec=300
+TimeoutStartSec=180
 ExecStart=-/usr/local/sbin/fieldkit-growroot.sh
 RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target

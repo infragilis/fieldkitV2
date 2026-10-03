@@ -38,7 +38,13 @@ if command -v sgdisk >/dev/null 2>&1; then
 fi
 
 echo "fieldkit-growroot: growing ${disk} partition ${part} (${root_src})"
-growpart "$disk" "$part" || true
-resize2fs "$root_src" || true
-rm -f "$flag"
-exit 0
+# growpart is best-effort (it exits non-zero for "NOCHANGE" on already-full
+# media). Only disarm the flag once resize2fs succeeds, so a real failure
+# retries on the next boot instead of silently leaving the card ungrown.
+growpart "$disk" "$part" >/dev/null 2>&1 || true
+if resize2fs "$root_src"; then
+  rm -f "$flag"
+  exit 0
+fi
+echo "fieldkit-growroot: resize2fs failed; leaving $flag for the next boot"
+exit 1
