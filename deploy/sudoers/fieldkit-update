@@ -1,1 +1,2 @@
 service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/update_appliance.sh *
+service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/rollback_appliance.sh

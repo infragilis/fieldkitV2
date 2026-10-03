@@ -50,7 +50,7 @@ class SerialService:
                     "device_hint": profile.device_hint,
                     "active_device": self._open_device(adapter),
                     "tty_device": adapter["tty"] if adapter else None,
-                    "stable_device": adapter["by_id"] if adapter else None,
+                    "stable_device": (adapter["by_id"] or adapter["by_path"]) if adapter else None,
                     "serial": adapter["serial"] if adapter else None,
                     "bound": bool(adapter and profile.device_hint.strip()),
                     "baud_rate": profile.baud_rate,
@@ -241,7 +241,7 @@ class SerialService:
                     "by_id": stable_id,
                     "by_path": path_id,
                     "serial": serial,
-                    "label": self._adapter_label(stable_id, tty, serial),
+                    "label": self._adapter_label(stable_id or path_id, tty, serial),
                 }
             )
         return adapters
@@ -315,7 +315,7 @@ class SerialService:
     def _open_device(self, adapter: dict | None) -> str | None:
         if adapter is None:
             return None
-        return adapter["by_id"] or adapter["tty"]
+        return adapter["by_id"] or adapter["by_path"] or adapter["tty"]
 
     def _adapter_matches(self, adapter: dict, hint: str) -> bool:
         hint = hint.strip()
@@ -351,8 +351,15 @@ class SerialService:
                     remaining.remove(adapter)
                     break
 
-        for index, selected in enumerate(resolved):
-            if selected is None and remaining:
+        # Only blank profiles auto-assign. A profile with an explicit pin that
+        # did not match stays unbound (present: false) so it can never silently
+        # open a different physical cable.
+        for index, profile in enumerate(profiles):
+            if resolved[index] is not None:
+                continue
+            if (profile.device_hint or "").strip():
+                continue
+            if remaining:
                 resolved[index] = remaining.pop(0)
 
         return resolved

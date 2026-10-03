@@ -27,6 +27,23 @@ def test_copy_file_preserves_library_folder(tmp_path, monkeypatch):
     assert (usb / "brocade" / "fw.bin").read_bytes() == b"firmware"
 
 
+def test_copy_refuses_symlinked_usb_destination(tmp_path, monkeypatch):
+    usb = tmp_path / "usb"
+    usb.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (usb / "brocade").symlink_to(outside)
+    service = make_service(tmp_path, monkeypatch, usb=usb)
+    source = service.library_paths()["data"] / "brocade" / "fw.bin"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_bytes(b"firmware")
+
+    with pytest.raises(ValueError):
+        service.copy_to_usb("data", "brocade/fw.bin")
+
+    assert not (outside / "fw.bin").exists()
+
+
 def test_copy_ontap_file_lands_in_usb_root(tmp_path, monkeypatch):
     usb = tmp_path / "usb"
     usb.mkdir()

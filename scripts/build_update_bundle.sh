@@ -17,15 +17,27 @@ fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="${ROOT}/dist"
 mkdir -p "${DIST}"
+
+# Bind the bundle version to the code it contains: the health check compares it
+# against the FastAPI version served by /openapi.json.
+PYPROJECT_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "${ROOT}/pyproject.toml" | head -1)"
+MAIN_VERSION="$(sed -n 's/.*version="\([^"]*\)".*/\1/p' "${ROOT}/app/main.py" | head -1)"
+if [[ "${VERSION}" != "${PYPROJECT_VERSION}" || "${VERSION}" != "${MAIN_VERSION}" ]]; then
+  echo "Version mismatch: arg=${VERSION} pyproject=${PYPROJECT_VERSION} app/main.py=${MAIN_VERSION}" >&2
+  exit 2
+fi
 BUNDLE="fieldkit-update-${VERSION}.tgz"
 BUNDLE_PATH="${DIST}/${BUNDLE}"
 PUBLIC_URL="${PUBLIC_URL:-https://fieldkit.nyc3.digitaloceanspaces.com/fieldkit/releases/${BUNDLE}}"
 
+# pyproject.toml + READMEs ship too: the appliance reads its version from
+# /opt/fieldkit/pyproject.toml, and the READMEs are served by /readme.
 tar czf "${BUNDLE_PATH}" \
   --exclude='app/static/vendor' \
   --exclude='*/__pycache__' \
   --exclude='app/*.egg-info' \
-  -C "${ROOT}" app scripts deploy
+  -C "${ROOT}" app scripts deploy pyproject.toml \
+  README.md README.es.md README.de.md README.nl.md README.fr.md
 
 SHA256="$(sha256sum "${BUNDLE_PATH}" | cut -d' ' -f1)"
 python3 - "${DIST}/fieldkit-update-latest.json" "${VERSION}" "${BUNDLE}" "${PUBLIC_URL}" "${SHA256}" <<'PY'

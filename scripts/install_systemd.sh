@@ -18,9 +18,11 @@ install -D -m 0644 deploy/systemd/fieldkit-web.service /etc/systemd/system/field
 install -D -m 0644 deploy/systemd/fieldkit-startup-network.service /etc/systemd/system/fieldkit-startup-network.service
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.service /etc/systemd/system/fieldkit-server-sync.service
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.timer /etc/systemd/system/fieldkit-server-sync.timer
+install -D -m 0644 deploy/systemd/fieldkit-post-update.service /etc/systemd/system/fieldkit-post-update.service
 install -D -m 0440 deploy/sudoers/fieldkit-update /etc/sudoers.d/fieldkit-update 2>/dev/null || true
 sed -i "s#/opt/fieldkit#${FIELDKIT_ROOT}#g" /etc/systemd/system/fieldkit-web.service
 sed -i "s#/opt/fieldkit#${FIELDKIT_ROOT}#g" /etc/systemd/system/fieldkit-startup-network.service
+sed -i "s#/opt/fieldkit#${FIELDKIT_ROOT}#g" /etc/systemd/system/fieldkit-post-update.service
 sed -i "s#User=service#User=${SERVICE_USER}#g" /etc/systemd/system/fieldkit-web.service
 sed -i "s#User=service#User=${SERVICE_USER}#g" /etc/systemd/system/fieldkit-server-sync.service
 

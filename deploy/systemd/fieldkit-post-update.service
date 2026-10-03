@@ -1,0 +1,14 @@
+[Unit]
+Description=Fieldkit post-update restart, health check, and rollback
+After=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=infinity
+# No args: reads runtime/state/post-update-request.json (written by the updater).
+ExecStart=/bin/bash /opt/fieldkit/scripts/post_update_check.sh
+StandardOutput=append:/opt/fieldkit/runtime/state/post-update.log
+StandardError=append:/opt/fieldkit/runtime/state/post-update.log
+
+[Install]
+WantedBy=multi-user.target

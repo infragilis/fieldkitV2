@@ -5,14 +5,34 @@ const STORAGE_KEYS = {
 
 const LANGUAGES = {
   en: { flag: "GB", label: "English" },
-  es: { flag: "ES", label: "Espanol" },
+  es: { flag: "ES", label: "Español" },
   de: { flag: "DE", label: "Deutsch" },
   nl: { flag: "NL", label: "Nederlands" },
-  fr: { flag: "FR", label: "Francais" },
+  fr: { flag: "FR", label: "Français" },
 };
 
 const TRANSLATIONS = {
   en: {
+  update_kicker: "Updates",
+  update_title: "Appliance updates",
+  update_installed: "Installed version",
+  update_check: "Check for updates",
+  update_apply: "Apply update",
+  update_rollback: "Roll back last update",
+  update_note: "Updates are fetched from your configured Fieldkit server and applied in place with an automatic backup and a post-update health check (rolling back automatically if the new version does not start). The appliance restarts briefly after applying.",
+  update_checking: "Checking for updates…",
+  update_uptodate: "This appliance is up to date.",
+  update_available: "Version {version} is available (published {date}).",
+  update_latest: "Up to date (latest: {version}).",
+  update_applying: "Applying update {version}… the appliance restarts briefly.",
+  update_started: "Update started. Waiting for the appliance to come back…",
+  update_last: "Last update: {status} ({version}).",
+  update_reloading: "Reloading…",
+  update_rollback_started: "Rollback started. The appliance will restart…",
+  update_rollback_confirm: "Roll back to the previous version? The appliance restarts briefly.",
+  update_applied: "applied",
+  update_failed: "failed",
+  update_rolledback: "rolled back",
     nav_home: "Home",
     nav_console: "Console",
     nav_files: "Files",
@@ -217,6 +237,29 @@ const TRANSLATIONS = {
   },
 };
 TRANSLATIONS.es = { ...TRANSLATIONS.en,
+  update_kicker: "Actualizaciones",
+  update_title: "Actualizaciones del aparato",
+  update_installed: "Versión instalada",
+  update_check: "Buscar actualizaciones",
+  update_apply: "Aplicar actualización",
+  update_rollback: "Revertir la última actualización",
+  update_note: "Las actualizaciones se obtienen de su servidor Fieldkit configurado y se aplican en el lugar con una copia de seguridad automática y una comprobación de estado posterior (revirtiendo automáticamente si la nueva versión no arranca). El aparato se reinicia brevemente tras aplicarlas.",
+  update_checking: "Buscando actualizaciones…",
+  update_uptodate: "Este aparato está actualizado.",
+  update_available: "La versión {version} está disponible (publicada {date}).",
+  update_latest: "Actualizado (última: {version}).",
+  update_applying: "Aplicando la actualización {version}… el aparato se reinicia brevemente.",
+  update_started: "Actualización iniciada. Esperando a que el aparato vuelva…",
+  update_last: "Última actualización: {status} ({version}).",
+  update_reloading: "Recargando…",
+  update_rollback_started: "Reversión iniciada. El aparato se reiniciará…",
+  update_rollback_confirm: "¿Revertir a la versión anterior? El aparato se reinicia brevemente.",
+  update_applied: "aplicada",
+  update_failed: "fallida",
+  update_rolledback: "revertida",
+  nav_docs: "Documentación",
+  device_optional_0: "Opcional: /dev/ttyUSB0",
+  device_optional_1: "Opcional: /dev/ttyUSB1",
   nav_home: "Inicio",
   nav_console: "Consola",
   nav_files: "Archivos",
@@ -406,6 +449,29 @@ TRANSLATIONS.es = { ...TRANSLATIONS.en,
   input_voltage_unavailable: "Voltaje de entrada no disponible",
 };
 TRANSLATIONS.de = { ...TRANSLATIONS.en,
+  update_kicker: "Aktualisierungen",
+  update_title: "Geräte-Aktualisierungen",
+  update_installed: "Installierte Version",
+  update_check: "Nach Aktualisierungen suchen",
+  update_apply: "Aktualisierung anwenden",
+  update_rollback: "Letzte Aktualisierung zurückrollen",
+  update_note: "Aktualisierungen werden von Ihrem konfigurierten Fieldkit-Server geladen und direkt angewendet — mit automatischem Backup und anschließender Zustandsprüfung (automatischer Rollback, falls die neue Version nicht startet). Das Gerät startet danach kurz neu.",
+  update_checking: "Suche nach Aktualisierungen…",
+  update_uptodate: "Dieses Gerät ist aktuell.",
+  update_available: "Version {version} ist verfügbar (veröffentlicht {date}).",
+  update_latest: "Aktuell (neueste: {version}).",
+  update_applying: "Aktualisierung {version} wird angewendet… das Gerät startet kurz neu.",
+  update_started: "Aktualisierung gestartet. Warte, bis das Gerät zurück ist…",
+  update_last: "Letzte Aktualisierung: {status} ({version}).",
+  update_reloading: "Neu laden…",
+  update_rollback_started: "Rollback gestartet. Das Gerät startet neu…",
+  update_rollback_confirm: "Auf die vorherige Version zurückrollen? Das Gerät startet kurz neu.",
+  update_applied: "angewendet",
+  update_failed: "fehlgeschlagen",
+  update_rolledback: "zurückgerollt",
+  nav_docs: "Doku",
+  device_optional_0: "Optional: /dev/ttyUSB0",
+  device_optional_1: "Optional: /dev/ttyUSB1",
   nav_home: "Start",
   nav_console: "Konsole",
   nav_files: "Dateien",
@@ -595,6 +661,29 @@ TRANSLATIONS.de = { ...TRANSLATIONS.en,
   input_voltage_unavailable: "Eingangsspannung nicht verfügbar",
 };
 TRANSLATIONS.nl = { ...TRANSLATIONS.en,
+  update_kicker: "Updates",
+  update_title: "Apparaatupdates",
+  update_installed: "Geïnstalleerde versie",
+  update_check: "Controleren op updates",
+  update_apply: "Update toepassen",
+  update_rollback: "Laatste update terugdraaien",
+  update_note: "Updates worden opgehaald van uw geconfigureerde Fieldkit-server en ter plaatse toegepast met een automatische back-up en een gezondheidscontrole na de update (automatisch terugdraaien als de nieuwe versie niet start). Het apparaat herstart kort na het toepassen.",
+  update_checking: "Controleren op updates…",
+  update_uptodate: "Dit apparaat is up-to-date.",
+  update_available: "Versie {version} is beschikbaar (gepubliceerd {date}).",
+  update_latest: "Up-to-date (nieuwste: {version}).",
+  update_applying: "Update {version} wordt toegepast… het apparaat herstart kort.",
+  update_started: "Update gestart. Wachten tot het apparaat terug is…",
+  update_last: "Laatste update: {status} ({version}).",
+  update_reloading: "Herladen…",
+  update_rollback_started: "Terugdraaien gestart. Het apparaat herstart…",
+  update_rollback_confirm: "Terugdraaien naar de vorige versie? Het apparaat herstart kort.",
+  update_applied: "toegepast",
+  update_failed: "mislukt",
+  update_rolledback: "teruggedraaid",
+  nav_docs: "Documentatie",
+  device_optional_0: "Optioneel: /dev/ttyUSB0",
+  device_optional_1: "Optioneel: /dev/ttyUSB1",
   nav_home: "Home",
   nav_console: "Console",
   nav_files: "Bestanden",
@@ -784,6 +873,29 @@ TRANSLATIONS.nl = { ...TRANSLATIONS.en,
   input_voltage_unavailable: "Ingangsspanning niet beschikbaar",
 };
 TRANSLATIONS.fr = { ...TRANSLATIONS.en,
+  update_kicker: "Mises à jour",
+  update_title: "Mises à jour de l'appareil",
+  update_installed: "Version installée",
+  update_check: "Rechercher des mises à jour",
+  update_apply: "Appliquer la mise à jour",
+  update_rollback: "Revenir à la mise à jour précédente",
+  update_note: "Les mises à jour sont récupérées depuis votre serveur Fieldkit configuré et appliquées sur place avec une sauvegarde automatique et un contrôle d'état après mise à jour (retour arrière automatique si la nouvelle version ne démarre pas). L'appareil redémarre brièvement après l'application.",
+  update_checking: "Recherche de mises à jour…",
+  update_uptodate: "Cet appareil est à jour.",
+  update_available: "La version {version} est disponible (publiée {date}).",
+  update_latest: "À jour (dernière : {version}).",
+  update_applying: "Application de la mise à jour {version}… l'appareil redémarre brièvement.",
+  update_started: "Mise à jour démarrée. En attente du retour de l'appareil…",
+  update_last: "Dernière mise à jour : {status} ({version}).",
+  update_reloading: "Rechargement…",
+  update_rollback_started: "Retour arrière démarré. L'appareil va redémarrer…",
+  update_rollback_confirm: "Revenir à la version précédente ? L'appareil redémarre brièvement.",
+  update_applied: "appliquée",
+  update_failed: "échouée",
+  update_rolledback: "annulée",
+  nav_docs: "Documentation",
+  device_optional_0: "Facultatif : /dev/ttyUSB0",
+  device_optional_1: "Facultatif : /dev/ttyUSB1",
   nav_home: "Accueil",
   nav_console: "Console",
   nav_files: "Fichiers",
@@ -1193,10 +1305,10 @@ function renderTopbar() {
               </button>
               <div class="language-options">
                 <button type="button" data-language="en"><span class="language-flag">🇬🇧</span><span>English</span></button>
-                <button type="button" data-language="es"><span class="language-flag">🇪🇸</span><span>Espanol</span></button>
+                <button type="button" data-language="es"><span class="language-flag">🇪🇸</span><span>Español</span></button>
                 <button type="button" data-language="de"><span class="language-flag">🇩🇪</span><span>Deutsch</span></button>
                 <button type="button" data-language="nl"><span class="language-flag">🇳🇱</span><span>Nederlands</span></button>
-                <button type="button" data-language="fr"><span class="language-flag">🇫🇷</span><span>Francais</span></button>
+                <button type="button" data-language="fr"><span class="language-flag">🇫🇷</span><span>Français</span></button>
               </div>
             </div>
           </div>
@@ -1235,11 +1347,74 @@ function bindTopbarBurger() {
   });
 }
 
+function updateStatusText(state) {
+  const known = { applied: "update_applied", failed: "update_failed", "rolled-back": "update_rolledback" };
+  const label = known[state.status] ? t(known[state.status]) : state.status;
+  return t("update_last", { status: label, version: state.version || "?" });
+}
+
+async function loadUpdateStatus() {
+  const target = document.getElementById("update-status");
+  if (!target) {
+    return;
+  }
+  try {
+    const state = await getJson("/api/system/update/status", { timeoutMs: 8000 });
+    if (state && ["applied", "failed", "rolled-back", "restarting", "downloading", "verified", "applying"].includes(state.status)) {
+      target.textContent = updateStatusText(state);
+    }
+  } catch (_) {
+    /* status is informational */
+  }
+}
+
+async function pollUpdateUntilDone(attempt = 0, notBefore = "") {
+  const status = document.getElementById("update-status");
+  try {
+    const state = await getJson("/api/system/update/status", { timeoutMs: 8000 });
+    const terminal = state && ["applied", "failed", "rolled-back"].includes(state.status);
+    // Ignore a stale terminal state from the previous run: only accept one
+    // recorded at or after this operation started.
+    const fresh = Boolean(notBefore) && Boolean(state.started_at) && state.started_at >= notBefore;
+    if (terminal && fresh) {
+      if (status) {
+        status.textContent = `${updateStatusText(state)} ${t("update_reloading")}`;
+      }
+      setTimeout(() => window.location.reload(), 1500);
+      return;
+    }
+  } catch (_) {
+    /* the web service is restarting */
+  }
+  if (attempt < 110) {  // ~5.5 min, beyond the updater's 300s download timeout
+    setTimeout(() => pollUpdateUntilDone(attempt + 1, notBefore), 3000);
+  }
+}
+
+async function rollbackUpdate() {
+  if (!window.confirm(t("update_rollback_confirm"))) {
+    return;
+  }
+  const status = document.getElementById("update-status");
+  if (status) {
+    status.textContent = t("update_rollback_started");
+  }
+  const rollbackStart = new Date().toISOString();
+  try {
+    await getJson("/api/system/update/rollback", { method: "POST" });
+    pollUpdateUntilDone(0, rollbackStart);
+  } catch (error) {
+    if (status) {
+      status.textContent = error.message;
+    }
+  }
+}
+
 async function checkForUpdates() {
   const status = document.getElementById("update-status");
   const applyButton = document.getElementById("update-apply-button");
   if (status) {
-    status.textContent = "Checking for updates…";
+    status.textContent = t("update_checking");
   }
   try {
     const payload = await getJson("/api/system/update/latest", { timeoutMs: 30000 });
@@ -1250,7 +1425,7 @@ async function checkForUpdates() {
     }
     if (!payload.available) {
       if (status) {
-        status.textContent = payload.error || "This appliance is up to date.";
+        status.textContent = payload.error || t("update_uptodate");
       }
       if (applyButton) {
         applyButton.hidden = true;
@@ -1259,15 +1434,15 @@ async function checkForUpdates() {
     }
     if (payload.update_available) {
       if (status) {
-        status.textContent = `Version ${payload.latest_version} is available (published ${payload.published_at || "recently"}).`;
+        status.textContent = t("update_available", { version: payload.latest_version, date: payload.published_at || "recently" });
       }
       if (applyButton) {
         applyButton.hidden = false;
-        applyButton.textContent = `Apply update ${payload.latest_version}`;
+        applyButton.textContent = `${t("update_apply")} ${payload.latest_version}`;
       }
     } else {
       if (status) {
-        status.textContent = `Up to date (latest: ${payload.latest_version}).`;
+        status.textContent = t("update_latest", { version: payload.latest_version });
       }
       if (applyButton) {
         applyButton.hidden = true;
@@ -1288,11 +1463,12 @@ async function applyUpdate() {
   const status = document.getElementById("update-status");
   const applyButton = document.getElementById("update-apply-button");
   if (status) {
-    status.textContent = `Applying update ${lastUpdatePayload.latest_version}… the appliance restarts briefly.`;
+    status.textContent = t("update_applying", { version: lastUpdatePayload.latest_version });
   }
   if (applyButton) {
     applyButton.disabled = true;
   }
+  const applyStart = new Date().toISOString();
   try {
     await getJson("/api/system/update/apply", {
       method: "POST",
@@ -1304,9 +1480,9 @@ async function applyUpdate() {
       }),
     });
     if (status) {
-      status.textContent = "Update started. The page will reload when the appliance is back.";
+      status.textContent = t("update_started");
     }
-    setTimeout(() => window.location.reload(), 15000);
+    pollUpdateUntilDone(0, applyStart);
   } catch (error) {
     if (status) {
       status.textContent = error.message;
@@ -1919,8 +2095,10 @@ document.getElementById("subnet-ip")?.addEventListener("input", updateSubnetCalc
 document.getElementById("subnet-prefix")?.addEventListener("input", updateSubnetCalculator);
 document.getElementById("update-check-button")?.addEventListener("click", checkForUpdates);
 document.getElementById("update-apply-button")?.addEventListener("click", applyUpdate);
+document.getElementById("update-rollback-button")?.addEventListener("click", rollbackUpdate);
 if (document.getElementById("update-check-button")) {
   checkForUpdates();
+  loadUpdateStatus();
 }
 window.addEventListener("fieldkit:language-change", updateSubnetCalculator);
 window.addEventListener("fieldkit:language-change", () => {

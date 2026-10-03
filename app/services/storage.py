@@ -267,15 +267,25 @@ class StorageService:
         copied = 0
         replaced = 0
         for src, dest_rel, size in planned:
-            target = usb_root.joinpath(*dest_rel)
+            target = self._safe_usb_target(usb_root, dest_rel)
             target.parent.mkdir(parents=True, exist_ok=True)
+            # Re-validate immediately before writing to narrow the TOCTOU window
+            # between the symlink check and the copy.
+            resolved_parent = target.parent.resolve()
+            if resolved_parent != usb_root and usb_root not in resolved_parent.parents:
+                raise ValueError("Unsafe USB destination")
             if target.exists():
                 replaced += 1
             temp = target.parent / f".{target.name}.copy-{os.getpid()}"
             try:
-                shutil.copyfile(src, temp)
-                with temp.open("rb") as handle:
-                    os.fsync(handle.fileno())
+                # Create the temp file exclusively and never follow a symlink, so
+                # an attacker-planted temp symlink cannot redirect the write.
+                temp.unlink(missing_ok=True)
+                descriptor = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+                with os.fdopen(descriptor, "wb") as out, src.open("rb") as inp:
+                    shutil.copyfileobj(inp, out)
+                    out.flush()
+                    os.fsync(out.fileno())
                 os.replace(temp, target)
             finally:
                 temp.unlink(missing_ok=True)
@@ -314,6 +324,27 @@ class StorageService:
             planned.append((path, base + parts, path.stat().st_size))
         return planned
 
+    def _safe_usb_target(self, usb_root: Path, dest_rel: tuple[str, ...]) -> Path:
+        """Resolve a USB destination that cannot escape the mounted device.
+
+        The USB stick is untrusted media: a symlinked directory on it (e.g.
+        ``<usb>/brocade -> /``) must not redirect the copy off the device.
+        """
+        base = usb_root
+        for part in dest_rel[:-1]:
+            candidate = base / part
+            if candidate.is_symlink():
+                raise ValueError("Refusing to copy through a symlinked USB path")
+            base = candidate
+        target = usb_root.joinpath(*dest_rel)
+        try:
+            parent = target.parent.resolve()
+        except OSError as exc:
+            raise ValueError("Unsafe USB destination") from exc
+        if parent != usb_root and usb_root not in parent.parents:
+            raise ValueError("Unsafe USB destination")
+        return target
+
     def _library_root(self, library: str) -> Path:
         paths = self.library_paths()
         if library not in paths:
@@ -326,7 +357,31 @@ class StorageService:
     def _is_uploadable_library(self, library: str) -> bool:
         return library in {"personal", "usb"}
 
+    @staticmethod
+    def _mount_points() -> set[str]:
+        """Real mount points from /proc/self/mountinfo (octal-unescaped)."""
+        points: set[str] = set()
+        try:
+            lines = Path("/proc/self/mountinfo").read_text().splitlines()
+        except OSError:
+            return points
+        for line in lines:
+            before, _, _after = line.partition(" - ")
+            fields = before.split()
+            if len(fields) < 5:
+                continue
+            point = fields[4]
+            for octal, char in (("\\040", " "), ("\\011", "\t"), ("\\012", "\n"), ("\\134", "\\")):
+                point = point.replace(octal, char)
+            points.add(point)
+        return points
+
     def _detect_usb_mount(self) -> Path | None:
+        # Only accept a directory that is an actual mount point, so an ordinary
+        # or stale directory under /media or /mnt is never treated as USB media.
+        mount_points = self._mount_points()
+        if not mount_points:
+            return None
         candidates = (
             Path("/media/service"),
             Path("/media"),
@@ -336,12 +391,15 @@ class StorageService:
             if not base.exists():
                 continue
             for path in sorted(base.glob("*")):
-                if path.is_dir() and not path.name.startswith("."):
-                    if base.name == "media" and path.name == "service":
-                        for nested in sorted(path.glob("*")):
-                            if nested.is_dir() and not nested.name.startswith("."):
+                if not (path.is_dir() and not path.is_symlink() and not path.name.startswith(".")):
+                    continue
+                if base.name == "media" and path.name == "service":
+                    for nested in sorted(path.glob("*")):
+                        if nested.is_dir() and not nested.is_symlink() and not nested.name.startswith("."):
+                            if str(nested.resolve()) in mount_points:
                                 return nested
-                        continue
+                    continue
+                if str(path.resolve()) in mount_points:
                     return path
         return None
 

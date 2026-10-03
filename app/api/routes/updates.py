@@ -15,9 +15,11 @@ from app.services.settings_store import SettingsStore
 
 router = APIRouter()
 UPDATE_SCRIPT = Path("/opt/fieldkit/scripts/update_appliance.sh")
+ROLLBACK_SCRIPT = Path("/opt/fieldkit/scripts/rollback_appliance.sh")
+STATUS_PATH = Path("/opt/fieldkit/runtime/state/update-state.json")
 VERSION_PATH = Path("/opt/fieldkit/pyproject.toml")
 FALLBACK_VERSION = "0.1.6"
-_VERSION_RE = re.compile(r"^\d+(\.\d+){1,3}$")
+_VERSION_RE = re.compile(r"^\d+(\.\d+){1,2}$")
 _SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
@@ -44,12 +46,15 @@ def _client():
 
 def _compare(current: str, latest: str) -> int:
     def parts(value):
-        return [int(part) for part in value.split(".")[:3]]
+        return [int(part) for part in value.split(".")]
 
     try:
         a, b = parts(current), parts(latest)
     except ValueError:
         return -1
+    width = max(len(a), len(b))
+    a += [0] * (width - len(a))
+    b += [0] * (width - len(b))
     for left, right in zip(a, b):
         if left != right:
             return 1 if left > right else -1
@@ -77,6 +82,33 @@ def update_latest() -> dict:
         "sha256": payload["sha256"],
         "published_at": payload.get("published_at"),
     }
+
+
+@router.get("/update/status")
+def update_status() -> dict:
+    """Last recorded update outcome (written by the update/health-check scripts)."""
+    try:
+        payload = json.loads(STATUS_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"status": "unknown"}
+    return payload if isinstance(payload, dict) else {"status": "unknown"}
+
+
+@router.post("/update/rollback", status_code=202)
+def update_rollback() -> dict:
+    """Restore the most recent pre-update backup (run as root via sudo)."""
+    if not ROLLBACK_SCRIPT.is_file():
+        raise HTTPException(status_code=501, detail="Rollback script not installed")
+    try:
+        subprocess.Popen(
+            ["sudo", "/bin/bash", str(ROLLBACK_SCRIPT)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Could not start the rollback: {exc}") from exc
+    return {"started": True}
 
 
 @router.post("/update/apply", status_code=202)

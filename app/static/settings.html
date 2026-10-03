@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css?v=ui-0.2.2-20261003" />
+    <link rel="stylesheet" href="/static/styles.css?v=ui-0.2.2-20261003e" />
   </head>
   <body>
     <main class="app-shell">
@@ -213,17 +213,18 @@
         <article class="panel" id="appliance-updates">
           <div class="panel-head">
             <div>
-              <span class="panel-kicker">Updates</span>
-              <h2 class="panel-title">Appliance updates</h2>
+              <span class="panel-kicker" data-i18n="update_kicker">Updates</span>
+              <h2 class="panel-title" data-i18n="update_title">Appliance updates</h2>
             </div>
           </div>
-          <p class="muted">Installed version: <span id="update-local-version" class="mono">…</span></p>
+          <p class="muted"><span data-i18n="update_installed">Installed version</span>: <span id="update-local-version" class="mono">…</span></p>
           <p id="update-status" class="muted" role="status" aria-live="polite"></p>
           <div class="button-row">
-            <button id="update-check-button" type="button" class="btn btn-ghost">Check for updates</button>
-            <button id="update-apply-button" type="button" class="btn btn-primary" hidden>Apply update</button>
+            <button id="update-check-button" type="button" class="btn btn-ghost" data-i18n="update_check">Check for updates</button>
+            <button id="update-apply-button" type="button" class="btn btn-primary" hidden data-i18n="update_apply">Apply update</button>
+            <button id="update-rollback-button" type="button" class="btn btn-ghost" data-i18n="update_rollback">Roll back last update</button>
           </div>
-          <p class="muted serial-settings-note">Updates are fetched from your configured Fieldkit server and applied in place with an automatic backup. The appliance restarts briefly after applying.</p>
+          <p class="muted serial-settings-note" data-i18n="update_note">Updates are fetched from your configured Fieldkit server and applied in place with an automatic backup and a post-update health check (rolling back automatically if the new version does not start). The appliance restarts briefly after applying.</p>
         </article>
           <p class="muted" data-i18n="local_shell_note">This terminal runs directly on the Fieldkit appliance as the local service account.</p>
           <div class="btn-row">
@@ -238,6 +239,6 @@
       </footer>
     </main>
 
-    <script src="/static/app.js?v=ui-0.2.2-20261003" defer></script>
+    <script src="/static/app.js?v=ui-0.2.2-20261003e" defer></script>
   </body>
 </html>

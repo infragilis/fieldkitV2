@@ -206,7 +206,7 @@ def test_tools_page_includes_subnet_calculator():
     assert response.status_code == 200
     assert "Subnet Calculator" in response.text
     assert 'id="subnet-form"' in response.text
-    assert "/static/app.js?v=ui-0.2.2-20261003" in response.text
+    assert "/static/app.js?v=ui-0.2.2-20261003e" in response.text
 
 
 def test_subnet_calculator_has_supported_language_strings():
@@ -357,6 +357,29 @@ def test_serial_sessions_include_indexes():
     assert sessions[0]["index"] == 0
 
 
+def test_update_status_route_returns_dict():
+    response = client.get("/api/system/update/status")
+    assert response.status_code == 200
+    assert isinstance(response.json(), dict)
+
+
+def test_update_rollback_reports_not_installed(monkeypatch, tmp_path):
+    from app.api.routes import updates as updates_module
+
+    monkeypatch.setattr(updates_module, "ROLLBACK_SCRIPT", tmp_path / "missing.sh")
+    response = client.post("/api/system/update/rollback")
+    assert response.status_code == 501
+
+
+def test_update_bundle_ships_version_and_health_check():
+    build = Path("scripts/build_update_bundle.sh").read_text(encoding="utf-8")
+    updater = Path("scripts/update_appliance.sh").read_text(encoding="utf-8")
+    unit = Path("deploy/systemd/fieldkit-post-update.service").read_text(encoding="utf-8")
+    assert "pyproject.toml" in build  # version source travels with the bundle
+    assert "fieldkit-post-update.service" in updater  # persistent health-check unit
+    assert "post_update_check.sh" in unit  # restart is gated by a health check
+
+
 def test_transfer_status_route():
     response = client.get("/api/transfers/status")
     assert response.status_code == 200
@@ -463,6 +486,48 @@ def test_serial_profile_by_id_pin_survives_tty_renumber(monkeypatch, tmp_path):
     assert statuses[0]["bound"] is True
     assert statuses[1]["active_device"] == str(link_b)
     assert statuses[1]["tty_device"] == str(tty0)
+
+
+def test_serial_pinned_absent_adapter_does_not_steal_another(monkeypatch, tmp_path):
+    service = SerialService()
+    tty0 = tmp_path / "ttyUSB0"
+    tty0.write_text("")
+    by_id = tmp_path / "by-id"
+    by_id.mkdir()
+    (by_id / "usb-FTDI_FT232R_USB_UART_A95HRISR-if00-port0").symlink_to(tty0)
+    monkeypatch.setattr(service, "_detected_devices", lambda: [str(tty0)])
+    monkeypatch.setattr(service, "_serial_by_id_root", by_id)
+    monkeypatch.setattr(service, "_serial_by_path_root", tmp_path / "by-path")
+
+    settings = service._store.load()
+    settings.serial_ports[0].device_hint = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A9O86941-if00-port0"
+    monkeypatch.setattr(service._store, "load", lambda: settings)
+
+    statuses = service.profile_status()
+
+    assert statuses[0]["present"] is False
+    assert statuses[0]["active_device"] is None
+    assert statuses[0]["bound"] is False
+    assert statuses[1]["present"] is True
+    assert statuses[1]["tty_device"] == str(tty0)
+
+
+def test_serial_opens_by_path_when_no_unique_serial(monkeypatch, tmp_path):
+    service = SerialService()
+    tty0 = tmp_path / "ttyUSB0"
+    tty0.write_text("")
+    by_path = tmp_path / "by-path"
+    by_path.mkdir()
+    link = by_path / "platform-xhci-hcd.0-usb-0:2:1.0-port0"
+    link.symlink_to(tty0)
+    monkeypatch.setattr(service, "_detected_devices", lambda: [str(tty0)])
+    monkeypatch.setattr(service, "_serial_by_id_root", tmp_path / "by-id")
+    monkeypatch.setattr(service, "_serial_by_path_root", by_path)
+
+    statuses = service.profile_status()
+
+    assert statuses[0]["active_device"] == str(link)
+    assert statuses[0]["tty_device"] == str(tty0)
 
 
 def test_serial_adapters_route():

@@ -175,7 +175,7 @@ This uploads a temporary file to `personal` and verifies:
 - If `git pull --ff-only` fails, inspect local changes before forcing anything.
 - Keep the repo and deployed app rooted at `/opt/fieldkit` for consistency with the current systemd and nginx assets.
 - Local operator notes such as `TODO.local.md` and `HANDOFF.md` should stay out of git and off the appliance.
-- The shared export tree is only for `data`, `personal`, and `usb`; `serial-logs` remain GUI-only.
+- The shared export tree is only for `data` and `personal`; `usb` is a copy destination, not an export source, and `serial-logs` remain GUI-only.
 - TFTP and FTP are toggle-controlled from the UI; SCP remains available through the normal SSH service without a separate toggle.
 - Plain HTTP is the appliance access path.
 - Fieldkit AP mode now uses dedicated `hostapd` and AP-only `dnsmasq` units instead of a NetworkManager hotspot profile.
@@ -195,10 +195,21 @@ Kits at v0.1.7+ can update themselves from the configured Fieldkit server:
   presigned download URL (the upload key is limited-access, so no bucket
   policy is used).
 - Applying downloads the bundle, verifies its SHA-256, backs up
-  `app/scripts/deploy` to `/root/fieldkit-backups/fieldkit-update-pre-*.tgz`,
-  extracts, refreshes sudoers, and restarts the web service via a transient
-  `fieldkit-post-update` unit so the restart does not kill the updater.
-  Progress lands in `runtime/state/update-state.json`.
+  `app/ scripts/ deploy/ pyproject.toml` and the five READMEs to
+  `/root/fieldkit-backups/fieldkit-update-pre-*.tgz`, extracts, refreshes
+  sudoers, and re-registers the editable install (offline-safe). Progress and
+  the final outcome land in `runtime/state/update-state.json` and are readable at
+  `GET /api/system/update/status`.
+- **Health check + rollback.** A persistent `fieldkit-post-update` unit restarts
+  the web service and waits for `/openapi.json` to report the new version; if it
+  does not come up it restores the pre-update backup and restarts automatically.
+  The unit holds the shared update lock, and the always-runs exit path makes sure
+  `fieldkit-web` is started even if a step fails.
+- **Manual rollback.** Settings → **Roll back last update** restores the most
+  recent pre-update backup (`POST /api/system/update/rollback`, backed by
+  `scripts/rollback_appliance.sh`). It refuses to run while an update/health
+  check holds the lock.
 - Build bundles with `scripts/build_update_bundle.sh <version>`; publish to
-  the bucket (see `docs/golden-image-build.md`). Keep the monthly golden image
-  for new kits and ship in-place updates between releases.
+  the bucket (see `docs/golden-image-build.md`). Bug fixes ship as bundles;
+  rebuild the golden image only for base-OS/package/partition changes or new-kit
+  seeding (see `docs/golden-image-build.md`).
