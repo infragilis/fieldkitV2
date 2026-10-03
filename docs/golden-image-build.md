@@ -89,6 +89,29 @@ The server's `/get` looks for a fixed object name — `GOLDEN_IMAGE_NAME` in
 5. Change the password, then paste the device token on Server Sync and pick a
    sync window.
 
+## Base image and Pi 5 (IMPORTANT)
+
+The current base is the **Debian 13 (trixie) "raspi" arm64 cloud image**, which
+supports **Pi 3 and Pi 4 only**. The reference/field kit is a **Pi 5**
+(`BCM2712`), so these images cannot be used on it (no network). **A build must
+support Pi 3, Pi 4, and Pi 5.**
+
+Chosen fix: rebase on **Raspberry Pi OS Lite 64-bit (Trixie)** (supports Pi
+3B/3B+/3A+, Pi 4, Pi 5). Required changes (see `SESSION_START.md` for detail):
+
+1. Download a direct `*.img.xz` (not a tar) and `xz -dc` it; add a base profile.
+2. Partition layout is **p1 = FAT boot, p2 = ext4 root** (Debian was root p1 /
+   boot p15); grow p2.
+3. Do **not** apply the Debian-specific `sgdisk -Z -o` p1/p15 shrink to the RPi
+   OS table initially — ship the 8-GiB working image; add a partition-aware
+   shrink only after Pi 3/4/5 boot is verified.
+4. Network: RPi OS uses `dhcpcd`; install/enable **NetworkManager** (Fieldkit
+   needs it), disable `dhcpcd`, keep the NM wired DHCP keyfile, mask distro
+   `hostapd`/`dnsmasq`.
+5. Re-verify `sshd-keygen`, `getty@tty1`, `console=tty1` +
+   `console=serial0,115200`, `enable_uart=1`, and the `enforce_image_state`
+   audit; then **boot-test on Pi 3, Pi 4, and Pi 5 before publishing.**
+
 ## Notes
 
 - The Debian cloud image covers Pi 3/4/5 (arm64); Pi 5 requires Debian 14, so
