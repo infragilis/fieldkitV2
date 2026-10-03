@@ -123,6 +123,15 @@ sysprep() {
   # Remove host keys so the first boot regenerates unique ones via sshd-keygen.
   rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
   install_growroot
+  # Refresh the Fieldkit systemd units from the current repo: refresh builds run
+  # only sysprep (not the installer), so changed/new units must be reinstalled.
+  for unit in \
+    fieldkit-web.service fieldkit-startup-network.service \
+    fieldkit-startup-network.timer fieldkit-post-update.service \
+    fieldkit-server-sync.service fieldkit-server-sync.timer; do
+    [[ -f "${FIELDKIT_ROOT}/deploy/systemd/${unit}" ]] && \
+      install -D -m 0644 "${FIELDKIT_ROOT}/deploy/systemd/${unit}" "/etc/systemd/system/${unit}"
+  done
   enforce_image_state
   seed_nm_wired
   patch_boot_config
