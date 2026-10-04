@@ -1047,3 +1047,78 @@ def test_settings_validators_reject_injection():
         WifiConfig(password="short\nwpa=1")
     with pytest.raises(ValidationError):
         WifiConfig(country_code="USA")
+
+
+def test_upload_refuses_symlinked_target_and_leaves_no_temp(tmp_path):
+    import io
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    service = StorageService(settings)
+    lib = service.library_paths()["personal"]
+    lib.mkdir(parents=True, exist_ok=True)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("original", encoding="utf-8")
+    (lib / "evil.txt").symlink_to(outside)
+
+    with pytest.raises(FileExistsError):
+        service.save_upload("personal", "evil.txt", io.BytesIO(b"attacker"))
+
+    assert outside.read_text(encoding="utf-8") == "original"
+    assert list(lib.glob(".*upload*")) == []
+
+
+def test_upload_publishes_atomically_and_cleans_temp(tmp_path):
+    import io
+
+    settings = RuntimeSettings(content_root=tmp_path / "content", state_root=tmp_path / "state")
+    service = StorageService(settings)
+    target = service.save_upload("personal", "firmware.bin", io.BytesIO(b"payload"))
+
+    assert target.read_text(encoding="utf-8") == "payload"
+    assert list(target.parent.glob(".*upload*")) == []
+
+
+def test_transfer_apply_reconciles_enabled_services(monkeypatch):
+    service = TransferService()
+    settings = service._store.load()
+    settings.transfer_services.http_export_enabled = True
+    settings.transfer_services.ftp_enabled = True
+    settings.transfer_services.tftp_enabled = False
+    monkeypatch.setattr(service._store, "load", lambda: settings)
+    monkeypatch.setattr(service._runtime, "dry_run_transfer_changes", False)
+    monkeypatch.setattr(service._storage, "sync_export_tree", lambda: Path("/tmp/fieldkit"))
+    monkeypatch.setattr(service, "_http_export_status", lambda enabled: {"active": True, "enabled": True})
+
+    recorded: list[list[str]] = []
+
+    def fake_run(command, env=None):
+        recorded.append(list(command))
+        if command[-2] == "is-active":
+            return type("Result", (), {"ok": True, "stderr": "", "stdout": "inactive", "returncode": 0})()
+        if command[-2] == "is-enabled":
+            return type("Result", (), {"ok": True, "stderr": "", "stdout": "disabled", "returncode": 0})()
+        return type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})()
+
+    monkeypatch.setattr(service._runner, "run", fake_run)
+    monkeypatch.setattr(
+        service, "_apply_http_export",
+        lambda enabled: type("Result", (), {"ok": True, "stderr": "", "stdout": "", "returncode": 0})(),
+    )
+
+    result = service.apply_settings()
+
+    assert result.applied is True
+    # FTP was configured on and inactive (a change); the installer disables both,
+    # so vsftpd must be re-enabled and tftpd-hpa left disabled.
+    assert ["sudo", "-n", "systemctl", "enable", "--now", "vsftpd"] in recorded
+    assert ["sudo", "-n", "systemctl", "disable", "--now", "tftpd-hpa"] in recorded
+
+
+def test_network_preview_activates_ethernet_in_ap_mode(monkeypatch):
+    monkeypatch.setattr(network_service, "_resolve_ethernet_connection", lambda settings: "fieldkit-wired")
+    settings = AppSettingsPayload()
+    settings.wifi.mode = "ap"
+
+    commands = network_service._build_apply_commands(settings)
+
+    assert any("nmcli connection up fieldkit-wired" in command for command in commands)

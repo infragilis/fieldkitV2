@@ -1,6 +1,7 @@
 import os
 import shutil
 import stat
+import tempfile
 from pathlib import Path
 from typing import BinaryIO
 
@@ -173,10 +174,14 @@ class StorageService:
             raise FileExistsError(name)
         target.parent.mkdir(parents=True, exist_ok=True)
         free = shutil.disk_usage(target.parent).free
-        temp = target.parent / f".{name}.upload-{os.getpid()}"
+        # mkstemp gives a unique name and opens with O_EXCL (never follows a
+        # pre-planted symlink); publish with os.link so an existing target is
+        # never replaced (no TOCTOU overwrite).
+        fd, temp_name = tempfile.mkstemp(dir=str(target.parent), prefix=f".{name}.upload-", suffix=".tmp")
+        temp = Path(temp_name)
         written = 0
         try:
-            with temp.open("wb") as output:
+            with os.fdopen(fd, "wb") as output:
                 while True:
                     chunk = stream.read(1024 * 1024)
                     if not chunk:
@@ -187,10 +192,14 @@ class StorageService:
                     if written + 64 * 1024 * 1024 > free:
                         raise ValueError("Not enough disk space for this upload")
                     output.write(chunk)
-            os.replace(temp, target)
+                output.flush()
+                os.fsync(output.fileno())
+            try:
+                os.link(temp, target)
+            except FileExistsError:
+                raise FileExistsError(name)
         finally:
-            if temp.exists():
-                temp.unlink(missing_ok=True)
+            temp.unlink(missing_ok=True)
         if library in self.export_library_paths():
             self.sync_export_tree()
         return target

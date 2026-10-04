@@ -72,21 +72,20 @@ class TransferService:
                     "transfer support: "
                     + (install_result.stderr.strip() or install_result.stdout.strip() or "command failed")
                 )
-        if http_change:
+            # The installer disables tftpd-hpa and vsftpd; reconcile EVERY desired
+            # state afterwards so enabling one service never silently disables
+            # another that was already on.
             http_export_result = self._apply_http_export(configured.http_export_enabled)
             if http_export_result.ok:
                 notes.append(f"http export {'enabled' if configured.http_export_enabled else 'disabled'} on port 80.")
             else:
                 failures.append(f"http export: {http_export_result.stderr.strip() or http_export_result.stdout.strip() or 'command failed'}")
-        for unit, change in (("tftpd-hpa", tftp_change), ("vsftpd", ftp_change)):
-            if not change:
-                continue
-            enabled = unit == "tftpd-hpa" and configured.tftp_enabled or unit == "vsftpd" and configured.ftp_enabled
-            result = self._apply_unit(unit, enabled)
-            if result.ok:
-                notes.append(f"{unit} {'enabled' if enabled else 'disabled'}.")
-            else:
-                failures.append(f"{unit}: {result.stderr.strip() or result.stdout.strip() or 'command failed'}")
+            for unit, enabled in (("tftpd-hpa", configured.tftp_enabled), ("vsftpd", configured.ftp_enabled)):
+                result = self._apply_unit(unit, enabled)
+                if result.ok:
+                    notes.append(f"{unit} {'enabled' if enabled else 'disabled'}.")
+                else:
+                    failures.append(f"{unit}: {result.stderr.strip() or result.stdout.strip() or 'command failed'}")
 
         if not (tftp_change or ftp_change or http_change):
             notes.append("No transfer service state changes detected; nothing to apply.")

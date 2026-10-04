@@ -82,10 +82,9 @@ class NetworkService:
         ]
         for command in self._ethernet_commands(settings):
             commands.append(" ".join(command))
+        connection = self._resolve_ethernet_connection(settings)
+        commands.append(f"sudo -n nmcli connection up {connection}")
         commands.append(" ".join(self._wifi_apply_command(settings)))
-        if settings.wifi.mode != "ap":
-            connection = self._resolve_ethernet_connection(settings)
-            commands.append(f"sudo -n nmcli connection up {connection}")
         return commands
 
     def _execute_apply(self, settings: AppSettingsPayload) -> dict:
@@ -118,16 +117,18 @@ class NetworkService:
                 notes.append(result.stderr.strip() or f"Failed: {' '.join(command)}")
                 return {"applied": False, "notes": notes}
 
+        # Activate the Ethernet profile regardless of Wi-Fi mode: AP mode does
+        # not bring Ethernet up, so an Ethernet change would otherwise report
+        # success while the old configuration stayed active.
+        result = self._runner.run(["sudo", "-n", "nmcli", "connection", "up", connection])
+        if not result.ok:
+            notes.append(result.stderr.strip() or f"Failed: nmcli connection up {connection}")
+            return {"applied": False, "notes": notes}
+
         wifi_result = self._apply_wifi_mode(settings)
         if not wifi_result.ok:
             notes.append(wifi_result.stderr.strip() or wifi_result.stdout.strip() or "Failed to apply Wi-Fi mode.")
             return {"applied": False, "notes": notes}
-
-        if settings.wifi.mode != "ap":
-            result = self._runner.run(["sudo", "-n", "nmcli", "connection", "up", connection])
-            if not result.ok:
-                notes.append(result.stderr.strip() or f"Failed: nmcli connection up {connection}")
-                return {"applied": False, "notes": notes}
 
         notes.append("Network settings applied.")
         return {"applied": True, "notes": notes}
