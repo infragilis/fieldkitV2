@@ -16,3 +16,6 @@ bedrock/
 
 # Local operator/session notes
 SESSION_START.md
+
+# Built golden images (large artifacts; distributed via Spaces, not git)
+/images/
