@@ -42,7 +42,7 @@ Weitere Informationen: [Server Sync](docs/server-sync.md) und
 ## Hardware-Empfehlungen
 
 - Raspberry Pi 3 Model B oder neuer
-- Debian 13 (`trixie`) 64-Bit
+- Raspberry Pi OS Lite (Trixie, Debian 13) 64-Bit
 - Zwei USB-Seriell-Adapter oder Konsolenkabel fuer beide Ports
 - Ein USB-Stick fuer wechselbaren lokalen Speicher
 - Kabelgebundenes Ethernet fuer Einrichtung, Updates und AP-Tests empfohlen
@@ -94,7 +94,7 @@ Dieses Kennwort sollte bei jeder echten Bereitstellung sofort geaendert werden.
 ## Empfohlene Plattform
 
 - Raspberry Pi 3 Model B oder neuer
-- Debian 13 (`trixie`) 64-Bit
+- Raspberry Pi OS Lite (Trixie, Debian 13) 64-Bit
 - Python 3.13
 - NetworkManager
 - OpenSSH server

@@ -20,6 +20,9 @@ install -D -m 0644 deploy/systemd/fieldkit-startup-network.timer /etc/systemd/sy
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.service /etc/systemd/system/fieldkit-server-sync.service
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.timer /etc/systemd/system/fieldkit-server-sync.timer
 install -D -m 0644 deploy/systemd/fieldkit-post-update.service /etc/systemd/system/fieldkit-post-update.service
+install -D -m 0644 deploy/systemd/fieldkit-tls-cert.service /etc/systemd/system/fieldkit-tls-cert.service
+install -D -m 0644 deploy/systemd/nginx-fieldkit-tls.conf /etc/systemd/system/nginx.service.d/10-fieldkit-tls.conf
+install -D -m 0644 deploy/systemd/00-fieldkit.preset /etc/systemd/system-preset/00-fieldkit.preset
 install -D -m 0440 deploy/sudoers/fieldkit-update /etc/sudoers.d/fieldkit-update 2>/dev/null || true
 sed -i "s#/opt/fieldkit#${FIELDKIT_ROOT}#g" /etc/systemd/system/fieldkit-web.service
 sed -i "s#/opt/fieldkit#${FIELDKIT_ROOT}#g" /etc/systemd/system/fieldkit-startup-network.service
@@ -33,6 +36,8 @@ systemctl enable fieldkit-web.service
 # multi-user / the console / the web UI.
 systemctl enable fieldkit-startup-network.timer
 systemctl enable fieldkit-server-sync.timer
+# Generate the per-device self-signed TLS cert before nginx (see the unit).
+systemctl enable fieldkit-tls-cert.service
 # Ensure a getty on the HDMI/VT console so the keyboard works on first boot.
 systemctl enable getty@tty1.service 2>/dev/null || true
 

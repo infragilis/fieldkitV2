@@ -1,0 +1,49 @@
+# Fieldkit golden-image systemd preset.
+#
+# First boot applies systemd presets; the Raspberry Pi OS vendor preset
+# (90-systemd.preset) would re-enable units we deliberately turned off (for
+# example systemd-networkd). This file sorts first (00-) so its rules win, and
+# ends with `ignore *` so every unit we did not name keeps the exact offline
+# state the image shipped with.
+#
+# Order matters: the first matching line decides a unit, so the explicit rules
+# come first and the catch-all `ignore *` is last.
+#
+# Fieldkit mask <unit> is the stronger backstop for units that must never run
+# (hostapd, dnsmasq, cloud-init, userconfig, wait-online, ...); presets cannot
+# override a mask. This preset covers the units we only disable+enable.
+
+enable rpi-resize.service
+enable regenerate_ssh_host_keys.service
+enable sshd-keygen.service
+enable ssh.service
+enable NetworkManager.service
+enable wpa_supplicant.service
+enable avahi-daemon.service
+enable getty@tty1.service
+enable nginx.service
+enable fieldkit-web.service
+enable fieldkit-startup-network.timer
+enable fieldkit-server-sync.timer
+
+disable systemd-networkd.service
+disable systemd-networkd-wait-online.service
+disable NetworkManager-wait-online.service
+disable hostapd.service
+disable dnsmasq.service
+disable userconfig.service
+disable systemd-firstboot.service
+disable sshswitch.service
+disable rpi-eeprom-update.service
+disable e2scrub_reap.service
+disable e2scrub_all.timer
+disable cloud-init-local.service
+disable cloud-init-main.service
+disable cloud-init-network.service
+disable cloud-config.service
+disable cloud-final.service
+disable cloud-init-hotplugd.socket
+disable fieldkit-ap-hostapd.service
+disable fieldkit-ap-dnsmasq.service
+
+ignore *

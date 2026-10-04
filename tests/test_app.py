@@ -24,9 +24,16 @@ def test_default_settings_enable_fieldkit_access_point():
     assert wifi.password == "fieldkit"
 
 
+def test_default_settings_use_dhcp_ethernet():
+    assert AppSettingsPayload().ethernet.mode == "dhcp"
+
+
 def test_static_ethernet_apply_sets_address_and_mode_together(monkeypatch):
     monkeypatch.setattr(network_service, "_resolve_ethernet_connection", lambda settings: "netplan-eth0")
-    commands = network_service._ethernet_commands(AppSettingsPayload())
+    payload = AppSettingsPayload(
+        ethernet={"mode": "static", "address": "192.168.200.120/24", "interface": "eth0"}
+    )
+    commands = network_service._ethernet_commands(payload)
 
     assert len(commands) == 1
     command = commands[0]

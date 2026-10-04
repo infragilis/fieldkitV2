@@ -5,8 +5,10 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class EthernetConfig(BaseModel):
-    mode: Literal["static", "dhcp"] = "static"
-    address: str = "192.168.200.120/24"
+    # Appliance default is DHCP on first boot; a static address is opt-in from
+    # the Settings page (never applied automatically on a fresh kit).
+    mode: Literal["static", "dhcp"] = "dhcp"
+    address: str = ""
     gateway: str = ""
     dns: list[str] = Field(default_factory=list)
     interface: str = "eth0"

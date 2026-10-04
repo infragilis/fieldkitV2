@@ -2,39 +2,56 @@
 
 Builds the flash-and-go Fieldkit SD image served on the server `/get` page.
 The build runs on an x86_64 host (the `fieldkit-server` VM works well) — no
-Raspberry Pi is needed. The result is a shrunk, compressed
-`fieldkit-vX.Y.Z.img.xz` ready for Raspberry Pi Imager.
+Raspberry Pi is needed. The result is a compressed `fieldkit-vX.Y.Z.img.xz`
+ready for Raspberry Pi Imager.
+
+The production base is **Raspberry Pi OS Lite 64-bit (Trixie)**, which supports
+**Pi 3B/3B+/3A+, Pi 4, and Pi 5**. One image boots all three.
 
 ## Requirements (build host)
 
-- x86_64 Debian/Ubuntu with ~10 GB free disk, root access
-- `qemu-user-static parted e2fsprogs pv xz-utils curl git rsync gdisk`
+- x86_64 Debian/Ubuntu with ~20 GB free disk (the working image is 8 GiB), root
+  access
+- `qemu-user-static` (registered binfmt), `parted`, `e2fsprogs`, `xz-utils`,
+  `curl`, `rsync`, `sudo`, `util-linux` (`sfdisk`, `mountpoint`),
+  `initramfs-tools` (`lsinitramfs`), `zerofree`
+- `gdisk` is only needed for the legacy `debian-cloud` profile
 
 ## One-shot build
 
 ```bash
-sudo apt-get install -y qemu-user-static parted e2fsprogs pv xz-utils curl git rsync gdisk
+sudo apt-get install -y qemu-user-static parted e2fsprogs xz-utils curl rsync \
+  util-linux initramfs-tools zerofree gdisk
 sudo bash scripts/golden-image-build.sh
 ```
 
-The script downloads the official Debian 13 (trixie) arm64 Raspberry Pi image
-(`https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-raspi-arm64-daily.tar.xz`),
-grows it to 8 GiB, chroots in with qemu, runs the full Fieldkit installer with
-`START_SERVICES=0` (a systemctl/hostnamectl shim enables the units without
-starting them), saves a pre-sysprep snapshot (`installed.img`), then syspreps
-(password SSH, host keys regenerated on first boot, cloud-init disabled,
-logs/runtime cleared), shrinks the filesystem and partition, and compresses
-the image with `xz -T0 -6`. The first build takes roughly 30-60 minutes
-because the OS/package install runs under arm64 emulation.
+`update-initramfs -u -k all` must succeed inside the chroot (it is fatal), and
+free space is zeroed with `zerofree` on the unmounted filesystem so the
+fixed-size image compresses well. The `.xz` and its checksum are written to
+temporary names and renamed only after success.
 
-Shrink mechanics (shared with the refresh script): `resize2fs -M` shrinks the
-root filesystem to its minimum, then the GPT is rebuilt with `sgdisk -Z -o`
-instead of `parted resizepart` (script-mode parted refuses to shrink; the
-half-resized headers a failed run leaves behind would also block it). Both
-partitions are recreated with their original geometry, type GUIDs, and unique
-GUIDs (PARTUUIDs), because `/etc/fstab` mounts root and `/boot/firmware` by
-`PARTUUID=`. The stock hybrid MBR (FAT boot entry + 0xEE entries) is left
-intact. Output: a ~3.2 GiB image that compresses to roughly 650 MB.
+`BASE_PROFILE=rpi-os` is the default. The script:
+
+1. Downloads the pinned Raspberry Pi OS Lite image (immutable date-stamped URL),
+   verifies its SHA-256, `xz -t`, and decompresses it to a raw `.img`.
+2. Grows the working image to 8 GiB and expands the ext4 root (`p2`) so the
+   install has headroom. The base layout is **MBR (msdos)**: `p1` = FAT boot,
+   `p2` = ext4 root (PARTUUIDs `4d8fd085-01` / `-02`). The script asserts this
+   layout before touching it.
+3. Mounts root + boot, chroots in with qemu, and runs the Fieldkit installer
+   (`GOLDEN_MODE=install`) with `START_SERVICES=0`.
+4. Detaches the loop and saves a clean `installed.img` snapshot (plus
+   `installed.img.profile` / `installed.img.base-sha256` sidecars), then
+   re-attaches for sysprep (`GOLDEN_MODE=sysprep`).
+5. Zero-fills free space, runs the **strict offline audit**
+   (`scripts/golden-image-audit.sh`), and aborts on any mismatch.
+6. Keeps the fixed 8 GiB MBR image (no shrink — see below) and compresses it
+   with `xz -T0 -6`. The output is roughly 0.7–1.0 GB because the free space is
+   zeroed.
+
+`debian-cloud` remains available as an explicit non-default `BASE_PROFILE` for
+reference; it keeps the old GPT root `p1` / boot `p15` layout and the `sgdisk`
+shrink path.
 
 ## Fast refresh (small changes)
 
@@ -45,14 +62,60 @@ skip the emulated install entirely:
 sudo bash scripts/golden-refresh.sh
 ```
 
-The refresh copies the snapshot, rsyncs the changed repository files into it,
-re-runs `pip install -e` and sysprep, then shrinks and compresses. Typically
-5-15 minutes instead of an hour. For everyday iteration on a live kit, prefer
-copy-deploy (`docs/update-and-reload.md`) — seconds, no image involved. Only
-refresh the image when new kits need to ship with the changes.
+The refresh refuses to run unless `installed.img.profile` matches
+`BASE_PROFILE` and (for `rpi-os`) the saved base SHA matches, so a stale Debian
+snapshot cannot be silently refreshed as Raspberry Pi OS. It rsyncs the changed
+repository files, re-runs `pip install -e` and sysprep, runs the same strict
+audit, then compresses. Typically 5–15 minutes. For everyday iteration on a live
+kit, prefer copy-deploy (`docs/update-and-reload.md`); only refresh the image
+when new kits need to ship with the changes.
 
-Bump `IMAGE_NAME` in the scripts when the Fieldkit version changes; the image
-is built from `main` on GitHub, so push the release first.
+Bump `IMAGE_NAME` in the scripts when the Fieldkit version changes.
+
+## First boot (what the image relies on)
+
+- **Root grow**: Raspberry Pi OS ships `resize` in
+  `/boot/firmware/cmdline.txt`. The initramfs `resize_early` hook grows `p2` to
+  the card, then `rpi-resize.service` + `systemd-growfs-root.service` grow the
+  filesystem, and `rpi-resize.service` disables itself. The image therefore
+  ships fixed-size and grows to any card on first boot. Fieldkit's own
+  `fieldkit-growroot` is **not** installed on this profile.
+- **First boot marker**: `/etc/machine-id` ships as `uninitialized`, so
+  systemd's `ConditionFirstBoot=yes` units run exactly once. Sysprep forces this
+  value as its final identity step, and `regenerate_ssh_host_keys.service`
+  creates unique host keys before SSH starts.
+- **Network**: NetworkManager is the only manager (networkd and the
+  wait-online services are masked). A `fieldkit-wired` DHCP keyfile binds
+  `eth0`; the kernel interface names (`eth0`/`wlan0`) are preserved by the
+  Raspberry Pi OS link policy. The field Wi-Fi AP is brought up best-effort by
+  `fieldkit-startup-network.timer` (5 s after boot, non-blocking, retried on
+  failure) in `apply_wifi_mode.sh`; it can never hold up the console, SSH,
+  nginx, or the web UI. `hostapd`/`dnsmasq` (distro) are masked; Fieldkit uses
+  its own `fieldkit-ap-*` units, which are pinned disabled so first-boot
+  systemd presets cannot start them.
+- **Console**: `console=serial0,115200 console=tty1` and `enable_uart=1`
+  (appended under `[all]`).
+- **Cloud-init / interactive first-boot wizards**: cloud-init is disabled
+  (`.disabled` marker + masks); the user-rename dialog (`userconfig`), the
+  distro ssh-switch helper, and **`systemd-firstboot.service`** are masked. The
+  `machine-id` stays `uninitialized` on purpose (to trigger the native resize +
+  SSH keygen), which would otherwise run the interactive `systemd-firstboot`
+  wizard (locale/keymap/timezone/root password) on the console — it must never
+  prompt on a field kit. The `service` account is created by the installer.
+- **Presets**: `deploy/systemd/00-fieldkit.preset` sorts first and ends with
+  `ignore *`, so the vendor preset (`90-systemd.preset`) cannot re-enable
+  unwanted units on first boot.
+
+## Strict offline audit
+
+`scripts/golden-image-audit.sh` fails the build unless, from the mounted image:
+required units are enabled; unwanted units are disabled/masked; the MBR disk id
+and both PARTUUIDs are unchanged; `cmdline.txt` still has
+`console=serial0,115200`, `console=tty1`, the root PARTUUID, `rootwait`, and
+`resize`; `enable_uart=1` is under `[all]`; both initramfs images contain
+`resize_early`/`parted`/`lsblk`; `/etc/machine-id` is `uninitialized`;
+cloud-init is disabled; the wired DHCP keyfile is present and `0600`; the seeded
+`settings.json` defaults to AP; and `nginx -t` / `sshd -t` pass.
 
 ## Publish
 
@@ -65,68 +128,46 @@ from server import s3
 from server.config import Settings
 s = Settings.from_env()
 c = s3._client(s, s.s3_endpoint)
-for name in ("fieldkit-v0.2.1.img.xz", "fieldkit-v0.2.1.img.xz.sha256"):
+for name in ("fieldkit-v0.2.2.img.xz", "fieldkit-v0.2.2.img.xz.sha256"):
     c.upload_file(f"/opt/fieldkit-golden/{name}", "fieldkit", f"fieldkit/releases/{name}")
 PY
 ```
 
 The upload key is a limited-access Spaces key, which cannot apply bucket
 policies, so there is no public prefix: `/get` and the update-latest device
-route generate fresh **presigned URLs** on each request (24h for the image,
-6h for update bundles) and show the published SHA-256.
+route generate fresh **presigned URLs** on each request (24 h for the image,
+6 h for update bundles) and show the published SHA-256.
 
 The server's `/get` looks for a fixed object name — `GOLDEN_IMAGE_NAME` in
 `server/web.py`. Bump it to the new filename **together with** the image, or
 `/get` will keep pointing at the previous object.
 
+## Publish gate (hard requirement)
+
+A build is not publishable until a **fresh-flash** card has been booted on a
+real **Pi 3, Pi 4, and Pi 5**, each twice (first boot + one cold reboot), per
+`docs/golden-image-checklist.md`. The offline audit proves static coherence
+only; AP/regulatory behavior, HDMI/keyboard, and grow-on-real-card remain
+hardware-only checks.
+
 ## User steps (shown on /get)
 
 1. Download the image.
-2. Flash with Raspberry Pi Imager to a 64 GB+ microSD card.
-3. Boot the Pi, wait ~2 minutes.
+2. Flash with Raspberry Pi Imager to a 64 GB+ microSD card (use a fresh card).
+3. Boot the Pi, wait ~2 minutes (first boot grows the root partition).
 4. Connect via wired Ethernet (`http://fieldkit.local` / DHCP address) or the
    `fieldkit` AP (`http://10.42.0.1/`), log in `service`/`service`.
 5. Change the password, then paste the device token on Server Sync and pick a
    sync window.
 
-## Base image and Pi 5 (IMPORTANT)
-
-The current base is the **Debian 13 (trixie) "raspi" arm64 cloud image**, which
-supports **Pi 3 and Pi 4 only**. The reference/field kit is a **Pi 5**
-(`BCM2712`), so these images cannot be used on it (no network). **A build must
-support Pi 3, Pi 4, and Pi 5.**
-
-Chosen fix: rebase on **Raspberry Pi OS Lite 64-bit (Trixie)** (supports Pi
-3B/3B+/3A+, Pi 4, Pi 5). Required changes (see `SESSION_START.md` for detail):
-
-1. Download a direct `*.img.xz` (not a tar) and `xz -dc` it; add a base profile.
-2. Partition layout is **p1 = FAT boot, p2 = ext4 root** (Debian was root p1 /
-   boot p15); grow p2.
-3. Do **not** apply the Debian-specific `sgdisk -Z -o` p1/p15 shrink to the RPi
-   OS table initially — ship the 8-GiB working image; add a partition-aware
-   shrink only after Pi 3/4/5 boot is verified.
-4. Network: RPi OS uses `dhcpcd`; install/enable **NetworkManager** (Fieldkit
-   needs it), disable `dhcpcd`, keep the NM wired DHCP keyfile, mask distro
-   `hostapd`/`dnsmasq`.
-5. Re-verify `sshd-keygen`, `getty@tty1`, `console=tty1` +
-   `console=serial0,115200`, `enable_uart=1`, and the `enforce_image_state`
-   audit; then **boot-test on Pi 3, Pi 4, and Pi 5 before publishing.**
-
 ## Notes
 
-- The Debian cloud image covers Pi 3/4/5 (arm64); Pi 5 requires Debian 14, so
-  the trixie image targets Pi 3 and Pi 4.
 - Rebuild per release; the image is version-stamped by filename.
+- The image is built from `main` on GitHub, so push the release first.
+- Never publish a partial/aborted image.
 - Pi 3 boot media: the image uses the standard `/boot/firmware` layout and the
-  official kernel, matching the reference appliance.
-- First build on the VM succeeded 2026-09-12 (fixes: partition-number bug in
-  the old `parted resizepart 2`, start-offset arithmetic, script-mode parted
-  shrink refusal, stale GPT headers from a killed run).
-- The image ships with the root partition shrunk to ~2.75 GiB and the root
-  filesystem at its minimum (~2.5 GiB). `/etc/fstab` already carries
-  `x-systemd.growfs`, which grows the filesystem to the partition at mount;
-  the golden builder additionally installs `fieldkit-growroot.service`, which
-  on first boot grows the root **partition** to fill the boot media
-  (32/64/128 GB) and then the filesystem, then disarms itself by removing
-  `/etc/fieldkit-growroot`. It uses `growpart` + `sgdisk` (installed by the
-  golden installer) and is a no-op on already-full media.
+  official Raspberry Pi kernel (`kernel8.img` for Pi 3/4, `kernel_2712.img` for
+  Pi 5).
+- An MBR-safe shrink can be added after the Pi 3/4/5 matrix passes; until then
+  the fixed-size image is intentional. See the team analysis in
+  `/tmp/opencode/fieldkit-rpi-rebase-last.txt`.

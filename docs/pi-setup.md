@@ -5,7 +5,7 @@ This document describes how to prepare a fresh Raspberry Pi as a Fieldkit applia
 ## Minimum supported target
 
 - Raspberry Pi 3 Model B or newer
-- Debian 13 (`trixie`) 64-bit
+- Raspberry Pi OS Lite 64-bit (Trixie, Debian 13-based)
 - NetworkManager enabled
 - SSH access during setup
 
@@ -13,7 +13,7 @@ Reference baseline details are in [platform-baseline.md](platform-baseline.md).
 
 ## Standard install after cloning
 
-Start from a clean Debian 13 64-bit Raspberry Pi install with SSH enabled, internet access, and wired Ethernet available for recovery. Run these commands from the initial account created during OS setup.
+Start from a clean Raspberry Pi OS Lite 64-bit (Trixie) install with SSH enabled, internet access, and wired Ethernet available for recovery. Run these commands from the initial account created during OS setup.
 
 Install only what is needed to fetch the repo, then clone Fieldkit directly to the intended appliance root:
 
@@ -35,7 +35,7 @@ systemctl is-active nginx
 curl -fsS http://127.0.0.1/ >/dev/null && echo "Fieldkit web UI is available"
 ```
 
-Fieldkit serves the dashboard over plain HTTP only.
+Fieldkit serves the dashboard over HTTP (80) and self-signed HTTPS (443); there is no HTTP→HTTPS redirect.
 
 ## Fresh OS bootstrap helper
 
@@ -52,7 +52,7 @@ The bootstrap helper installs `git`, clones or updates `/opt/fieldkit` from `mai
 Default access after setup:
 
 - `http://fieldkit.local/`
-- `http://10.42.0.1/` when AP mode is enabled
+- `http://10.42.0.1/` or `https://10.42.0.1/` (self-signed) when AP mode is enabled
 
 Default credentials:
 
@@ -121,7 +121,7 @@ cd /opt/fieldkit
 sudo bash scripts/install_wifi_ap_support.sh
 ```
 
-Install or refresh nginx plain HTTP mode:
+Install or refresh the nginx HTTP + HTTPS mode:
 
 ```bash
 cd /opt/fieldkit

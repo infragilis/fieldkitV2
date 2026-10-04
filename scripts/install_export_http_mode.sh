@@ -12,6 +12,10 @@ if [[ "${MODE}" != "enable" && "${MODE}" != "disable" ]]; then
   exit 2
 fi
 
+# The nginx template has a 443 listener, so the self-signed cert must exist
+# before any `nginx -t`. Best-effort here; nginx -t is the real gate.
+bash "$(dirname -- "$0")/install_tls_cert.sh" >/dev/null 2>&1 || true
+
 BACKUP=$(mktemp)
 HAD_CONFIG=0
 if [[ -f /etc/nginx/sites-available/fieldkit ]]; then
@@ -58,4 +62,4 @@ fi
 systemctl enable nginx
 finish
 
-echo "Installed Fieldkit nginx plain HTTP mode."
+echo "Installed Fieldkit nginx (HTTP 80 + self-signed HTTPS 443)."

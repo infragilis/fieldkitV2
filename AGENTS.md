@@ -6,10 +6,11 @@ shell, appliance settings, and field reference docs.
 
 ## Operating Rules (non-negotiable)
 
-- The `service` and `fieldkit` default accounts documented in this repo are
-  intentional, low-sensitivity defaults for easy setup and quick deploy. Users
-  are expected to change them after first boot. Fieldkit's code carries no
-  secrets that require heavy security.
+- The `service`/`service` appliance OS account and the `fieldkit`/`fieldkit`
+  Wi-Fi AP credentials documented in this repo are intentional, low-sensitivity
+  defaults for easy setup and quick deploy. Users are expected to change them
+  after first boot. Fieldkit's code carries no secrets that require heavy
+  security.
 - Work may span the Fieldkit appliance repository and the private
   fieldkit-server repository when explicitly requested by the user.
 - Before working in either repository, read its own AGENTS.md and applicable
@@ -32,7 +33,10 @@ shell, appliance settings, and field reference docs.
   inventory, and non-default credentials — belong only in the private server
   repository and must never be committed to either repository. The private
   repository is an access-control boundary for operations, not for the
-  `service`/`fieldkit` default accounts.
+  `service`/`service` and `fieldkit`/`fieldkit` defaults.
+- The appliance must be self-contained: **no runtime fetches of third-party
+  assets.** All web assets (fonts, CSS, JS, images) are self-hosted under
+  `app/static/`, and the CSP allows only `'self'`.
 - Build, test, and run appliance code against the actual Fieldkit appliance,
   not the dev host. For server code, follow the server repository's own test
   and deployment instructions.

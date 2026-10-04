@@ -5,7 +5,7 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 ## Hardware baseline
 
 - [ ] Raspberry Pi 3 Model B or newer
-- [ ] 64-bit Debian 13 (`trixie`) installed
+- [ ] 64-bit Raspberry Pi OS Lite (Trixie, Debian 13-based) installed
 - [ ] Network connectivity available for package install and repo clone
 - [ ] Two USB serial adapters available for validation
 
@@ -53,6 +53,35 @@ Use this checklist when preparing a Raspberry Pi as a Fieldkit appliance for ano
 - [ ] `/pi-shell` renders as a working in-browser terminal
 - [ ] `/kit-docs` loads
 - [ ] Serial adapters are visible in the UI when attached
+
+## Golden image acceptance (fresh flash, Pi 3 / Pi 4 / Pi 5)
+
+Run the strict offline audit first (`scripts/golden-image-audit.sh` must pass).
+Then flash a **fresh card** per board and boot each board twice (first boot +
+one cold reboot). A publish is blocked unless all three pass both boots.
+
+Per board (within 180 s of first boot):
+
+- [ ] HDMI shows `fieldkit login:` and a USB keyboard works
+- [ ] `systemctl is-system-running --wait` reports `running`; `systemctl --failed` is empty
+- [ ] `ssh service@<eth-ip>` works with password `service`
+- [ ] `curl -fsS http://127.0.0.1/` returns the UI (nginx + `fieldkit-web` active)
+- [ ] Ethernet has a DHCP address on `eth0`
+- [ ] `fieldkit` AP is visible from an independent Wi-Fi client; client gets a
+      `10.42.0.10–150` lease and `curl -fsS http://10.42.0.1/` works
+- [ ] `iw dev wlan0 info` reports AP mode
+- [ ] Root partition/fs grew to fill the card (no ~10 MB+ free tail)
+- [ ] `rpi-resize.service` is `disabled` (it disarms itself)
+- [ ] `/etc/machine-id` is a 32-hex id; `ssh-keygen -lf` works
+
+Cold reboot each board:
+
+- [ ] machine-id and host-key fingerprint unchanged from first boot
+- [ ] Ethernet, SSH, nginx/web, and the AP all return
+- [ ] No resize or host-key generation repeats
+
+Record the machine-id and host-key fingerprint for each board; they must differ
+across the three boards.
 
 ## Handoff notes
 

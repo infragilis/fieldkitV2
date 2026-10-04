@@ -70,7 +70,7 @@ cd /opt/fieldkit
 sudo bash scripts/install_fieldkit.sh
 ```
 
-That single installer refreshes OS package prerequisites, runtime layout, the Python virtualenv, systemd units, transfer/AP support, nginx plain HTTP mode, and the running services.
+That single installer refreshes OS package prerequisites, runtime layout, the Python virtualenv, systemd units, transfer/AP support, nginx HTTP + HTTPS mode, and the running services.
 
 ## Reload the web service
 
@@ -177,7 +177,7 @@ This uploads a temporary file to `personal` and verifies:
 - Local operator notes such as `TODO.local.md` and `HANDOFF.md` should stay out of git and off the appliance.
 - The shared export tree is only for `data` and `personal`; `usb` is a copy destination, not an export source, and `serial-logs` remain GUI-only.
 - TFTP and FTP are toggle-controlled from the UI; SCP remains available through the normal SSH service without a separate toggle.
-- Plain HTTP is the appliance access path.
+- The appliance is reachable over plain HTTP (80) and self-signed HTTPS (443); no redirect.
 - Fieldkit AP mode now uses dedicated `hostapd` and AP-only `dnsmasq` units instead of a NetworkManager hotspot profile.
 - Keep a wired path available when testing AP mode changes.
 - The export tree is synced once at startup and on file mutations; it is no longer rescanned on every directory listing.

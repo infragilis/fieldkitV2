@@ -65,7 +65,14 @@ if ! id -u "${FIELDKIT_USER}" >/dev/null 2>&1; then
   useradd -m -s /bin/bash "${FIELDKIT_USER}"
 fi
 echo "${FIELDKIT_USER}:${FIELDKIT_PASS}" | chpasswd
-usermod -aG sudo,dialout,netdev,plugdev "${FIELDKIT_USER}" || true
+# Add the app user to the groups it needs. `video` (and `render`) are required
+# for `vcgencmd` on Raspberry Pi OS (/dev/vchiq is root:video); without them the
+# footer "input voltage" status reports unavailable.
+for grp in sudo dialout netdev plugdev video render gpio i2c; do
+  if getent group "${grp}" >/dev/null 2>&1; then
+    usermod -aG "${grp}" "${FIELDKIT_USER}" || true
+  fi
+done
 
 log "Preparing NetworkManager, SSH, and mDNS"
 systemctl enable ssh >/dev/null 2>&1 || systemctl enable sshd >/dev/null 2>&1 || true

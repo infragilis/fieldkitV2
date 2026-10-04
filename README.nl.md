@@ -43,7 +43,7 @@ Meer informatie: [Server Sync](docs/server-sync.md) en
 ## Hardwareaanbevelingen
 
 - Raspberry Pi 3 Model B of nieuwer
-- Debian 13 (`trixie`) 64-bit
+- Raspberry Pi OS Lite (Trixie, Debian 13) 64-bit
 - Twee USB-serieeladapters of consolekabels als je beide poorten wilt gebruiken
 - Een USB-stick als je verwisselbare lokale opslag wilt gebruiken
 - Bekabeld ethernet aanbevolen voor setup, updates en AP-tests
@@ -95,7 +95,7 @@ Wijzig dit direct op elke echte uitrol.
 ## Aanbevolen Platform
 
 - Raspberry Pi 3 Model B of nieuwer
-- Debian 13 (`trixie`) 64-bit
+- Raspberry Pi OS Lite (Trixie, Debian 13) 64-bit
 - Python 3.13
 - NetworkManager
 - OpenSSH server

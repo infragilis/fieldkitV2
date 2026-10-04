@@ -1,7 +1,7 @@
 # Fieldkit
 
 Fieldkit is a Raspberry Pi toolkit for field work on network equipment. It gives you a local web interface for console access, file handling, transfer services, and appliance management.
-Apple devices can reach the GUI at http://fieldkit.local/ while connected to the Fieldkit AP. Direct fallback: http://10.42.0.1/
+Apple devices can reach the GUI at http://fieldkit.local/ (or https://fieldkit.local/, self-signed) while connected to the Fieldkit AP. Direct fallback: http://10.42.0.1/
 
 Current appliance version: **v0.2.2**. Cluster Import and Server Sync are marked
 with amber **beta** badges in the menu.
@@ -22,7 +22,7 @@ with amber **beta** badges in the menu.
 ## Hardware Recommendations
 
 - Raspberry Pi 3 Model B or newer
-- 64-bit Debian 13 (`trixie`)
+- 64-bit Raspberry Pi OS Lite (Trixie, Debian 13-based)
 - Two USB serial adapters or console cables if you want to use both console ports
 - A USB flash drive if you want removable local storage on the kit
 - Wired Ethernet recommended for setup, updates, and AP cutover testing
@@ -100,22 +100,22 @@ Default appliance access credentials:
 
 When the appliance is in AP mode, clients can connect to the GUI at:
 
-- `http://10.42.0.1/`
-- `http://fieldkit.local/` on Bonjour-capable clients such as iPadOS and macOS
+- `http://10.42.0.1/` or `https://10.42.0.1/` (self-signed)
+- `http://fieldkit.local/` (or `https://fieldkit.local/`) on Bonjour-capable clients such as iPadOS and macOS
 
 Change this immediately on any real deployment.
 
 ## Recommended Platform
 
 - Raspberry Pi 3 Model B or newer
-- Debian 13 (`trixie`) 64-bit
+- Raspberry Pi OS Lite (Trixie, Debian 13-based) 64-bit
 - Python 3.13
 - NetworkManager
 - OpenSSH server
 
 ## Install On A Raspberry Pi
 
-Start from a clean Debian 13 64-bit Raspberry Pi install with SSH enabled, internet access, and wired Ethernet available for recovery. Run these commands from the initial account created during OS setup.
+Start from a clean Raspberry Pi OS Lite 64-bit (Trixie) install with SSH enabled, internet access, and wired Ethernet available for recovery. Run these commands from the initial account created during OS setup.
 
 ```bash
 sudo apt-get update
@@ -125,7 +125,7 @@ cd /opt/fieldkit
 sudo bash scripts/install_fieldkit.sh
 ```
 
-The clone command explicitly installs the current `main` branch. The installer configures the `service` user, Python environment, systemd units, nginx plain HTTP dashboard, transfer services, Wi-Fi AP support, and runtime directories.
+The clone command explicitly installs the current `main` branch. The installer configures the `service` user, Python environment, systemd units, the nginx HTTP + HTTPS dashboard, transfer services, Wi-Fi AP support, and runtime directories.
 
 Verify the appliance locally before disconnecting the wired connection:
 
@@ -138,7 +138,7 @@ curl -fsS http://127.0.0.1/ >/dev/null && echo "Fieldkit web UI is available"
 Default access after setup:
 
 - `http://fieldkit.local/`
-- `http://10.42.0.1/` when AP mode is enabled
+- `http://10.42.0.1/` or `https://10.42.0.1/` (self-signed) when AP mode is enabled
 
 Default bootstrap credentials are `service` / `service`. The Fieldkit Wi-Fi AP starts automatically with SSID `fieldkit` and password `fieldkit`.
 

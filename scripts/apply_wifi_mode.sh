@@ -23,7 +23,6 @@ AP_DHCP_START=${AP_DHCP_START:-10.42.0.10}
 AP_DHCP_END=${AP_DHCP_END:-10.42.0.150}
 AP_CHANNEL=${AP_CHANNEL:-6}
 AP_CONFIG_DIR=${AP_CONFIG_DIR:-/etc/fieldkit/ap}
-RESTORE_DNSMASQ=${RESTORE_DNSMASQ:-1}
 
 if [[ ${EUID} -ne 0 ]]; then
   echo "Run as root."
@@ -54,7 +53,9 @@ ssid=${WIFI_SSID}
 hw_mode=g
 channel=${AP_CHANNEL}
 ieee80211d=1
-wmm_enabled=0
+ieee80211n=1
+ht_capab=[HT20][SHORT-GI-20]
+wmm_enabled=1
 auth_algs=1
 ignore_broadcast_ssid=0
 wpa=2
@@ -122,18 +123,27 @@ clear_ap_link() {
   ip link set "${WIFI_INTERFACE}" down || true
 }
 
-restart_system_dnsmasq_if_needed() {
-  if [[ ${RESTORE_DNSMASQ} == "1" ]] && systemctl list-unit-files dnsmasq.service >/dev/null 2>&1; then
-    systemctl start dnsmasq >/dev/null 2>&1 || true
-  fi
-}
-
 start_ap_mode() {
   ensure_ap_configs
+  # Best-effort radio prep: unblock Wi-Fi and wait (bounded) for the interface
+  # to appear instead of failing immediately on a slow boot.
+  if command -v rfkill >/dev/null 2>&1; then
+    rfkill unblock wifi >/dev/null 2>&1 || true
+  fi
+  for _ in $(seq 1 10); do
+    [[ -e "/sys/class/net/${WIFI_INTERFACE}" ]] && break
+    sleep 1
+  done
   systemctl stop dnsmasq >/dev/null 2>&1 || true
   take_networkmanager_offline
   configure_ap_link
-  systemctl enable fieldkit-ap-dnsmasq fieldkit-ap-hostapd >/dev/null 2>&1 || true
+  # brcmfmac enables Wi-Fi power save by default, which makes the onboard AP
+  # flaky and hard to discover (dropped beacons). Force it off while hosting.
+  if command -v iw >/dev/null 2>&1; then
+    iw dev "${WIFI_INTERFACE}" set power_save off >/dev/null 2>&1 || true
+  fi
+  # Do NOT enable the AP units: they are pinned disabled so first-boot systemd
+  # presets cannot start them; restart runs them now without changing state.
   systemctl restart fieldkit-ap-dnsmasq
   systemctl restart fieldkit-ap-hostapd
   sleep 2
@@ -147,7 +157,6 @@ start_client_mode() {
   stop_ap_services
   clear_ap_link
   restore_networkmanager_control
-  restart_system_dnsmasq_if_needed
   nmcli radio wifi on >/dev/null 2>&1 || true
   ip link set "${WIFI_INTERFACE}" up >/dev/null 2>&1 || true
   if [[ -n ${CLIENT_SSID} ]]; then
@@ -167,7 +176,6 @@ start_disabled_mode() {
   stop_ap_services
   clear_ap_link
   restore_networkmanager_control
-  restart_system_dnsmasq_if_needed
   nmcli device disconnect "${WIFI_INTERFACE}" >/dev/null 2>&1 || true
   ip link set "${WIFI_INTERFACE}" down >/dev/null 2>&1 || true
   echo "Wi-Fi disabled on ${WIFI_INTERFACE}."

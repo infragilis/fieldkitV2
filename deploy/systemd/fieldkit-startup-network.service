@@ -5,9 +5,16 @@ Description=Fieldkit Startup Network Apply
 # bring-up can never block the console, sshd, nginx, or the web UI.
 After=multi-user.target NetworkManager.service
 Wants=NetworkManager.service
+# Allow a few post-boot attempts, but bound them: each attempt may take up to
+# TimeoutStartSec (120 s) plus RestartSec, and 5 attempts must fit the interval
+# or systemd would restart forever.
+StartLimitIntervalSec=900
+StartLimitBurst=5
 
 [Service]
 Type=oneshot
 TimeoutStartSec=120
-ExecStart=-/bin/bash /opt/fieldkit/scripts/apply_startup_network_mode.sh
+ExecStart=/bin/bash /opt/fieldkit/scripts/apply_startup_network_mode.sh
+Restart=on-failure
+RestartSec=5
 RemainAfterExit=yes

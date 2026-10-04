@@ -1,7 +1,9 @@
 [Unit]
 Description=Start a Fieldkit server content sync
-After=network-online.target fieldkit-web.service
-Wants=network-online.target
+# The timer waits 10 minutes after boot, so the sync does not need to gate on
+# network-online (which is masked in the golden image); the local curl call has
+# its own timeout.
+After=fieldkit-web.service
 Requires=fieldkit-web.service
 
 [Service]

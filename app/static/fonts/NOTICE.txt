@@ -1,0 +1,17 @@
+Self-hosted webfonts
+====================
+
+app/static/fonts/*.woff2 are vendored builds of the following typefaces,
+served locally by the Fieldkit appliance so no third-party font service is
+contacted at runtime:
+
+- Inter (weights 400-700) — SIL Open Font License 1.1
+- Space Grotesk (weights 600-700) — SIL Open Font License 1.1
+- JetBrains Mono (weights 400-600) — SIL Open Font License 1.1
+
+Each is licensed under the SIL Open Font License, Version 1.1:
+https://scripts.sil.org/OFL
+
+They were fetched once from Google Fonts (which only redistributes the original
+OFL-licensed projects) and committed here. See app/static/fonts.css for the
+@font-face rules.

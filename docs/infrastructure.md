@@ -37,7 +37,7 @@ here or in any tracked file.
 ## Network
 
 - AP gateway: `http://10.42.0.1/` (and `http://fieldkit.local/` on Bonjour clients)
-- Static eth0 default: `192.168.200.120/24` (also the smoke-test default host)
+- First-boot Ethernet: **DHCP** via NetworkManager (`fieldkit-wired`); a static address (e.g. `192.168.200.120/24`) is opt-in from Settings and is never applied on a fresh kit
 - Live appliance IP is DHCP and changes — confirm via UniFi (hostname `fieldkit`); current value in `HANDOFF.md`
 
 ## Storage & Runtime (appliance)
@@ -63,7 +63,7 @@ here or in any tracked file.
 
 ## Secrets
 
-- The `service` / `fieldkit` default accounts are intentional, low-sensitivity defaults for easy setup and quick deploy; users change them after first boot. They are documented on purpose and are not secrets.
+- The `service`/`service` appliance OS account and the `fieldkit`/`fieldkit` Wi-Fi AP credentials are intentional, low-sensitivity defaults for easy setup and quick deploy; users change them after first boot. They are documented on purpose and are not secrets.
 - There is no Bitwarden Secrets Manager (BSM) for this project — do not reference or rely on it.
 - Genuine secrets — the server VM address, Cloudflare identifiers, deployment inventory, and non-default credentials — belong only in the private server repository and must never be committed to either repository. The private repo is an access-control boundary for operations, not for the `service`/`fieldkit` accounts.
 - Do not store genuine secret values anywhere in this repository.

@@ -43,7 +43,7 @@ Details : [Server Sync](docs/server-sync.md) et
 ## Recommandations Materielles
 
 - Raspberry Pi 3 Model B ou plus recent
-- Debian 13 (`trixie`) 64 bits
+- Raspberry Pi OS Lite (Trixie, Debian 13) 64 bits
 - Deux adaptateurs USB serie ou cables console si vous voulez utiliser les deux ports
 - Une cle USB si vous voulez du stockage amovible sur le kit
 - Ethernet filaire recommande pour l'installation, les mises a jour et les tests AP
@@ -95,7 +95,7 @@ Changez-le immediatement sur tout deploiement reel.
 ## Plateforme Recommandee
 
 - Raspberry Pi 3 Model B ou plus recent
-- Debian 13 (`trixie`) 64 bits
+- Raspberry Pi OS Lite (Trixie, Debian 13) 64 bits
 - Python 3.13
 - NetworkManager
 - OpenSSH server

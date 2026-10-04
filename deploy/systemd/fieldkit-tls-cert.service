@@ -1,0 +1,14 @@
+[Unit]
+Description=Fieldkit self-signed TLS certificate
+Documentation=file:///opt/fieldkit/docs/update-and-reload.md
+# Generate the per-device cert before nginx starts. Skip if one already exists.
+Before=nginx.service
+ConditionPathExists=!/etc/nginx/ssl/fieldkit.crt
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/fieldkit/scripts/install_tls_cert.sh
+
+[Install]
+WantedBy=multi-user.target

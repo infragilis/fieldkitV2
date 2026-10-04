@@ -43,7 +43,7 @@ Mas informacion: [Server Sync](docs/server-sync.md) y
 ## Recomendaciones De Hardware
 
 - Raspberry Pi 3 Model B o superior
-- Debian 13 (`trixie`) de 64 bits
+- Raspberry Pi OS Lite (Trixie, Debian 13) de 64 bits
 - Dos adaptadores USB serie o cables de consola si quiere usar ambos puertos
 - Una memoria USB si quiere almacenamiento removible en el kit
 - Ethernet cableado recomendado para instalacion, actualizaciones y pruebas del modo AP
@@ -95,7 +95,7 @@ Cambielo inmediatamente en cualquier despliegue real.
 ## Plataforma Recomendada
 
 - Raspberry Pi 3 Model B o superior
-- Debian 13 (`trixie`) de 64 bits
+- Raspberry Pi OS Lite (Trixie, Debian 13) de 64 bits
 - Python 3.13
 - NetworkManager
 - OpenSSH server
