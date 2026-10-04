@@ -135,6 +135,8 @@ chmod 0600 "${REQUEST_FILE}" 2>/dev/null || true
 chmod 0600 "${MARKER}" 2>/dev/null || true
 install -o root -g root -m 0644 \
   "${FIELDKIT_ROOT}/deploy/systemd/fieldkit-post-update.service" /etc/systemd/system/ 2>/dev/null || true
+install -o root -g root -m 0644 \
+  "${FIELDKIT_ROOT}/deploy/systemd/fieldkit-rollback.service" /etc/systemd/system/ 2>/dev/null || true
 systemctl daemon-reload 2>/dev/null || true
 systemctl reset-failed fieldkit-post-update.service 2>/dev/null || true
 if ! systemctl start --no-block fieldkit-post-update.service 2>/dev/null; then

@@ -96,15 +96,30 @@ def update_status() -> dict:
 
 @router.post("/update/rollback", status_code=202)
 def update_rollback() -> dict:
-    """Restore the most recent pre-update backup (run as root via sudo)."""
+    """Restore the most recent pre-update backup via its own systemd unit.
+
+    The rollback stops fieldkit-web to restore files, so it must NOT run in
+    fieldkit-web's process group/cgroup. It is launched as the dedicated
+    fieldkit-rollback.service unit (see deploy/systemd/) and the sudoers policy
+    allows the web account to start that unit.
+    """
     if not ROLLBACK_SCRIPT.is_file():
         raise HTTPException(status_code=501, detail="Rollback script not installed")
     try:
-        subprocess.Popen(
-            ["sudo", "/bin/bash", str(ROLLBACK_SCRIPT)],
+        subprocess.run(
+            ["sudo", "/usr/bin/systemctl", "reset-failed", "fieldkit-rollback.service"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            start_new_session=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    try:
+        subprocess.Popen(
+            ["sudo", "/usr/bin/systemctl", "start", "--no-block", "fieldkit-rollback.service"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"Could not start the rollback: {exc}") from exc

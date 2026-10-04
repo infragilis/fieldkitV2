@@ -73,11 +73,9 @@ else
 fi
 
 if [[ "${extracted}" == "1" ]]; then
-  # Restart from a transient unit so a restart does not kill this script's cgroup.
-  if ! systemd-run --collect --no-block --unit="fieldkit-post-rollback-$$" \
-       systemctl restart fieldkit-web.service 2>/dev/null; then
-    systemctl restart fieldkit-web.service 2>/dev/null || true
-  fi
+  # This script runs in its own fieldkit-rollback.service cgroup, so restarting
+  # the web service here cannot terminate the rollback.
+  systemctl restart fieldkit-web.service 2>/dev/null || true
   ensure_running >/dev/null 2>&1 || true
   if systemctl is-active --quiet fieldkit-web.service; then
     record rolled-back "manual rollback from ${LATEST}"

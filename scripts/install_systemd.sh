@@ -20,6 +20,7 @@ install -D -m 0644 deploy/systemd/fieldkit-startup-network.timer /etc/systemd/sy
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.service /etc/systemd/system/fieldkit-server-sync.service
 install -D -m 0644 deploy/systemd/fieldkit-server-sync.timer /etc/systemd/system/fieldkit-server-sync.timer
 install -D -m 0644 deploy/systemd/fieldkit-post-update.service /etc/systemd/system/fieldkit-post-update.service
+install -D -m 0644 deploy/systemd/fieldkit-rollback.service /etc/systemd/system/fieldkit-rollback.service
 install -D -m 0644 deploy/systemd/fieldkit-tls-cert.service /etc/systemd/system/fieldkit-tls-cert.service
 install -D -m 0644 deploy/systemd/nginx-fieldkit-tls.conf /etc/systemd/system/nginx.service.d/10-fieldkit-tls.conf
 install -D -m 0644 deploy/systemd/00-fieldkit.preset /etc/systemd/system-preset/00-fieldkit.preset

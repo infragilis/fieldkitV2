@@ -1,2 +1,5 @@
 service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/update_appliance.sh *
-service ALL=(root) NOPASSWD: /bin/bash /opt/fieldkit/scripts/rollback_appliance.sh
+# Manual rollback runs as its own systemd unit so stopping fieldkit-web cannot
+# kill the rollback process (the script is no longer invoked directly here).
+service ALL=(root) NOPASSWD: /usr/bin/systemctl start --no-block fieldkit-rollback.service
+service ALL=(root) NOPASSWD: /usr/bin/systemctl reset-failed fieldkit-rollback.service

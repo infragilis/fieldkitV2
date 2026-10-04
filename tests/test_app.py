@@ -378,6 +378,23 @@ def test_update_rollback_reports_not_installed(monkeypatch, tmp_path):
     assert response.status_code == 501
 
 
+def test_update_rollback_runs_in_its_own_unit(monkeypatch, tmp_path):
+    from app.api.routes import updates as updates_module
+
+    script = tmp_path / "rollback_appliance.sh"
+    script.write_text("#!/bin/bash\n", encoding="utf-8")
+    monkeypatch.setattr(updates_module, "ROLLBACK_SCRIPT", script)
+    calls = []
+    monkeypatch.setattr(updates_module.subprocess, "run", lambda *a, **k: calls.append(a[0]))
+    monkeypatch.setattr(updates_module.subprocess, "Popen", lambda *a, **k: calls.append(a[0]))
+
+    response = client.post("/api/system/update/rollback")
+    assert response.status_code == 202
+    # The rollback must run outside fieldkit-web's cgroup, via its own unit, or
+    # stopping the web service would kill the rollback mid-flight.
+    assert ["sudo", "/usr/bin/systemctl", "start", "--no-block", "fieldkit-rollback.service"] in calls
+
+
 def test_first_boot_defaults_to_ap_and_seeds_settings():
     startup = Path("scripts/apply_startup_network_mode.sh").read_text(encoding="utf-8")
     sysprep = Path("scripts/golden-chroot-install.sh").read_text(encoding="utf-8")

@@ -232,7 +232,7 @@ sysprep() {
     fieldkit-startup-network.timer fieldkit-post-update.service \
     fieldkit-server-sync.service fieldkit-server-sync.timer \
     fieldkit-ap-hostapd.service fieldkit-ap-dnsmasq.service \
-    fieldkit-tls-cert.service; do
+    fieldkit-tls-cert.service fieldkit-rollback.service; do
     if [[ ! -f "${FIELDKIT_ROOT}/deploy/systemd/${unit}" ]]; then
       echo "missing required unit file: ${unit}"
       exit 1

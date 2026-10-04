@@ -139,6 +139,9 @@ if [[ "${PROFILE}" == "rpi-os" ]]; then
 
   expect_disabled e2scrub_all.timer
 
+  note "rollback runs as its own unit"
+  [[ -f "${M}/etc/systemd/system/fieldkit-rollback.service" ]] || fail "fieldkit-rollback.service not installed"
+
   note "no Fieldkit growroot (native RPi resize is authoritative)"
   [[ ! -e "${M}/etc/fieldkit-growroot" ]] || fail "/etc/fieldkit-growroot must not be armed"
   [[ ! -e "${M}/etc/systemd/system/fieldkit-growroot.service" ]] || fail "fieldkit-growroot.service must not be installed"

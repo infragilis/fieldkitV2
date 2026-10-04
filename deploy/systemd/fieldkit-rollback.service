@@ -1,0 +1,13 @@
+[Unit]
+Description=Fieldkit manual update rollback
+Documentation=file:///opt/fieldkit/docs/update-and-reload.md
+# Runs in its own cgroup. The web API starts this unit instead of running the
+# rollback script inside fieldkit-web's process group, because the rollback
+# stops fieldkit-web to restore files — which would otherwise terminate the
+# rollback itself and could leave the web service down.
+After=network.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=300
+ExecStart=/bin/bash /opt/fieldkit/scripts/rollback_appliance.sh
