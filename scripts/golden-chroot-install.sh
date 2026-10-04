@@ -279,6 +279,13 @@ sysprep() {
   rm -f /root/.bash_history /home/service/.bash_history 2>/dev/null || true
   rm -rf "${FIELDKIT_ROOT}/runtime/content"/* "${FIELDKIT_ROOT}/runtime/state"/* 2>/dev/null || true
 
+  # Re-assert the groups the app user needs (vcgencmd/input voltage, serial,
+  # networking): refresh builds run only sysprep, so they never re-run the
+  # installer's usermod. Idempotent.
+  for grp in sudo dialout netdev plugdev video render gpio i2c; do
+    getent group "${grp}" >/dev/null 2>&1 && usermod -aG "${grp}" service || true
+  done
+
   # Recreate the runtime layout owned by the web account. The cleanup above
   # removes the data/personal/usb/export dirs, and a refresh `rsync -a` can
   # stamp the tree with the builder's uid, so re-assert ownership and rebuild
