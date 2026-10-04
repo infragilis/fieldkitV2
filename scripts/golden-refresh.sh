@@ -16,7 +16,7 @@ set -euo pipefail
 
 WORKDIR=${WORKDIR:-/opt/fieldkit-golden}
 BASE_PROFILE=${BASE_PROFILE:-rpi-os}
-IMAGE_NAME=${IMAGE_NAME:-fieldkit-v0.2.2.img}
+IMAGE_NAME=${IMAGE_NAME:-fieldkit-v0.2.3.img}
 LOCAL_CHECKOUT=${LOCAL_CHECKOUT:-/opt/fieldkit-golden-builder}
 FIELDKIT_BRANCH=${FIELDKIT_BRANCH:-main}
 

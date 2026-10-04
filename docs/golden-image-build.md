@@ -131,7 +131,7 @@ from server import s3
 from server.config import Settings
 s = Settings.from_env()
 c = s3._client(s, s.s3_endpoint)
-for name in ("fieldkit-v0.2.2.img.xz", "fieldkit-v0.2.2.img.xz.sha256"):
+for name in ("fieldkit-v0.2.3.img.xz", "fieldkit-v0.2.3.img.xz.sha256"):
     c.upload_file(f"/opt/fieldkit-golden/{name}", "fieldkit", f"fieldkit/releases/{name}")
 PY
 ```

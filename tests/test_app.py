@@ -213,7 +213,7 @@ def test_tools_page_includes_subnet_calculator():
     assert response.status_code == 200
     assert "Subnet Calculator" in response.text
     assert 'id="subnet-form"' in response.text
-    assert "/static/app.js?v=ui-0.2.2-20261003e" in response.text
+    assert "/static/app.js?v=ui-0.2.3-20261005" in response.text
 
 
 def test_subnet_calculator_has_supported_language_strings():

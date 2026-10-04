@@ -68,7 +68,7 @@ ensure_running() {
 healthy() {
   local body
   body="$(curl -fsS --max-time 5 "${HEALTH_URL}" 2>/dev/null || true)"
-  # Starlette emits compact JSON ("version":"0.2.2"); allow optional whitespace.
+  # Starlette emits compact JSON ("version":"0.2.3"); allow optional whitespace.
   [ -n "${body}" ] && printf '%s' "${body}" | grep -Eq '"version"[[:space:]]*:[[:space:]]*"'"${VERSION}"'"'
 }
 
