@@ -55,9 +55,13 @@ The `/etc/hosts` entry was also updated so `fieldkit` resolves locally without s
 Fieldkit should assume this minimum software platform:
 
 - Debian 13 (`trixie`) or a newer compatible Debian-based release
+  (the reference base is Raspberry Pi OS Lite 64-bit Trixie)
 - Python 3.13 available from the system package manager
 - NetworkManager and `nmcli` available and used as the primary network control plane
+  (Ethernet is DHCP on first boot; a static address is opt-in)
 - OpenSSH server available for remote maintenance
+- Self-contained: **no third-party runtime fetches** — all web assets (fonts,
+  CSS, JS, images) are self-hosted and the CSP allows only `'self'`
 
 These packages should be considered required for the first supported Fieldkit appliance build:
 

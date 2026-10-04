@@ -115,7 +115,10 @@ and both PARTUUIDs are unchanged; `cmdline.txt` still has
 `resize`; `enable_uart=1` is under `[all]`; both initramfs images contain
 `resize_early`/`parted`/`lsblk`; `/etc/machine-id` is `uninitialized`;
 cloud-init is disabled; the wired DHCP keyfile is present and `0600`; the seeded
-`settings.json` defaults to AP; and `nginx -t` / `sshd -t` pass.
+`settings.json` defaults to AP; the `service` account is in the `video` group
+(vcgencmd); all web assets are self-hosted (no `fonts.googleapis.com`/
+`fonts.gstatic.com`, `app/static/fonts.css` + woff2 present); the nginx config
+serves HTTP 80 **and** self-signed HTTPS 443; and `nginx -t` / `sshd -t` pass.
 
 ## Publish
 
