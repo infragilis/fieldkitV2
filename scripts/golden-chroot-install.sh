@@ -168,6 +168,18 @@ EOF
   chmod 0600 /etc/NetworkManager/system-connections/fieldkit-wired.nmconnection
 }
 
+seed_nginx_config() {
+  # Refresh builds never re-run the installer, so re-seed the nginx site from
+  # the repo (HTTP 80 + self-signed HTTPS 443). The per-device TLS key is
+  # generated on first boot by fieldkit-tls-cert.service.
+  local conf=/etc/nginx/sites-available/fieldkit
+  [[ -f "${FIELDKIT_ROOT}/deploy/nginx/fieldkit.conf" ]] || return 0
+  install -D -m 0644 "${FIELDKIT_ROOT}/deploy/nginx/fieldkit.conf" "${conf}"
+  mkdir -p /etc/nginx/sites-enabled
+  ln -sf "${conf}" /etc/nginx/sites-enabled/fieldkit
+  rm -f /etc/nginx/sites-enabled/default
+}
+
 patch_boot_config() {
   if [[ "${BASE_PROFILE}" == "rpi-os" ]]; then
     patch_boot_config_rpi
@@ -248,6 +260,7 @@ sysprep() {
 
   enforce_image_state
   seed_nm_wired
+  seed_nginx_config
   patch_boot_config
 
   if [[ "${BASE_PROFILE}" == "rpi-os" ]]; then
