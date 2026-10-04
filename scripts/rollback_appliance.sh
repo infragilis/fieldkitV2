@@ -59,7 +59,12 @@ systemctl stop fieldkit-web.service 2>/dev/null || true
 extracted=0
 if tar xzf "${LATEST}" -C "${FIELDKIT_ROOT}"; then
   extracted=1
-  chown -R service:service "${FIELDKIT_ROOT}/app" 2>/dev/null || true
+  # Restore the deployed /etc configuration captured alongside the backup.
+  if [[ -f "${LATEST%.tgz}.etc.tgz" ]]; then
+    tar xzf "${LATEST%.tgz}.etc.tgz" -C / 2>/dev/null || true
+    systemctl daemon-reload 2>/dev/null || true
+  fi
+  chown -R service:service "${FIELDKIT_ROOT}/app" "${FIELDKIT_ROOT}/docs" 2>/dev/null || true
   chown -R root:root "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy" 2>/dev/null || true
   chmod 0755 "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy" 2>/dev/null || true
   chmod 0755 "${FIELDKIT_ROOT}/scripts/"*.sh 2>/dev/null || true

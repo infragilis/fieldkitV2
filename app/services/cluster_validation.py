@@ -4,7 +4,6 @@ import ipaddress
 import re
 
 from app.core.models import (
-    CellLocation,
     ClusterConfig,
     ClusterSource,
     FieldIssue,

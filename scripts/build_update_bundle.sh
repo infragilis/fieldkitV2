@@ -3,7 +3,7 @@
 #
 # Usage: build_update_bundle.sh <version> [--publish-command "..."]
 #
-# Produces dist/fieldkit-update-<version>.tgz (app/, scripts/, deploy/ only —
+# Produces dist/fieldkit-update-<version>.tgz (app/, scripts/, deploy/, docs/ —
 # no runtime, venv, tests, or knowledge files) plus dist/fieldkit-update-latest.json
 # with the version, SHA-256, public URL and publish time.
 set -euo pipefail
@@ -31,12 +31,13 @@ BUNDLE_PATH="${DIST}/${BUNDLE}"
 PUBLIC_URL="${PUBLIC_URL:-https://fieldkit.nyc3.digitaloceanspaces.com/fieldkit/releases/${BUNDLE}}"
 
 # pyproject.toml + READMEs ship too: the appliance reads its version from
-# /opt/fieldkit/pyproject.toml, and the READMEs are served by /readme.
+# /opt/fieldkit/pyproject.toml, and the READMEs are served by /readme. docs/ is
+# read at runtime by docs_catalog (kit docs); app/static/vendor/ (xterm) is
+# included so terminal asset changes can ship.
 tar czf "${BUNDLE_PATH}" \
-  --exclude='app/static/vendor' \
   --exclude='*/__pycache__' \
   --exclude='app/*.egg-info' \
-  -C "${ROOT}" app scripts deploy pyproject.toml \
+  -C "${ROOT}" app scripts deploy docs pyproject.toml \
   README.md README.es.md README.de.md README.nl.md README.fr.md
 
 SHA256="$(sha256sum "${BUNDLE_PATH}" | cut -d' ' -f1)"

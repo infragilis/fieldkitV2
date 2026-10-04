@@ -236,9 +236,17 @@ class ServerSyncService:
     def _check_disk_space(self, entries: list[dict], plan: dict[str, str]) -> None:
         """Refuse to start when the library plus its export mirror cannot fit.
 
-        Runs after pruning, so a tightened server-side sync window can free
-        space and let the next sync recover a full kit.
+        Runs after pruning AND export reconciliation, so a tightened server-side
+        sync window can free space (both the library file and its export link)
+        and let the next sync recover a full kit. The export mirror hardlinks
+        library files on the same filesystem, so mirror bytes are only counted
+        when the export tree lives on a different device (copy fallback).
         """
+        anchor = self._storage.library_paths()["data"]
+        try:
+            hardlinked = os.stat(anchor).st_dev == os.stat(self._storage.export_root()).st_dev
+        except OSError:
+            hardlinked = False
         library_needed = 0
         mirror_needed = 0
         largest = 0
@@ -250,11 +258,10 @@ class ServerSyncService:
             mirror = self._mirror_target(entry)
             if mirror is None or not mirror.is_file() or mirror.stat().st_size != size:
                 mirror_needed += size
-        base = library_needed + mirror_needed + largest
+        base = library_needed + largest + (0 if hardlinked else mirror_needed)
         if base == 0:
             return
         required = base + DISK_MARGIN_BYTES
-        anchor = self._storage.library_paths()["data"]
         free = shutil.disk_usage(anchor.parent).free
         if free < required:
             raise ValueError(
@@ -338,6 +345,10 @@ class ServerSyncService:
             }
             if prune:
                 self._prune_stale_data_files(manifest_data_paths, managed)
+            # Reconcile the export mirror BEFORE measuring free space: stale
+            # export hardlinks share bytes with pruned library files, so they
+            # must be released first or a sync that would fit is refused.
+            self._storage.sync_export_tree()
             plan = self._plan_entries(entries)
             self._save_hash_cache()
             self._check_disk_space(entries, plan)

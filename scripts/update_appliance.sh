@@ -3,10 +3,12 @@
 #
 # Usage: update_appliance.sh <version> <url> <sha256>
 #
-# Downloads the update bundle, verifies its SHA-256, backs up the current
-# app/scripts/deploy trees, extracts the new files, and restarts the web
-# service. Safe to re-run; a failed download or checksum leaves the running
-# appliance untouched.
+# Downloads the bundle, verifies its SHA-256, backs up the current install (and
+# the deployed /etc configuration), STAGES the bundle, applies it with
+# restore-on-failure, reapplies the deployed systemd/nginx/sudoers config, and
+# restarts the web service via the persistent health-check unit. Safe to re-run;
+# a failed download, checksum, extraction, or apply leaves the appliance on the
+# previous version.
 set -euo pipefail
 
 FIELDKIT_ROOT=${FIELDKIT_ROOT:-/opt/fieldkit}
@@ -37,14 +39,16 @@ fi
 STATE_DIR="${FIELDKIT_ROOT}/runtime/state"
 STATE_FILE="${STATE_DIR}/update-state.json"
 LOCK_FILE="${STATE_DIR}/update.lock"
+BACKUP_DIR="${BACKUP_DIR:-/root/fieldkit-backups}"
 
-mkdir -p "${STATE_DIR}"
+mkdir -p "${STATE_DIR}" "${BACKUP_DIR}"
 exec 9>"${LOCK_FILE}"
 if ! flock -n 9; then
   echo "An update is already in progress." >&2
   exit 1
 fi
 BUNDLE="${STATE_DIR}/fieldkit-update-${VERSION}.tgz"
+STAGING="${STATE_DIR}/update-staging-${VERSION}"
 
 STARTED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
@@ -54,6 +58,26 @@ record_state() {
   printf '{"status": "%s", "version": "%s", "detail": "%s", "started_at": "%s", "finished_at": "%s"}\n' \
     "${status}" "${VERSION}" "${detail}" "${STARTED}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${STATE_FILE}"
   chown service:service "${STATE_FILE}" 2>/dev/null || true
+}
+
+# Restore the install (and the /etc configuration) from a pre-update backup.
+restore_backup() {
+  local tgz=$1
+  echo "Restoring ${tgz}" >&2
+  tar xzf "${tgz}" -C "${FIELDKIT_ROOT}" 2>/dev/null || true
+  if [[ -f "${tgz%.tgz}.etc.tgz" ]]; then
+    tar xzf "${tgz%.tgz}.etc.tgz" -C / 2>/dev/null || true
+  fi
+  chown -R service:service "${FIELDKIT_ROOT}/app" "${FIELDKIT_ROOT}/docs" 2>/dev/null || true
+  chown -R root:root "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy" 2>/dev/null || true
+  systemctl daemon-reload 2>/dev/null || true
+}
+
+abort_with_restore() {
+  local backup=$1 detail=$2
+  restore_backup "${backup}"
+  record_state failed "${detail}"
+  exit 1
 }
 
 # Make sure any unexpected exit leaves a visible failed state.
@@ -71,37 +95,96 @@ echo "${SHA256}  ${BUNDLE}" | sha256sum -c - || {
 }
 record_state verified "checksum ok"
 
-echo "Backing up current install"
-BACKUP_DIR="/root/fieldkit-backups"
-mkdir -p "${BACKUP_DIR}"
+echo "Backing up current install and configuration"
 BACKUP_TGZ="${BACKUP_DIR}/fieldkit-update-pre-${VERSION}-$(date -u +%Y%m%dT%H%M%SZ).tgz"
-# A usable rollback archive is required: refuse to proceed without one.
-if ! tar czf "${BACKUP_TGZ}" -C "${FIELDKIT_ROOT}" app scripts deploy pyproject.toml \
+# A usable rollback archive is required: refuse to proceed without one. docs is
+# included because the appliance reads docs/kits at runtime.
+if ! tar czf "${BACKUP_TGZ}" -C "${FIELDKIT_ROOT}" app scripts deploy docs pyproject.toml \
      README.md README.es.md README.de.md README.nl.md README.fr.md 2>/dev/null; then
   rm -f "${BACKUP_TGZ}"
   record_state failed "could not create the pre-update backup"
   exit 1
 fi
+# Also capture the deployed /etc configuration so rollback can restore it.
+BACKUP_ETC_TGZ="${BACKUP_TGZ%.tgz}.etc.tgz"
+etcfiles=()
+for f in etc/nginx/sites-available/fieldkit etc/nginx/sites-enabled/fieldkit \
+         etc/systemd/system-preset/00-fieldkit.preset \
+         etc/sudoers.d/fieldkit-network etc/sudoers.d/fieldkit-transfer etc/sudoers.d/fieldkit-update; do
+  [[ -e "/${f}" ]] && etcfiles+=("${f}")
+done
+if compgen -G "/etc/systemd/system/fieldkit-*" >/dev/null; then
+  while IFS= read -r line; do etcfiles+=("${line#/}"); done < <(ls -1 /etc/systemd/system/fieldkit-* 2>/dev/null)
+fi
+if [[ ${#etcfiles[@]} -gt 0 ]]; then
+  tar czf "${BACKUP_ETC_TGZ}" -C / "${etcfiles[@]}" 2>/dev/null || rm -f "${BACKUP_ETC_TGZ}"
+fi
 record_state backed-up "backup at ${BACKUP_TGZ}"
 
-echo "Extracting update"
+echo "Staging update"
+rm -rf "${STAGING}"
+mkdir -p "${STAGING}"
 if tar tzf "${BUNDLE}" | grep -qE '(^/|(^|/)\.\.(/|$))'; then
   echo "Refusing update: archive contains unsafe paths" >&2
+  rm -rf "${STAGING}"
   record_state failed "unsafe archive paths"
   exit 1
 fi
-tar xzf "${BUNDLE}" -C "${FIELDKIT_ROOT}"
-# App code stays service-owned; root-executed helpers and their assets must not
-# be writable by the web account.
-chown -R service:service "${FIELDKIT_ROOT}/app"
+if ! tar xzf "${BUNDLE}" -C "${STAGING}"; then
+  rm -rf "${STAGING}" "${BUNDLE}"
+  record_state failed "could not extract the bundle"
+  exit 1
+fi
+rm -f "${BUNDLE}"
+record_state applying "staged"
+
+# Apply from the validated staging tree, restoring the backup on any failure.
+for d in app scripts deploy docs; do
+  [[ -d "${STAGING}/${d}" ]] || abort_with_restore "${BACKUP_TGZ}" "bundle missing ${d}"
+done
+for d in app scripts deploy docs; do
+  rsync -a --delete --no-owner --no-group "${STAGING}/${d}/" "${FIELDKIT_ROOT}/${d}/" \
+    || abort_with_restore "${BACKUP_TGZ}" "failed to apply ${d}"
+done
+for f in pyproject.toml README.md README.es.md README.de.md README.nl.md README.fr.md; do
+  [[ -f "${STAGING}/${f}" ]] && cp -a "${STAGING}/${f}" "${FIELDKIT_ROOT}/${f}"
+done
+rm -rf "${STAGING}"
+
+# App code and docs stay service-owned; root-executed helpers and their assets
+# must not be writable by the web account.
+chown -R service:service "${FIELDKIT_ROOT}/app" "${FIELDKIT_ROOT}/docs"
 chown -R root:root "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy"
 chmod 0755 "${FIELDKIT_ROOT}/scripts" "${FIELDKIT_ROOT}/deploy"
 chmod 0755 "${FIELDKIT_ROOT}/scripts/"*.sh 2>/dev/null || true
+
+echo "Applying deployed configuration"
+# systemd units + preset (idempotent).
+for unit in "${FIELDKIT_ROOT}"/deploy/systemd/*.service "${FIELDKIT_ROOT}"/deploy/systemd/*.timer; do
+  [[ -f "${unit}" ]] || continue
+  install -o root -g root -m 0644 "${unit}" /etc/systemd/system/
+done
+install -D -o root -g root -m 0644 \
+  "${FIELDKIT_ROOT}/deploy/systemd/00-fieldkit.preset" /etc/systemd/system-preset/00-fieldkit.preset 2>/dev/null || true
+# sudoers.
 install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-network" /etc/sudoers.d/fieldkit-network 2>/dev/null || true
 install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-transfer" /etc/sudoers.d/fieldkit-transfer 2>/dev/null || true
 install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-update" /etc/sudoers.d/fieldkit-update 2>/dev/null || true
-rm -f "${BUNDLE}"
-record_state applying "files extracted"
+# nginx site (ensure the TLS cert exists first so `nginx -t` validates the 443
+# listener), then reload only if the config is valid.
+if [[ -f "${FIELDKIT_ROOT}/deploy/nginx/fieldkit.conf" ]] && command -v nginx >/dev/null 2>&1; then
+  [[ -x "${FIELDKIT_ROOT}/scripts/install_tls_cert.sh" ]] && \
+    bash "${FIELDKIT_ROOT}/scripts/install_tls_cert.sh" >/dev/null 2>&1 || true
+  install -D -o root -g root -m 0644 "${FIELDKIT_ROOT}/deploy/nginx/fieldkit.conf" /etc/nginx/sites-available/fieldkit
+  ln -sf /etc/nginx/sites-available/fieldkit /etc/nginx/sites-enabled/fieldkit
+  if nginx -t >/dev/null 2>&1; then
+    systemctl reload nginx 2>/dev/null || systemctl restart nginx 2>/dev/null || true
+  else
+    echo "nginx config check failed; leaving the running config in place" >&2
+  fi
+fi
+systemctl daemon-reload 2>/dev/null || true
+systemctl enable fieldkit-tls-cert.service 2>/dev/null || true
 
 # Refresh the editable install so version/dependency metadata matches the
 # bundle. Offline-safe: with a bundled wheels/ dir pip installs deps from it;
@@ -118,13 +201,14 @@ if [[ -x "${PIP}" ]]; then
       || echo "pip editable install failed" >&2
   fi
 fi
+record_state applying "files and configuration applied"
 
 echo "Restarting web service with health check"
 # Start a PERSISTENT unit (not systemd-run): it is not tied to this script's
 # cgroup, so it survives the restart and is reliable even if systemd-run is
 # unavailable. The unit reads the request file left below.
-REQUEST_FILE="/root/fieldkit-backups/.post-update-request.json"
-MARKER="/root/fieldkit-backups/.update-in-progress"
+REQUEST_FILE="${BACKUP_DIR}/.post-update-request.json"
+MARKER="${BACKUP_DIR}/.update-in-progress"
 umask 077
 printf '{"version": "%s", "backup": "%s", "started_at": "%s"}\n' \
   "${VERSION}" "${BACKUP_TGZ}" "${STARTED}" > "${REQUEST_FILE}"

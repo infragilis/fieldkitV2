@@ -736,8 +736,11 @@ def test_disk_check_refuses_sync_without_space(monkeypatch, tmp_path):
         assert "Data page" in str(exc)
 
 
-def test_disk_check_requires_mirror_space_for_present_files(monkeypatch, tmp_path):
-    content = b"present but unmirrored"
+def test_disk_check_does_not_double_count_hardlinked_mirror(monkeypatch, tmp_path):
+    # A present library file whose export copy is created as a hardlink on the
+    # same filesystem needs no extra space, so a starved free-space reading must
+    # not refuse an otherwise-complete sync.
+    content = b"present and hardlink-mirrored"
     sha = hashlib.sha256(content).hexdigest()
     service, current = _prune_service(monkeypatch, tmp_path, False, [])
     first = entry(sha, "data/ontap/present.bin", content)
@@ -747,11 +750,11 @@ def test_disk_check_requires_mirror_space_for_present_files(monkeypatch, tmp_pat
     current["manifest"] = {"manifest_version": 1, "files": [first]}
     _patch_free(monkeypatch, 1024)
 
-    try:
-        service.sync()
-        assert False, "expected disk space refusal for missing mirror copy"
-    except ValueError as exc:
-        assert "Not enough disk space" in str(exc)
+    result = service.sync()
+
+    assert result["counts"]["failed"] == 0
+    mirror = service._storage.export_root() / "data" / "ontap" / "present.bin"
+    assert mirror.is_file()
 
 
 def test_disk_check_lets_prune_recover_a_full_kit(monkeypatch, tmp_path):
