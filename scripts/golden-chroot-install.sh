@@ -244,7 +244,8 @@ sysprep() {
     fieldkit-startup-network.timer fieldkit-post-update.service \
     fieldkit-server-sync.service fieldkit-server-sync.timer \
     fieldkit-ap-hostapd.service fieldkit-ap-dnsmasq.service \
-    fieldkit-tls-cert.service fieldkit-rollback.service; do
+    fieldkit-tls-cert.service fieldkit-rollback.service \
+    fieldkit-usb-mount@.service; do
     if [[ ! -f "${FIELDKIT_ROOT}/deploy/systemd/${unit}" ]]; then
       echo "missing required unit file: ${unit}"
       exit 1
@@ -253,6 +254,9 @@ sysprep() {
   done
   install -D -m 0644 "${FIELDKIT_ROOT}/deploy/systemd/nginx-fieldkit-tls.conf" \
     /etc/systemd/system/nginx.service.d/10-fieldkit-tls.conf
+  # USB automount rule (refresh builds run only sysprep, so install it here too).
+  install -D -m 0644 "${FIELDKIT_ROOT}/deploy/udev/99-fieldkit-usb.rules" \
+    /etc/udev/rules.d/99-fieldkit-usb.rules
 
   # Pin the intended unit state against first-boot systemd presets.
   install -D -m 0644 "${FIELDKIT_ROOT}/deploy/systemd/00-fieldkit.preset" \

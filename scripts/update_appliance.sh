@@ -166,6 +166,9 @@ for unit in "${FIELDKIT_ROOT}"/deploy/systemd/*.service "${FIELDKIT_ROOT}"/deplo
 done
 install -D -o root -g root -m 0644 \
   "${FIELDKIT_ROOT}/deploy/systemd/00-fieldkit.preset" /etc/systemd/system-preset/00-fieldkit.preset 2>/dev/null || true
+# USB automount rule (starts the fieldkit-usb-mount@.service template above).
+install -D -o root -g root -m 0644 \
+  "${FIELDKIT_ROOT}/deploy/udev/99-fieldkit-usb.rules" /etc/udev/rules.d/99-fieldkit-usb.rules 2>/dev/null || true
 # sudoers.
 install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-network" /etc/sudoers.d/fieldkit-network 2>/dev/null || true
 install -o root -g root -m 0440 "${FIELDKIT_ROOT}/deploy/sudoers/fieldkit-transfer" /etc/sudoers.d/fieldkit-transfer 2>/dev/null || true
@@ -185,6 +188,8 @@ if [[ -f "${FIELDKIT_ROOT}/deploy/nginx/fieldkit.conf" ]] && command -v nginx >/
 fi
 systemctl daemon-reload 2>/dev/null || true
 systemctl enable fieldkit-tls-cert.service 2>/dev/null || true
+udevadm control --reload-rules 2>/dev/null || true
+udevadm trigger --subsystem-match=block --action=add 2>/dev/null || true
 
 # Refresh the editable install so version/dependency metadata matches the
 # bundle. Offline-safe: with a bundled wheels/ dir pip installs deps from it;

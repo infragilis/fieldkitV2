@@ -142,6 +142,11 @@ if [[ "${PROFILE}" == "rpi-os" ]]; then
   note "rollback runs as its own unit"
   [[ -f "${M}/etc/systemd/system/fieldkit-rollback.service" ]] || fail "fieldkit-rollback.service not installed"
 
+  note "USB automount present (copy-to-USB)"
+  [[ -f "${M}/etc/udev/rules.d/99-fieldkit-usb.rules" ]] || fail "99-fieldkit-usb.rules not installed"
+  [[ -f "${M}/etc/systemd/system/fieldkit-usb-mount@.service" ]] || fail "fieldkit-usb-mount@.service not installed"
+  [[ -x "${M}/opt/fieldkit/scripts/fieldkit-usb.sh" ]] || fail "scripts/fieldkit-usb.sh missing or not executable"
+
   note "no Fieldkit growroot (native RPi resize is authoritative)"
   [[ ! -e "${M}/etc/fieldkit-growroot" ]] || fail "/etc/fieldkit-growroot must not be armed"
   [[ ! -e "${M}/etc/systemd/system/fieldkit-growroot.service" ]] || fail "fieldkit-growroot.service must not be installed"

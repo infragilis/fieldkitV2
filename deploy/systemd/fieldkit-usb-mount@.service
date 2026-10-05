@@ -1,0 +1,13 @@
+[Unit]
+Description=Fieldkit mount of removable media /dev/%I under /media
+Documentation=https://github.com/infragilis/fieldkitV2
+BindsTo=dev-%i.device
+After=dev-%i.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/fieldkit/scripts/fieldkit-usb.sh mount %i
+ExecStop=/opt/fieldkit/scripts/fieldkit-usb.sh umount %i
+TimeoutStartSec=30
+TimeoutStopSec=20
