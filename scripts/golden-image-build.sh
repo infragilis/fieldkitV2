@@ -17,7 +17,7 @@ set -euo pipefail
 WORKDIR=${WORKDIR:-/opt/fieldkit-golden}
 BASE_PROFILE=${BASE_PROFILE:-rpi-os}
 IMAGE_NAME=${IMAGE_NAME:-fieldkit-v0.2.4.img}
-REPO_CHECKOUT=${REPO_CHECKOUT:-/home/user/fieldkit}
+REPO_CHECKOUT=${REPO_CHECKOUT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
 LOCAL_CHECKOUT=${LOCAL_CHECKOUT:-/opt/fieldkit-golden-builder}
 BASE_SIZE=${BASE_SIZE:-8G}
 
