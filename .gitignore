@@ -19,3 +19,6 @@ SESSION_START.md
 
 # Built golden images (large artifacts; distributed via Spaces, not git)
 /images/
+
+# Update bundles (built artifacts)
+/dist/
