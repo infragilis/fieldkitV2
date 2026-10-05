@@ -9,8 +9,8 @@ contacted at runtime:
 - Space Grotesk (weights 600-700) — SIL Open Font License 1.1
 - JetBrains Mono (weights 400-600) — SIL Open Font License 1.1
 
-Each is licensed under the SIL Open Font License, Version 1.1:
-https://scripts.sil.org/OFL
+Each is licensed under the SIL Open Font License, Version 1.1, reproduced in
+full in OFL.txt (see https://scripts.sil.org/OFL for the canonical text and FAQ).
 
 They were fetched once from Google Fonts (which only redistributes the original
 OFL-licensed projects) and committed here. See app/static/fonts.css for the
